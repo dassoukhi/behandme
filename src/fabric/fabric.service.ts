@@ -10,6 +10,8 @@ export class FabricService implements OnModuleInit {
   private gateway: Gateway;
   private network: Network;
   private wallet: Wallet;
+  private contract: Contract;
+  private readonly contractName = 'user-transfer-basic';
 
   constructor(private configService: ConfigService) {}
 
@@ -104,4 +106,242 @@ export class FabricService implements OnModuleInit {
       this.logger.log('Fabric gateway disconnected');
     }
   }
+
+  // ===== GESTION DES UTILISATEURS =====
+
+  async createUser(id: string, firstName: string, lastName: string, email: string, phone: string, address: string): Promise<any> {
+    const contract = this.getContract(this.contractName);
+    try {
+      const result = await contract.submitTransaction('CreateUser', id, firstName, lastName, email, phone, address);
+      return JSON.parse(result.toString());
+    } catch (error) {
+      this.logger.error('Erreur lors de la création de l\'utilisateur', error);
+      throw error;
+    }
+  }
+
+  async readUser(id: string): Promise<any> {
+    const contract = this.getContract(this.contractName);
+    try {
+      const result = await contract.evaluateTransaction('ReadUser', id);
+      return JSON.parse(result.toString());
+    } catch (error) {
+      this.logger.error('Erreur lors de la lecture de l\'utilisateur', error);
+      throw error;
+    }
+  }
+
+  async updateUser(id: string, firstName: string, lastName: string, email: string, phone: string, address: string, status: string): Promise<any> {
+    const contract = this.getContract(this.contractName);
+    try {
+      const result = await contract.submitTransaction('UpdateUser', id, firstName, lastName, email, phone, address, status);
+      return JSON.parse(result.toString());
+    } catch (error) {
+      this.logger.error('Erreur lors de la mise à jour de l\'utilisateur', error);
+      throw error;
+    }
+  }
+
+  async deleteUser(id: string): Promise<void> {
+    const contract = this.getContract(this.contractName);
+    try {
+      await contract.submitTransaction('DeleteUser', id);
+    } catch (error) {
+      this.logger.error('Erreur lors de la suppression de l\'utilisateur', error);
+      throw error;
+    }
+  }
+
+  async getAllUsers(): Promise<any[]> {
+    const contract = this.getContract(this.contractName);
+    try {
+      const result = await contract.evaluateTransaction('GetAllUsers');
+      return JSON.parse(result.toString());
+    } catch (error) {
+      this.logger.error('Erreur lors de la récupération des utilisateurs', error);
+      throw error;
+    }
+  }
+
+  async getUsersByStatus(status: string): Promise<any[]> {
+    const contract = this.getContract(this.contractName);
+    try {
+      const result = await contract.evaluateTransaction('GetUsersByStatus', status);
+      return JSON.parse(result.toString());
+    } catch (error) {
+      this.logger.error('Erreur lors de la récupération des utilisateurs par statut', error);
+      throw error;
+    }
+  }
+
+  // ===== GESTION DES DOCUMENTS =====
+
+  async createDocument(id: string, title: string, type: string, content: string, owner: string, validator: string, accessor: string[], hash: string): Promise<any> {
+    const contract = this.getContract(this.contractName);
+    try {
+      const accessorJson = JSON.stringify(accessor);
+      const result = await contract.submitTransaction('CreateDocument', id, title, type, content, owner, validator, accessorJson, hash);
+      return JSON.parse(result.toString());
+    } catch (error) {
+      this.logger.error('Erreur lors de la création du document', error);
+      throw error;
+    }
+  }
+
+  async readDocument(id: string): Promise<any> {
+    const contract = this.getContract(this.contractName);
+    try {
+      const result = await contract.evaluateTransaction('ReadDocument', id);
+      return JSON.parse(result.toString());
+    } catch (error) {
+      this.logger.error('Erreur lors de la lecture du document', error);
+      throw error;
+    }
+  }
+
+  async updateDocument(id: string, title: string, type: string, content: string, validator: string, accessor: string[], status: string, hash: string): Promise<any> {
+    const contract = this.getContract(this.contractName);
+    try {
+      const accessorJson = JSON.stringify(accessor);
+      const result = await contract.submitTransaction('UpdateDocument', id, title, type, content, validator, accessorJson, status, hash);
+      return JSON.parse(result.toString());
+    } catch (error) {
+      this.logger.error('Erreur lors de la mise à jour du document', error);
+      throw error;
+    }
+  }
+
+  async deleteDocument(id: string): Promise<void> {
+    const contract = this.getContract(this.contractName);
+    try {
+      await contract.submitTransaction('DeleteDocument', id);
+    } catch (error) {
+      this.logger.error('Erreur lors de la suppression du document', error);
+      throw error;
+    }
+  }
+
+  async transferDocument(documentId: string, newOwner: string): Promise<any> {
+    const contract = this.getContract(this.contractName);
+    try {
+      const result = await contract.submitTransaction('TransferDocument', documentId, newOwner);
+      return JSON.parse(result.toString());
+    } catch (error) {
+      this.logger.error('Erreur lors du transfert du document', error);
+      throw error;
+    }
+  }
+
+  async getAllDocuments(): Promise<any[]> {
+    const contract = this.getContract(this.contractName);
+    try {
+      const result = await contract.evaluateTransaction('GetAllDocuments');
+      return JSON.parse(result.toString());
+    } catch (error) {
+      this.logger.error('Erreur lors de la récupération des documents', error);
+      throw error;
+    }
+  }
+
+  async getDocumentsByOwner(owner: string): Promise<any[]> {
+    const contract = this.getContract(this.contractName);
+    try {
+      const result = await contract.evaluateTransaction('GetDocumentsByOwner', owner);
+      return JSON.parse(result.toString());
+    } catch (error) {
+      this.logger.error('Erreur lors de la récupération des documents par propriétaire', error);
+      throw error;
+    }
+  }
+
+  async getDocumentsByType(type: string): Promise<any[]> {
+    const contract = this.getContract(this.contractName);
+    try {
+      const result = await contract.evaluateTransaction('GetDocumentsByType', type);
+      return JSON.parse(result.toString());
+    } catch (error) {
+      this.logger.error('Erreur lors de la récupération des documents par type', error);
+      throw error;
+    }
+  }
+
+  async getDocumentsByValidator(validator: string): Promise<any[]> {
+    const contract = this.getContract(this.contractName);
+    try {
+      const result = await contract.evaluateTransaction('GetDocumentsByValidator', validator);
+      return JSON.parse(result.toString());
+    } catch (error) {
+      this.logger.error('Erreur lors de la récupération des documents par validateur', error);
+      throw error;
+    }
+  }
+
+  async getDocumentsByAccessor(accessor: string): Promise<any[]> {
+    const contract = this.getContract(this.contractName);
+    try {
+      const result = await contract.evaluateTransaction('GetDocumentsByAccessor', accessor);
+      return JSON.parse(result.toString());
+    } catch (error) {
+      this.logger.error('Erreur lors de la récupération des documents par accessor', error);
+      throw error;
+    }
+  }
+
+  // ===== GESTION DES ACCÈS =====
+
+  async checkDocumentAccess(documentId: string, userId: string): Promise<any> {
+    const contract = this.getContract(this.contractName);
+    try {
+      const result = await contract.evaluateTransaction('CheckDocumentAccess', documentId, userId);
+      return JSON.parse(result.toString());
+    } catch (error) {
+      this.logger.error('Erreur lors de la vérification de l\'accès au document', error);
+      throw error;
+    }
+  }
+
+  async addAccessor(documentId: string, newAccessor: string): Promise<any> {
+    const contract = this.getContract(this.contractName);
+    try {
+      const result = await contract.submitTransaction('AddAccessor', documentId, newAccessor);
+      return JSON.parse(result.toString());
+    } catch (error) {
+      this.logger.error('Erreur lors de l\'ajout de l\'accessor', error);
+      throw error;
+    }
+  }
+
+  async removeAccessor(documentId: string, accessorToRemove: string): Promise<any> {
+    const contract = this.getContract(this.contractName);
+    try {
+      const result = await contract.submitTransaction('RemoveAccessor', documentId, accessorToRemove);
+      return JSON.parse(result.toString());
+    } catch (error) {
+      this.logger.error('Erreur lors de la suppression de l\'accessor', error);
+      throw error;
+    }
+  }
+
+  async changeValidator(documentId: string, newValidator: string): Promise<any> {
+    const contract = this.getContract(this.contractName);
+    try {
+      const result = await contract.submitTransaction('ChangeValidator', documentId, newValidator);
+      return JSON.parse(result.toString());
+    } catch (error) {
+      this.logger.error('Erreur lors du changement de validateur', error);
+      throw error;
+    }
+  }
+
+  async getHistory(id: string): Promise<any[]> {
+    const contract = this.getContract(this.contractName);
+    try {
+      const result = await contract.evaluateTransaction('GetHistory', id);
+      return JSON.parse(result.toString());
+    } catch (error) {
+      this.logger.error('Erreur lors de la récupération de l\'historique', error);
+      throw error;
+    }
+  }
+
 }

@@ -34,6 +34,10 @@ echo "📍 Test network: $TEST_NETWORK_DIR"
 # Naviguer vers le répertoire du réseau de test
 cd "$TEST_NETWORK_DIR"
 
+
+echo "📦 Déplacement du chaincode user..."
+cp -R ../../../chaincode/* ../asset-transfer-basic/chaincode-javascript-user
+
 echo "📋 Nettoyage des anciens conteneurs et volumes..."
 bash ./network.sh down
 
@@ -50,15 +54,10 @@ echo "✅ Réseau Fabric configuré avec succès!"
 echo ""
 echo "📊 Informations du réseau:"
 echo "- Canal: mychannel"
-echo "- Chaincode: basic"
+echo "- Chaincode: user"
 echo "- Organisations: Org1, Org2"
 echo ""
 echo "🔍 Vérification des conteneurs Docker:"
 docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -E "(peer|orderer|ca)"
-echo ""
-echo "🔗 Vous pouvez maintenant utiliser les endpoints API pour interagir avec la blockchain:"
-echo "- POST /api/v1/user-chaincode - Créer un utilisateur sur la blockchain"
-echo "- GET /api/v1/user-chaincode - Récupérer tous les utilisateur de la blockchain"
-echo "- GET /api/v1/user-chaincode/{id} - Récupérer un utilisateur spécifique depuis la blockchain"
 echo ""
 echo "📚 Documentation Swagger disponible sur: http://localhost:3000/api/docs"

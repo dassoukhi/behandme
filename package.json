@@ -18,7 +18,7 @@
     "fabric:down": "cd \"fabric-network/fabric-samples/test-network\" && ./network.sh down",
     "fabric:up": "cd \"fabric-network/fabric-samples/test-network\" && ./network.sh up createChannel -ca",
     "deploy:asset-chaincode": "./scripts/deploy-chaincode-generic.sh basic fabric-network/fabric-samples/asset-transfer-basic/chaincode-javascript node 1.0 1",
-    "deploy:user-chaincode": "./scripts/deploy-chaincode-generic.sh user-transfer-basic fabric-network/fabric-samples/asset-transfer-basic/chaincode-user-javascript node 1.0 1"
+    "deploy:user-chaincode": "./scripts/deploy-chaincode-generic.sh user-transfer-basic fabric-network/fabric-samples/asset-transfer-basic/chaincode-javascript-user node 1.0 1"
   },
   "dependencies": {
     "@hyperledger/fabric-gateway": "^1.7.1",

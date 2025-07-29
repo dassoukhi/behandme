@@ -62,7 +62,7 @@ npm run start:prod
 
 Once the application is running, you can access the Swagger documentation at:
 ```
-http://localhost:3000/api/docs
+http://localhost:3007/api/docs
 ```
 
 ## API Endpoints
@@ -79,28 +79,36 @@ http://localhost:3000/api/docs
 - `PATCH /api/v1/users/:id` - Update a user profile
 - `DELETE /api/v1/users/:id` - Delete a user profile
 
-### Fabric Blockchain
-- `POST /fabric/assets` - Create a new asset on blockchain
-- `GET /fabric/assets` - Get all assets from blockchain
-- `GET /fabric/assets/:id` - Get a specific asset by ID
-- `PUT /fabric/assets/:id` - Update an asset
-- `DELETE /fabric/assets/:id` - Delete an asset
-- `POST /fabric/assets/:id/transfer` - Transfer asset to new owner
-- `GET /fabric/assets/:id/exists` - Check if asset exists
 
 ## 🔗 Hyperledger Fabric Integration
 
 Ce projet inclut une intégration complète avec Hyperledger Fabric pour la gestion d'assets sur blockchain.
 
-### Configuration rapide du réseau Fabric
+### Mise en Place du Réseau Fabric
+
+Pour interagir avec la blockchain, vous devez d'abord télécharger les composants Hyperledger Fabric, puis démarrer le réseau de test.
+
+**Étape 1 : Télécharger les composants Fabric**
+
+Cette commande télécharge les binaires et les exemples de `fabric-samples` dans un répertoire `fabric-network/` qui est ignoré par Git.
+**Vous ne devez exécuter cette commande qu'une seule fois lors de la configuration initiale du projet.**
 
 ```bash
-# Configuration automatique du réseau Fabric
+bash scripts/download-fabric.sh
+```
+
+**Étape 2 : Démarrer le réseau et déployer le Chaincode**
+
+Une fois les composants téléchargés, ce script démarre le réseau Fabric, crée un canal et déploie le chaincode.
+
+```bash
+# Configurer et démarrer le réseau complet
 npm run fabric:setup
 
-# Démarrer l'application
-npm run start:dev
+npm run start
 ```
+
+Vous pouvez également utiliser les commandes npm correspondantes elles sont configurées dans votre `package.json`.
 
 ### Commandes Fabric disponibles
 
@@ -110,9 +118,6 @@ npm run fabric:setup
 
 # Démarrer uniquement le réseau
 npm run fabric:up
-
-# Déployer le chaincode
-npm run fabric:deploy
 
 # Arrêter le réseau
 npm run fabric:down

@@ -10,6 +10,7 @@ import { FabricModule } from './fabric/fabric.module';
 import { UserChaincodeModule } from './user-chaincode/user-chaincode.module';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { validate } from './common/validators/env.validator';
+import { DocumentController } from './documents/documents.controller';
 
 @Module({
   imports: [
@@ -24,7 +25,7 @@ import { validate } from './common/validators/env.validator';
     FabricModule,
     UserChaincodeModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, DocumentController],
   providers: [
     AppService,
     {
