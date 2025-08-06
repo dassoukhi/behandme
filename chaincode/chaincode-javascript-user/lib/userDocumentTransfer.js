@@ -18,34 +18,16 @@ class UserDocumentTransfer extends Contract {
         const users = [
             {
                 ID: 'user1',
-                FirstName: 'Jean',
-                LastName: 'Dupont',
-                Email: 'jean.dupont@email.com',
-                Phone: '+33123456789',
-                Address: '123 Rue de la Paix, Paris',
-                CreatedDate: '2024-01-15',
                 Status: 'active',
                 docType: 'user'
             },
             {
                 ID: 'user2',
-                FirstName: 'Marie',
-                LastName: 'Martin',
-                Email: 'marie.martin@email.com',
-                Phone: '+33987654321',
-                Address: '456 Avenue des Champs, Lyon',
-                CreatedDate: '2024-02-20',
                 Status: 'active',
                 docType: 'user'
             },
             {
                 ID: 'user3',
-                FirstName: 'Pierre',
-                LastName: 'Dubois',
-                Email: 'pierre.dubois@email.com',
-                Phone: '+33555666777',
-                Address: '789 Boulevard du Port, Marseille',
-                CreatedDate: '2024-03-10',
                 Status: 'inactive',
                 docType: 'user'
             }
@@ -110,7 +92,7 @@ class UserDocumentTransfer extends Contract {
     // ===== GESTION DES UTILISATEURS =====
 
     // Créer un nouvel utilisateur
-    async CreateUser(ctx, id, firstName, lastName, email, phone, address) {
+    async CreateUser(ctx, id) {
         const exists = await this.UserExists(ctx, id);
         if (exists) {
             throw new Error(`L'utilisateur ${id} existe déjà`);
@@ -118,11 +100,6 @@ class UserDocumentTransfer extends Contract {
 
         const user = {
             ID: id,
-            FirstName: firstName,
-            LastName: lastName,
-            Email: email,
-            Phone: phone,
-            Address: address,
             CreatedDate: new Date().toISOString().split('T')[0],
             Status: 'active',
             docType: 'user'
@@ -148,7 +125,7 @@ class UserDocumentTransfer extends Contract {
     }
 
     // Mettre à jour un utilisateur
-    async UpdateUser(ctx, id, firstName, lastName, email, phone, address, status) {
+    async UpdateUser(ctx, id, status) {
         const exists = await this.UserExists(ctx, id);
         if (!exists) {
             throw new Error(`L'utilisateur ${id} n'existe pas`);
@@ -159,11 +136,6 @@ class UserDocumentTransfer extends Contract {
 
         const updatedUser = {
             ID: id,
-            FirstName: firstName,
-            LastName: lastName,
-            Email: email,
-            Phone: phone,
-            Address: address,
             CreatedDate: user.CreatedDate,
             Status: status,
             docType: 'user'

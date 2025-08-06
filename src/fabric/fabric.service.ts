@@ -109,10 +109,10 @@ export class FabricService implements OnModuleInit {
 
   // ===== GESTION DES UTILISATEURS =====
 
-  async createUser(id: string, firstName: string, lastName: string, email: string, phone: string, address: string): Promise<any> {
+  async createUser(id: string): Promise<any> {
     const contract = this.getContract(this.contractName);
     try {
-      const result = await contract.submitTransaction('CreateUser', id, firstName, lastName, email, phone, address);
+      const result = await contract.submitTransaction('CreateUser', id);
       return JSON.parse(result.toString());
     } catch (error) {
       this.logger.error('Erreur lors de la création de l\'utilisateur', error);
@@ -131,10 +131,10 @@ export class FabricService implements OnModuleInit {
     }
   }
 
-  async updateUser(id: string, firstName: string, lastName: string, email: string, phone: string, address: string, status: string): Promise<any> {
+  async updateUser(id: string, status: string): Promise<any> {
     const contract = this.getContract(this.contractName);
     try {
-      const result = await contract.submitTransaction('UpdateUser', id, firstName, lastName, email, phone, address, status);
+      const result = await contract.submitTransaction('UpdateUser', id, status);
       return JSON.parse(result.toString());
     } catch (error) {
       this.logger.error('Erreur lors de la mise à jour de l\'utilisateur', error);

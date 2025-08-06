@@ -12,10 +12,7 @@ export class UserChaincodeService {
     return this.fabricService.submitTransaction(
       this.contractName,
       'CreateUser',
-      createUserDto.id,
-      createUserDto.username,
-      createUserDto.email,
-      createUserDto.role,
+      createUserDto.id
     );
   }
 

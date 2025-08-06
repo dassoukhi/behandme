@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -11,6 +11,9 @@ import { UserChaincodeModule } from './user-chaincode/user-chaincode.module';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { validate } from './common/validators/env.validator';
 import { DocumentController } from './documents/documents.controller';
+import { ClerkClientProvider } from 'src/providers/clerk-client.provider';
+import { ClerkAuthGuard } from './auth/clerk-auth.guard';
+import { APP_GUARD } from '@nestjs/core';
 
 @Module({
   imports: [
@@ -32,6 +35,10 @@ import { DocumentController } from './documents/documents.controller';
       provide: APP_FILTER,
       useClass: GlobalExceptionFilter,
     },
+    ClerkClientProvider, {
+      provide: APP_GUARD,
+      useClass: ClerkAuthGuard,
+    }
   ],
 })
 export class AppModule {}

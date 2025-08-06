@@ -1,5 +1,6 @@
 import { Controller, Post, Body, HttpCode, HttpStatus, Headers } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+
 import { AuthService } from './auth.service';
 import { SignUpDto } from './dto/sign-up.dto';
 import { SignInDto } from './dto/sign-in.dto';
@@ -35,4 +36,5 @@ export class AuthController {
     const token = authorization?.split(' ')[1];
     return this.authService.signOut(token);
   }
+
 }

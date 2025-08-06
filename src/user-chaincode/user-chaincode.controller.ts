@@ -18,8 +18,8 @@ export class UserChaincodeController {
     @ApiResponse({ status: 409, description: 'Utilisateur déjà existant' })
     async createUser(@Body() createUserDto: CreateUserDto) {
       try {
-        const { id, firstName, lastName, email, phone, address } = createUserDto;
-        const result = await this.fabricService.createUser(id, firstName, lastName, email, phone, address);
+        const { id } = createUserDto;
+        const result = await this.fabricService.createUser(id);
         
         this.logger.log(`Utilisateur créé: ${id}`);
         return {
@@ -71,8 +71,8 @@ export class UserChaincodeController {
     @ApiResponse({ status: 404, description: 'Utilisateur non trouvé' })
     async updateUser(@Param('id') id: string, @Body() updateUserDto: CreateUserDto) {
       try {
-        const { firstName, lastName, email, phone, address, status } = updateUserDto;
-        const result = await this.fabricService.updateUser(id, firstName, lastName, email, phone, address, status);
+        const { status } = updateUserDto;
+        const result = await this.fabricService.updateUser(id, status);
         
         this.logger.log(`Utilisateur mis à jour: ${id}`);
         return {
