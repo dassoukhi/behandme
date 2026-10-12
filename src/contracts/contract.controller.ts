@@ -70,7 +70,7 @@ export class ContractsController {
   @ApiResponse({ status: 404, description: "Contract not found" })
   update(
     @Param("id") id: string,
-    @Body() updateContractDTO: UpdateContractDTO
+    @Body() updateContractDTO: UpdateContractDTO,
   ): Promise<ContractDTO> {
     return this.contractService.update(id, updateContractDTO);
   }

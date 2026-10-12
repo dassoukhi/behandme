@@ -62,7 +62,7 @@ export class UsersService {
 
   async update(
     id: string,
-    updateUserDto: UpdateUserDto
+    updateUserDto: UpdateUserDto,
   ): Promise<UserProfileDto> {
     const { data, error } = await this.supabaseService
       .getClient()
@@ -136,7 +136,7 @@ export class UsersService {
 
   async searchUsers(
     query: string,
-    excludeId?: string
+    excludeId?: string,
   ): Promise<UserProfileDto[]> {
     try {
       if (!query || query.trim().length === 0) {
@@ -156,7 +156,7 @@ export class UsersService {
       queryBuilder = queryBuilder.or(
         `first_name.ilike.%${searchTerm}%,` +
           `last_name.ilike.%${searchTerm}%,` +
-          `email.ilike.%${searchTerm}%`
+          `email.ilike.%${searchTerm}%`,
       );
 
       // Exclure l'utilisateur actuel
@@ -177,7 +177,7 @@ export class UsersService {
           queryBuilder = queryBuilder.not(
             "id",
             "in",
-            `(${trustedIds.join(",")})`
+            `(${trustedIds.join(",")})`,
           );
         }
       }

@@ -48,7 +48,7 @@ export class DocumentController {
         type,
         content,
         owner,
-        hash
+        hash,
       );
 
       this.logger.log(`Document créé: ${id}`);
@@ -64,7 +64,7 @@ export class DocumentController {
           success: false,
           message: error.message || "Erreur lors de la création du document",
         },
-        HttpStatus.BAD_REQUEST
+        HttpStatus.BAD_REQUEST,
       );
     }
   }
@@ -88,7 +88,7 @@ export class DocumentController {
           success: false,
           message: error.message || "Document non trouvé",
         },
-        HttpStatus.NOT_FOUND
+        HttpStatus.NOT_FOUND,
       );
     }
   }
@@ -101,7 +101,7 @@ export class DocumentController {
   @ApiResponse({ status: 404, description: "Document non trouvé" })
   async updateDocument(
     @Param("id") id: string,
-    @Body() updateDocumentDto: UpdateDocumentDto
+    @Body() updateDocumentDto: UpdateDocumentDto,
   ) {
     try {
       const { title, type, content, status, hash } = updateDocumentDto;
@@ -111,7 +111,7 @@ export class DocumentController {
         type,
         content,
         status,
-        hash
+        hash,
       );
 
       this.logger.log(`Document mis à jour: ${id}`);
@@ -127,7 +127,7 @@ export class DocumentController {
           success: false,
           message: error.message || "Erreur lors de la mise à jour du document",
         },
-        HttpStatus.BAD_REQUEST
+        HttpStatus.BAD_REQUEST,
       );
     }
   }
@@ -153,7 +153,7 @@ export class DocumentController {
           success: false,
           message: error.message || "Erreur lors de la suppression du document",
         },
-        HttpStatus.NOT_FOUND
+        HttpStatus.NOT_FOUND,
       );
     }
   }
@@ -175,7 +175,7 @@ export class DocumentController {
   @ApiResponse({ status: 200, description: "Liste des documents" })
   async getAllDocuments(
     @Query("type") type?: string,
-    @Query("owner") owner?: string
+    @Query("owner") owner?: string,
   ) {
     try {
       let result;
@@ -201,7 +201,7 @@ export class DocumentController {
           message:
             error.message || "Erreur lors de la récupération des documents",
         },
-        HttpStatus.INTERNAL_SERVER_ERROR
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
@@ -217,7 +217,7 @@ export class DocumentController {
   })
   async transferDocument(
     @Param("id") id: string,
-    @Body() transferDto: TransferDocumentDto
+    @Body() transferDto: TransferDocumentDto,
   ) {
     try {
       const { newOwner } = transferDto;
@@ -236,7 +236,7 @@ export class DocumentController {
           success: false,
           message: error.message || "Erreur lors du transfert du document",
         },
-        HttpStatus.BAD_REQUEST
+        HttpStatus.BAD_REQUEST,
       );
     }
   }

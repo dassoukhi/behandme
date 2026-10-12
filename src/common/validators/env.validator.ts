@@ -31,7 +31,7 @@ export function validate(config: Record<string, unknown>) {
       ...config,
       PORT: config.PORT ? parseInt(config.PORT as string, 10) : 3000,
     },
-    { enableImplicitConversion: true }
+    { enableImplicitConversion: true },
   );
 
   const errors = validateSync(validatedConfig, {

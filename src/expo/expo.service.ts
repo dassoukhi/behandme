@@ -14,12 +14,12 @@ export class ExpoService {
 
   async sendNotification(
     token: string,
-    notification: CreateNotificationDto
+    notification: CreateNotificationDto,
   ): Promise<NotificationDto> {
     if (!Expo.isExpoPushToken(token)) {
       throw new HttpException(
         "Invalid Expo push token.",
-        HttpStatus.BAD_REQUEST
+        HttpStatus.BAD_REQUEST,
       );
     }
 
@@ -45,7 +45,7 @@ export class ExpoService {
       // Assuming create() or sendPushNotificationsAsync can throw an error
       throw new HttpException(
         `An error occurred while sending notification: ${error.message || "Unknown error"}`,
-        HttpStatus.INTERNAL_SERVER_ERROR
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }

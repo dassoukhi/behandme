@@ -66,7 +66,7 @@ export class UsersController {
   })
   searchUsers(
     @Query("q") query: string,
-    @Query("excludeId") excludeId?: string
+    @Query("excludeId") excludeId?: string,
   ): Promise<UserProfileDto[]> {
     return this.usersService.searchUsers(query, excludeId);
   }
@@ -106,7 +106,7 @@ export class UsersController {
   @ApiResponse({ status: 404, description: "Profile not found" })
   update(
     @Param("id") id: string,
-    @Body() updateUserDto: UpdateUserDto
+    @Body() updateUserDto: UpdateUserDto,
   ): Promise<UserProfileDto> {
     return this.usersService.update(id, updateUserDto);
   }

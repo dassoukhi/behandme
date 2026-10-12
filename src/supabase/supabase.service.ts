@@ -15,14 +15,14 @@ export class SupabaseService implements OnModuleInit {
     const supabaseAnonKey =
       this.configService.getOrThrow<string>("SUPABASE_ANON_KEY");
     const supabaseServiceRoleKey = this.configService.getOrThrow<string>(
-      "SUPABASE_SERVICE_ROLE_KEY"
+      "SUPABASE_SERVICE_ROLE_KEY",
     );
 
     this.supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
 
     this.supabaseAdminClient = createClient(
       supabaseUrl,
-      supabaseServiceRoleKey
+      supabaseServiceRoleKey,
     );
 
     this.logger.log("Supabase client initialized");

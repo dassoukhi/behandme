@@ -47,7 +47,7 @@ export class FabricService implements OnModuleInit {
       "test-network",
       "organizations",
       "peerOrganizations",
-      "org1.example.com"
+      "org1.example.com",
     );
     const ccpPath = path.join(orgPath, "connection-org1.json");
 
@@ -69,7 +69,7 @@ export class FabricService implements OnModuleInit {
 
     const keyFile = fs.readdirSync(keyPath)[0];
     const privateKey = crypto.createPrivateKey(
-      fs.readFileSync(path.join(keyPath, keyFile))
+      fs.readFileSync(path.join(keyPath, keyFile)),
     );
 
     this.client = new grpc.Client(
@@ -78,7 +78,7 @@ export class FabricService implements OnModuleInit {
       {
         "grpc.ssl_target_name_override":
           peer.grpcOptions["ssl-target-name-override"],
-      }
+      },
     );
 
     this.gateway = connect({
@@ -99,7 +99,7 @@ export class FabricService implements OnModuleInit {
     this.client.waitForReady(Date.now() + 5000, (error) => {
       if (error) {
         this.logger.warn(
-          `Fabric peer ${peerEndpoint} unreachable: ${error.message}`
+          `Fabric peer ${peerEndpoint} unreachable: ${error.message}`,
         );
       } else {
         this.logger.log(`Connected to Fabric peer ${peerEndpoint}`);
@@ -110,7 +110,7 @@ export class FabricService implements OnModuleInit {
   private getContract(contractName: string): FabricContract {
     if (!this.network) {
       throw new Error(
-        "Fabric network not initialized. Please check the connection."
+        "Fabric network not initialized. Please check the connection.",
       );
     }
     const contract = this.network.getContract(contractName);
@@ -119,7 +119,7 @@ export class FabricService implements OnModuleInit {
         this.withFabricErrors(() => contract.submitTransaction(name, ...args)),
       evaluateTransaction: (name, ...args) =>
         this.withFabricErrors(() =>
-          contract.evaluateTransaction(name, ...args)
+          contract.evaluateTransaction(name, ...args),
         ),
     };
   }
@@ -127,7 +127,7 @@ export class FabricService implements OnModuleInit {
   // Gateway errors only say "see attached details": surface the smart
   // contract messages so callers can keep matching on error.message.
   private async withFabricErrors(
-    transaction: () => Promise<Uint8Array>
+    transaction: () => Promise<Uint8Array>,
   ): Promise<Buffer> {
     try {
       return Buffer.from(await transaction());
@@ -137,8 +137,8 @@ export class FabricService implements OnModuleInit {
       }
       const messages = new Set(
         error.details.map((detail) =>
-          detail.message.replace(/^chaincode response \d+, /, "")
-        )
+          detail.message.replace(/^chaincode response \d+, /, ""),
+        ),
       );
       throw new Error([...messages].join("; "), { cause: error });
     }
@@ -153,13 +153,13 @@ export class FabricService implements OnModuleInit {
     try {
       const result = await contract.submitTransaction(functionName, ...args);
       this.logger.log(
-        `Transaction ${functionName} for contract ${contractName} submitted successfully`
+        `Transaction ${functionName} for contract ${contractName} submitted successfully`,
       );
       return result.toString();
     } catch (error) {
       this.logger.error(
         `Failed to submit transaction ${functionName} for contract ${contractName}`,
-        error
+        error,
       );
       throw error;
     }
@@ -174,13 +174,13 @@ export class FabricService implements OnModuleInit {
     try {
       const result = await contract.evaluateTransaction(functionName, ...args);
       this.logger.log(
-        `Transaction ${functionName} for contract ${contractName} evaluated successfully`
+        `Transaction ${functionName} for contract ${contractName} evaluated successfully`,
       );
       return JSON.parse(result.toString());
     } catch (error) {
       this.logger.error(
         `Failed to evaluate transaction ${functionName} for contract ${contractName}`,
-        error
+        error,
       );
       throw error;
     }
@@ -226,7 +226,7 @@ export class FabricService implements OnModuleInit {
     } catch (error) {
       this.logger.error(
         "Erreur lors de la mise à jour de l'utilisateur",
-        error
+        error,
       );
       throw error;
     }
@@ -239,7 +239,7 @@ export class FabricService implements OnModuleInit {
     } catch (error) {
       this.logger.error(
         "Erreur lors de la suppression de l'utilisateur",
-        error
+        error,
       );
       throw error;
     }
@@ -253,7 +253,7 @@ export class FabricService implements OnModuleInit {
     } catch (error) {
       this.logger.error(
         "Erreur lors de la récupération des utilisateurs",
-        error
+        error,
       );
       throw error;
     }
@@ -264,13 +264,13 @@ export class FabricService implements OnModuleInit {
     try {
       const result = await contract.evaluateTransaction(
         "GetUsersByStatus",
-        status
+        status,
       );
       return JSON.parse(result.toString());
     } catch (error) {
       this.logger.error(
         "Erreur lors de la récupération des utilisateurs par statut",
-        error
+        error,
       );
       throw error;
     }
@@ -284,7 +284,7 @@ export class FabricService implements OnModuleInit {
     type: string,
     content: string,
     owner: string,
-    hash: string
+    hash: string,
   ): Promise<any> {
     const contract = this.getContract(this.contractName);
     try {
@@ -295,7 +295,7 @@ export class FabricService implements OnModuleInit {
         type,
         content,
         owner,
-        hash
+        hash,
       );
       return JSON.parse(result.toString());
     } catch (error) {
@@ -321,7 +321,7 @@ export class FabricService implements OnModuleInit {
     type: string,
     content: string,
     status: string,
-    hash: string
+    hash: string,
   ): Promise<any> {
     const contract = this.getContract(this.contractName);
     try {
@@ -332,7 +332,7 @@ export class FabricService implements OnModuleInit {
         type,
         content,
         status,
-        hash
+        hash,
       );
       return JSON.parse(result.toString());
     } catch (error) {
@@ -357,7 +357,7 @@ export class FabricService implements OnModuleInit {
       const result = await contract.submitTransaction(
         "TransferDocument",
         documentId,
-        newOwner
+        newOwner,
       );
       return JSON.parse(result.toString());
     } catch (error) {
@@ -382,13 +382,13 @@ export class FabricService implements OnModuleInit {
     try {
       const result = await contract.evaluateTransaction(
         "GetDocumentsByOwner",
-        owner
+        owner,
       );
       return JSON.parse(result.toString());
     } catch (error) {
       this.logger.error(
         "Erreur lors de la récupération des documents par propriétaire",
-        error
+        error,
       );
       throw error;
     }
@@ -399,13 +399,13 @@ export class FabricService implements OnModuleInit {
     try {
       const result = await contract.evaluateTransaction(
         "GetDocumentsByType",
-        type
+        type,
       );
       return JSON.parse(result.toString());
     } catch (error) {
       this.logger.error(
         "Erreur lors de la récupération des documents par type",
-        error
+        error,
       );
       throw error;
     }
@@ -416,13 +416,13 @@ export class FabricService implements OnModuleInit {
     try {
       const result = await contract.evaluateTransaction(
         "GetDocumentsByValidator",
-        validator
+        validator,
       );
       return JSON.parse(result.toString());
     } catch (error) {
       this.logger.error(
         "Erreur lors de la récupération des documents par validateur",
-        error
+        error,
       );
       throw error;
     }
@@ -433,13 +433,13 @@ export class FabricService implements OnModuleInit {
     try {
       const result = await contract.evaluateTransaction(
         "GetDocumentsByAccessor",
-        accessor
+        accessor,
       );
       return JSON.parse(result.toString());
     } catch (error) {
       this.logger.error(
         "Erreur lors de la récupération des documents par accessor",
-        error
+        error,
       );
       throw error;
     }
@@ -453,13 +453,13 @@ export class FabricService implements OnModuleInit {
       const result = await contract.evaluateTransaction(
         "CheckDocumentAccess",
         documentId,
-        userId
+        userId,
       );
       return JSON.parse(result.toString());
     } catch (error) {
       this.logger.error(
         "Erreur lors de la vérification de l'accès au document",
-        error
+        error,
       );
       throw error;
     }
@@ -471,7 +471,7 @@ export class FabricService implements OnModuleInit {
       const result = await contract.submitTransaction(
         "AddAccessor",
         documentId,
-        newAccessor
+        newAccessor,
       );
       return JSON.parse(result.toString());
     } catch (error) {
@@ -482,14 +482,14 @@ export class FabricService implements OnModuleInit {
 
   async removeAccessor(
     documentId: string,
-    accessorToRemove: string
+    accessorToRemove: string,
   ): Promise<any> {
     const contract = this.getContract(this.contractName);
     try {
       const result = await contract.submitTransaction(
         "RemoveAccessor",
         documentId,
-        accessorToRemove
+        accessorToRemove,
       );
       return JSON.parse(result.toString());
     } catch (error) {
@@ -500,14 +500,14 @@ export class FabricService implements OnModuleInit {
 
   async changeValidator(
     documentId: string,
-    newValidator: string
+    newValidator: string,
   ): Promise<any> {
     const contract = this.getContract(this.contractName);
     try {
       const result = await contract.submitTransaction(
         "ChangeValidator",
         documentId,
-        newValidator
+        newValidator,
       );
       return JSON.parse(result.toString());
     } catch (error) {
@@ -524,7 +524,7 @@ export class FabricService implements OnModuleInit {
     } catch (error) {
       this.logger.error(
         "Erreur lors de la récupération de l'historique",
-        error
+        error,
       );
       throw error;
     }

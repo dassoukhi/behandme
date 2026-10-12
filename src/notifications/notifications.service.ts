@@ -12,7 +12,7 @@ export class NotificationsService {
   constructor(private readonly supabaseService: SupabaseService) {}
 
   async registerToken(
-    registerToken: RegisterTokenDto
+    registerToken: RegisterTokenDto,
   ): Promise<RegisterTokenDto> {
     const { token, user_id } = registerToken;
     console.log(registerToken);
@@ -33,7 +33,7 @@ export class NotificationsService {
 
       if (error) {
         this.logger.error(
-          `Failed to register token in user_tokens: ${error.message}`
+          `Failed to register token in user_tokens: ${error.message}`,
         );
         throw error;
       }
@@ -47,7 +47,7 @@ export class NotificationsService {
 
       if (deleteError) {
         this.logger.warn(
-          `Failed to delete token from orphan_tokens: ${deleteError.message}`
+          `Failed to delete token from orphan_tokens: ${deleteError.message}`,
         );
       }
     } else {
@@ -61,7 +61,7 @@ export class NotificationsService {
 
       if (error) {
         this.logger.error(
-          `Failed to register token in orphan_tokens: ${error.message}`
+          `Failed to register token in orphan_tokens: ${error.message}`,
         );
         throw error;
       }
@@ -71,7 +71,7 @@ export class NotificationsService {
   }
 
   async create(
-    createNotificationDto: CreateNotificationDto
+    createNotificationDto: CreateNotificationDto,
   ): Promise<NotificationDto> {
     const { data, error } = await this.supabaseService
       .getClient()
@@ -121,7 +121,7 @@ export class NotificationsService {
 
   async update(
     id: string,
-    updateNotificationDto: UpdateNotificationDto
+    updateNotificationDto: UpdateNotificationDto,
   ): Promise<NotificationDto> {
     const { data, error } = await this.supabaseService
       .getClient()

@@ -1,17 +1,17 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNumber, IsNotEmpty, Min } from 'class-validator';
+import { ApiProperty } from "@nestjs/swagger";
+import { IsString, IsNumber, IsNotEmpty, Min } from "class-validator";
 
 export class UpdateAssetDto {
   @ApiProperty({
-    description: 'Couleur de l\'asset',
-    example: 'red',
+    description: "Couleur de l'asset",
+    example: "red",
   })
   @IsString()
   @IsNotEmpty()
   color: string;
 
   @ApiProperty({
-    description: 'Taille de l\'asset',
+    description: "Taille de l'asset",
     example: 10,
   })
   @IsNumber()
@@ -19,15 +19,15 @@ export class UpdateAssetDto {
   size: number;
 
   @ApiProperty({
-    description: 'Propriétaire de l\'asset',
-    example: 'Brad',
+    description: "Propriétaire de l'asset",
+    example: "Brad",
   })
   @IsString()
   @IsNotEmpty()
   owner: string;
 
   @ApiProperty({
-    description: 'Valeur estimée de l\'asset',
+    description: "Valeur estimée de l'asset",
     example: 400,
   })
   @IsNumber()

@@ -28,7 +28,7 @@ import { ExpoService } from "../expo/expo.service.js";
 export class NotificationsController {
   constructor(
     private readonly notificationservice: NotificationsService,
-    private readonly expoService: ExpoService
+    private readonly expoService: ExpoService,
   ) {}
 
   @Public()
@@ -41,7 +41,7 @@ export class NotificationsController {
   })
   @ApiResponse({ status: 400, description: "Bad request" })
   registerToken(
-    @Body() registerTokenDto: RegisterTokenDto
+    @Body() registerTokenDto: RegisterTokenDto,
   ): Promise<RegisterTokenDto> {
     return this.notificationservice.registerToken(registerTokenDto);
   }
@@ -55,7 +55,7 @@ export class NotificationsController {
   })
   @ApiResponse({ status: 400, description: "Bad request" })
   sendNotification(
-    @Body() sender: SenderNotificationDto
+    @Body() sender: SenderNotificationDto,
   ): Promise<NotificationDto> {
     return this.expoService.sendNotification(sender.token, sender.notification);
   }
@@ -69,7 +69,7 @@ export class NotificationsController {
   })
   @ApiResponse({ status: 400, description: "Bad request" })
   create(
-    @Body() createNotificationDto: CreateNotificationDto
+    @Body() createNotificationDto: CreateNotificationDto,
   ): Promise<NotificationDto> {
     return this.notificationservice.create(createNotificationDto);
   }
@@ -107,7 +107,7 @@ export class NotificationsController {
   @ApiResponse({ status: 404, description: "Notification not found" })
   update(
     @Param("id") id: string,
-    @Body() updateNotificationDto: UpdateNotificationDto
+    @Body() updateNotificationDto: UpdateNotificationDto,
   ): Promise<NotificationDto> {
     return this.notificationservice.update(id, updateNotificationDto);
   }

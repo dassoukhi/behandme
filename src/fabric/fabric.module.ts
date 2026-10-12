@@ -1,6 +1,6 @@
-import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
-import { FabricService } from './fabric.service.js';
+import { Module } from "@nestjs/common";
+import { ConfigModule } from "@nestjs/config";
+import { FabricService } from "./fabric.service.js";
 
 @Module({
   imports: [ConfigModule],

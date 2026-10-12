@@ -3,8 +3,8 @@ import {
   ExecutionContext,
   Injectable,
   UnauthorizedException,
-} from '@nestjs/common';
-import { SupabaseService } from '../../supabase/supabase.service.js';
+} from "@nestjs/common";
+import { SupabaseService } from "../../supabase/supabase.service.js";
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -15,12 +15,12 @@ export class AuthGuard implements CanActivate {
     const authHeader = request.headers.authorization;
 
     if (!authHeader) {
-      throw new UnauthorizedException('Authorization header is missing');
+      throw new UnauthorizedException("Authorization header is missing");
     }
 
-    const token = authHeader.split(' ')[1];
+    const token = authHeader.split(" ")[1];
     if (!token) {
-      throw new UnauthorizedException('JWT token is missing');
+      throw new UnauthorizedException("JWT token is missing");
     }
 
     try {
@@ -29,14 +29,14 @@ export class AuthGuard implements CanActivate {
         .auth.getUser(token);
 
       if (error || !data.user) {
-        throw new UnauthorizedException('Invalid or expired token');
+        throw new UnauthorizedException("Invalid or expired token");
       }
 
       // Add user to request object
       request.user = data.user;
       return true;
     } catch {
-      throw new UnauthorizedException('Invalid token');
+      throw new UnauthorizedException("Invalid token");
     }
   }
 }

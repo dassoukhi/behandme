@@ -52,7 +52,7 @@ export class ContractService {
         `
         *,
         owner:users!contracts_owner_id_fkey(*),
-        accessor:users!contracts_accessor_id_fkey(*)`
+        accessor:users!contracts_accessor_id_fkey(*)`,
       )
       .eq("id", id)
       .single<ContractValidatorsDTO>();
@@ -84,7 +84,7 @@ export class ContractService {
 
   async update(
     id: string,
-    updateContractDTO: UpdateContractDTO
+    updateContractDTO: UpdateContractDTO,
   ): Promise<ContractDTO> {
     const { data, error } = await this.supabaseService
       .getClient()
