@@ -1,16 +1,31 @@
 import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { Gateway, Network, Contract, Wallet, Wallets } from "fabric-network";
+import * as grpc from "@grpc/grpc-js";
+import {
+  connect,
+  Gateway,
+  GatewayError,
+  hash,
+  Network,
+  signers,
+} from "@hyperledger/fabric-gateway";
+import * as crypto from "crypto";
 import * as path from "path";
 import * as fs from "fs";
+
+// Same surface as the former fabric-network Contract: results come back as
+// Buffers, so callers can keep using result.toString().
+interface FabricContract {
+  submitTransaction(name: string, ...args: string[]): Promise<Buffer>;
+  evaluateTransaction(name: string, ...args: string[]): Promise<Buffer>;
+}
 
 @Injectable()
 export class FabricService implements OnModuleInit {
   private readonly logger = new Logger(FabricService.name);
+  private client: grpc.Client;
   private gateway: Gateway;
   private network: Network;
-  private wallet: Wallet;
-  private contract: Contract;
   private readonly contractName = "user-transfer-basic";
 
   constructor(private configService: ConfigService) {}
@@ -25,36 +40,26 @@ export class FabricService implements OnModuleInit {
   }
 
   private async initializeFabricNetwork() {
-    const projectRoot = process.cwd();
-    const ccpPath = path.resolve(
-      projectRoot,
+    const orgPath = path.resolve(
+      process.cwd(),
       "fabric-network",
       "fabric-samples",
       "test-network",
       "organizations",
       "peerOrganizations",
-      "org1.example.com",
-      "connection-org1.json"
+      "org1.example.com"
     );
+    const ccpPath = path.join(orgPath, "connection-org1.json");
 
     if (!fs.existsSync(ccpPath)) {
       throw new Error(`Connection profile not found at ${ccpPath}`);
     }
 
     const ccp = JSON.parse(fs.readFileSync(ccpPath, "utf8"));
-    this.wallet = await Wallets.newInMemoryWallet();
+    const peer = ccp.peers["peer0.org1.example.com"];
+    const peerEndpoint = peer.url.replace(/^grpcs:\/\//, "");
 
-    const credPath = path.resolve(
-      projectRoot,
-      "fabric-network",
-      "fabric-samples",
-      "test-network",
-      "organizations",
-      "peerOrganizations",
-      "org1.example.com",
-      "users",
-      "Admin@org1.example.com"
-    );
+    const credPath = path.join(orgPath, "users", "Admin@org1.example.com");
     const certPath = path.join(credPath, "msp", "signcerts", "cert.pem");
     const keyPath = path.join(credPath, "msp", "keystore");
 
@@ -62,39 +67,81 @@ export class FabricService implements OnModuleInit {
       throw new Error(`Certificate not found at ${certPath}`);
     }
 
-    const cert = fs.readFileSync(certPath).toString();
-    const keyFiles = fs.readdirSync(keyPath);
-    const keyFile = keyFiles[0];
-    const key = fs.readFileSync(path.join(keyPath, keyFile)).toString();
+    const keyFile = fs.readdirSync(keyPath)[0];
+    const privateKey = crypto.createPrivateKey(
+      fs.readFileSync(path.join(keyPath, keyFile))
+    );
 
-    const identity = {
-      credentials: {
-        certificate: cert,
-        privateKey: key,
-      },
-      mspId: "Org1MSP",
-      type: "X.509",
-    };
+    this.client = new grpc.Client(
+      peerEndpoint,
+      grpc.credentials.createSsl(Buffer.from(peer.tlsCACerts.pem)),
+      {
+        "grpc.ssl_target_name_override":
+          peer.grpcOptions["ssl-target-name-override"],
+      }
+    );
 
-    await this.wallet.put("appUser", identity);
-
-    this.gateway = new Gateway();
-    await this.gateway.connect(ccp, {
-      wallet: this.wallet,
-      identity: "appUser",
-      discovery: { enabled: true, asLocalhost: true },
+    this.gateway = connect({
+      client: this.client,
+      identity: { mspId: "Org1MSP", credentials: fs.readFileSync(certPath) },
+      signer: signers.newPrivateKeySigner(privateKey),
+      hash: hash.sha256,
+      evaluateOptions: () => ({ deadline: Date.now() + 5000 }),
+      endorseOptions: () => ({ deadline: Date.now() + 15000 }),
+      submitOptions: () => ({ deadline: Date.now() + 5000 }),
+      commitStatusOptions: () => ({ deadline: Date.now() + 60000 }),
     });
 
-    this.network = await this.gateway.getNetwork("mychannel");
+    this.network = this.gateway.getNetwork("mychannel");
+
+    // The connection is lazy: check the peer without blocking startup. The
+    // gRPC client keeps reconnecting, so calls work once the peer is up.
+    this.client.waitForReady(Date.now() + 5000, (error) => {
+      if (error) {
+        this.logger.warn(
+          `Fabric peer ${peerEndpoint} unreachable: ${error.message}`
+        );
+      } else {
+        this.logger.log(`Connected to Fabric peer ${peerEndpoint}`);
+      }
+    });
   }
 
-  private getContract(contractName: string): Contract {
+  private getContract(contractName: string): FabricContract {
     if (!this.network) {
       throw new Error(
         "Fabric network not initialized. Please check the connection."
       );
     }
-    return this.network.getContract(contractName);
+    const contract = this.network.getContract(contractName);
+    return {
+      submitTransaction: (name, ...args) =>
+        this.withFabricErrors(() => contract.submitTransaction(name, ...args)),
+      evaluateTransaction: (name, ...args) =>
+        this.withFabricErrors(() =>
+          contract.evaluateTransaction(name, ...args)
+        ),
+    };
+  }
+
+  // Gateway errors only say "see attached details": surface the smart
+  // contract messages so callers can keep matching on error.message.
+  private async withFabricErrors(
+    transaction: () => Promise<Uint8Array>
+  ): Promise<Buffer> {
+    try {
+      return Buffer.from(await transaction());
+    } catch (error) {
+      if (!(error instanceof GatewayError) || error.details.length === 0) {
+        throw error;
+      }
+      const messages = new Set(
+        error.details.map((detail) =>
+          detail.message.replace(/^chaincode response \d+, /, "")
+        )
+      );
+      throw new Error([...messages].join("; "), { cause: error });
+    }
   }
 
   async submitTransaction(
@@ -141,7 +188,8 @@ export class FabricService implements OnModuleInit {
 
   async disconnect() {
     if (this.gateway) {
-      await this.gateway.disconnect();
+      this.gateway.close();
+      this.client.close();
       this.logger.log("Fabric gateway disconnected");
     }
   }
