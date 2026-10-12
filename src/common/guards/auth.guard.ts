@@ -35,7 +35,7 @@ export class AuthGuard implements CanActivate {
       // Add user to request object
       request.user = data.user;
       return true;
-    } catch (error) {
+    } catch {
       throw new UnauthorizedException('Invalid token');
     }
   }

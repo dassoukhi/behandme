@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsEmail, IsNotEmpty } from 'class-validator';
+import { IsString, IsNotEmpty } from 'class-validator';
 
 export class CreateChaincodeUserDto {
   @ApiProperty({ description: 'ID unique de l\'utilisateur', example: 'user4' })

@@ -1,10 +1,8 @@
 import { Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { SupabaseService } from "../supabase/supabase.service.js";
-import { CreateContextOptions } from "node:vm";
 import { ContractDTO } from "./dto/contract.dto.js";
 import { CreateContractDTO } from "./dto/create-contract.dto.js";
 import { UpdateContractDTO } from "./dto/update-contract.dto.js";
-import { log } from "node:console";
 import { ContractValidatorsDTO } from "./dto/contractWtihValidators.dto.js";
 
 @Injectable()

@@ -33,8 +33,6 @@ export class UsersService {
   }
 
   async findAll(): Promise<UserProfileDto[]> {
-    const test = await this.supabaseService.getClient();
-
     const { data, error } = await this.supabaseService
       .getClient()
       .from("users")
@@ -102,8 +100,9 @@ export class UsersService {
   }
 
   async addTrusted(addTrustedDto: AddTrustedDto): Promise<AddTrustedDto> {
-    const owner = await this.findOne(addTrustedDto.owner_id);
-    const trusted = await this.findOne(addTrustedDto.trusted_id);
+    // Both users must exist: findOne throws NotFoundException otherwise.
+    await this.findOne(addTrustedDto.owner_id);
+    await this.findOne(addTrustedDto.trusted_id);
 
     const { data, error } = await this.supabaseService
       .getClient()
@@ -199,7 +198,9 @@ export class UsersService {
       if (error instanceof BadRequestException) {
         throw error;
       }
-      throw new Error(`Failed to search users: ${error.message}`);
+      throw new Error(`Failed to search users: ${error.message}`, {
+        cause: error,
+      });
     }
   }
 }

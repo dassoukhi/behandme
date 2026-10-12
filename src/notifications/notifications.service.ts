@@ -4,7 +4,6 @@ import { NotificationDto } from "./dto/notifications.dto.js";
 import { CreateNotificationDto } from "./dto/create-notifications.dto.js";
 import { UpdateNotificationDto } from "./dto/update-notifications.dto.js";
 import { RegisterTokenDto } from "./dto/register-token.dto.js";
-import { RegisterOrphanTokenDto } from "./dto/register-orphanToken.dto.js";
 
 @Injectable()
 export class NotificationsService {
@@ -90,8 +89,6 @@ export class NotificationsService {
   }
 
   async findAll(): Promise<NotificationDto[]> {
-    const test = await this.supabaseService.getClient();
-
     const { data, error } = await this.supabaseService
       .getClient()
       .from("notifications")

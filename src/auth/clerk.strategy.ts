@@ -3,7 +3,6 @@ import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy } from 'passport-custom';
-import { UsersService } from '../users/users.service.js';
 import { Request } from 'express';
 import type { ClerkClient } from '@clerk/backend';
 

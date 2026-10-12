@@ -14,14 +14,14 @@ export class LoggingInterceptor implements NestInterceptor {
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const req = context.switchToHttp().getRequest();
-    const { method, url, body, ip } = req;
+    const { method, url, ip } = req;
     const userAgent = req.get('user-agent') || '';
     
     const now = Date.now();
     
     return next.handle().pipe(
       tap({
-        next: (val) => {
+        next: () => {
           const response = context.switchToHttp().getResponse();
           
           this.logger.log(

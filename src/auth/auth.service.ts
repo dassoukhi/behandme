@@ -45,6 +45,7 @@ export class AuthService {
     };
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- token is ignored, so the caller's session isn't revoked
   async signOut(token: string) {
     const { error } = await this.supabaseService
       .getClient()
