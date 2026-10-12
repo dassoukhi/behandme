@@ -168,7 +168,7 @@ export class UsersService {
       if (excludeId) {
         const { data: existingTrusteds } = await this.supabaseService
           .getAdminClient()
-          .from("trusteds")
+          .from("trusted")
           .select("trusted_id")
           .eq("owner_id", excludeId);
 
