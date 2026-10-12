@@ -16,11 +16,11 @@ import {
   ApiBearerAuth,
   ApiQuery,
 } from "@nestjs/swagger";
-import { UsersService } from "./users.service";
-import { CreateUserDto } from "./dto/create-user.dto";
-import { UpdateUserDto } from "./dto/update-user.dto";
-import { UserProfileDto } from "./dto/user-profile.dto";
-import { AddTrustedDto } from "./dto/add-trusted.dto";
+import { UsersService } from "./users.service.js";
+import { CreateUserDto } from "./dto/create-user.dto.js";
+import { UpdateUserDto } from "./dto/update-user.dto.js";
+import { UserProfileDto } from "./dto/user-profile.dto.js";
+import { AddTrustedDto } from "./dto/add-trusted.dto.js";
 
 @ApiTags("users")
 @ApiBearerAuth()

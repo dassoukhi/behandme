@@ -1,10 +1,10 @@
 import { Injectable, Logger, NotFoundException } from "@nestjs/common";
-import { SupabaseService } from "../supabase/supabase.service";
-import { NotificationDto } from "./dto/notifications.dto";
-import { CreateNotificationDto } from "./dto/create-notifications.dto";
-import { UpdateNotificationDto } from "./dto/update-notifications.dto";
-import { RegisterTokenDto } from "./dto/register-token.dto";
-import { RegisterOrphanTokenDto } from "./dto/register-orphanToken.dto";
+import { SupabaseService } from "../supabase/supabase.service.js";
+import { NotificationDto } from "./dto/notifications.dto.js";
+import { CreateNotificationDto } from "./dto/create-notifications.dto.js";
+import { UpdateNotificationDto } from "./dto/update-notifications.dto.js";
+import { RegisterTokenDto } from "./dto/register-token.dto.js";
+import { RegisterOrphanTokenDto } from "./dto/register-orphanToken.dto.js";
 
 @Injectable()
 export class NotificationsService {

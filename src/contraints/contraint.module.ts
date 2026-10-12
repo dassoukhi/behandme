@@ -1,6 +1,6 @@
 import { Module } from "@nestjs/common";
-import { SupabaseModule } from "../supabase/supabase.module";
-import { IsUniqueConstraint } from "./IsUniqueConstraint";
+import { SupabaseModule } from "../supabase/supabase.module.js";
+import { IsUniqueConstraint } from "./IsUniqueConstraint.js";
 
 @Module({
   imports: [SupabaseModule],

@@ -19,12 +19,12 @@ import {
   ApiQuery,
   ApiBody,
 } from "@nestjs/swagger";
-import { FabricService } from "../fabric/fabric.service";
+import { FabricService } from "../fabric/fabric.service.js";
 import {
   CreateDocumentDto,
   UpdateDocumentDto,
   TransferDocumentDto,
-} from "./dto/document.dto";
+} from "./dto/document.dto.js";
 
 @ApiTags("Documents")
 @Controller("documents")

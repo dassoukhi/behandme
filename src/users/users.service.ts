@@ -4,11 +4,11 @@ import {
   Logger,
   NotFoundException,
 } from "@nestjs/common";
-import { SupabaseService } from "../supabase/supabase.service";
-import { CreateUserDto } from "./dto/create-user.dto";
-import { UpdateUserDto } from "./dto/update-user.dto";
-import { UserProfileDto } from "./dto/user-profile.dto";
-import { AddTrustedDto } from "./dto/add-trusted.dto";
+import { SupabaseService } from "../supabase/supabase.service.js";
+import { CreateUserDto } from "./dto/create-user.dto.js";
+import { UpdateUserDto } from "./dto/update-user.dto.js";
+import { UserProfileDto } from "./dto/user-profile.dto.js";
+import { AddTrustedDto } from "./dto/add-trusted.dto.js";
 
 @Injectable()
 export class UsersService {

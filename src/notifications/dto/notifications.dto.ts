@@ -70,8 +70,9 @@ export class NotificationDto {
   @ApiProperty({
     description: "Additional metadata for the notification",
     type: "object",
+    additionalProperties: true,
     example: { key: "value" },
-    required: false,
+    selfRequired: false,
   })
   @IsOptional()
   meta?: object;

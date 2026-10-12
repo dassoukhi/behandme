@@ -1,6 +1,6 @@
 import { Module } from "@nestjs/common";
-import { ExpoService } from "./expo.service";
-import { NotificationsService } from "@/notifications/notifications.service";
+import { ExpoService } from "./expo.service.js";
+import { NotificationsService } from "../notifications/notifications.service.js";
 
 @Module({
   providers: [ExpoService, NotificationsService],

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { FabricService } from '../fabric/fabric.service';
-import { CreateUserDto } from './dto/create-user.dto';
+import { FabricService } from '../fabric/fabric.service.js';
+import { CreateUserDto } from './dto/create-user.dto.js';
 
 @Injectable()
 export class UserChaincodeService {

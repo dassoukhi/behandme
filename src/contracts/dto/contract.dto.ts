@@ -88,6 +88,7 @@ export class ContractDTO {
     description: "Additional metadata in JSON format",
     example: { key: "value" },
     type: "object",
+    additionalProperties: true,
   })
   meta?: Record<string, any>;
 }

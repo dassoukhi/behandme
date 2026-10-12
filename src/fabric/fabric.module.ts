@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { FabricService } from './fabric.service';
-import { FabricController } from './fabric.controller';
+import { FabricService } from './fabric.service.js';
+import { FabricController } from './fabric.controller.js';
 
 @Module({
   imports: [ConfigModule],

@@ -14,11 +14,11 @@ import {
   ApiResponse,
   ApiBearerAuth,
 } from "@nestjs/swagger";
-import { ContractService } from "./contract.service";
-import { ContractDTO } from "./dto/contract.dto";
-import { CreateContractDTO } from "./dto/create-contract.dto";
-import { UpdateContractDTO } from "./dto/update-contract.dto";
-import { ContractValidatorsDTO } from "./dto/contractWtihValidators.dto";
+import { ContractService } from "./contract.service.js";
+import { ContractDTO } from "./dto/contract.dto.js";
+import { CreateContractDTO } from "./dto/create-contract.dto.js";
+import { UpdateContractDTO } from "./dto/update-contract.dto.js";
+import { ContractValidatorsDTO } from "./dto/contractWtihValidators.dto.js";
 
 @ApiTags("contracts")
 @ApiBearerAuth()

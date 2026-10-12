@@ -1,4 +1,4 @@
-import { UserProfileDto } from "@/users/dto/user-profile.dto";
+import { UserProfileDto } from "../../users/dto/user-profile.dto.js";
 import { ApiProperty } from "@nestjs/swagger";
 
 export class ContractValidatorsDTO {
@@ -99,6 +99,7 @@ export class ContractValidatorsDTO {
     description: "Additional metadata in JSON format",
     example: { key: "value" },
     type: "object",
+    additionalProperties: true,
   })
   meta?: Record<string, any>;
 }

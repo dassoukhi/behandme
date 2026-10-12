@@ -3,9 +3,9 @@ import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy } from 'passport-custom';
-import { UsersService } from 'src/users/users.service';
+import { UsersService } from '../users/users.service.js';
 import { Request } from 'express';
-import { ClerkClient } from '@clerk/backend';
+import type { ClerkClient } from '@clerk/backend';
 
 @Injectable()
 export class ClerkStrategy extends PassportStrategy(Strategy, 'clerk') {

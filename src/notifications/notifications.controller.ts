@@ -14,14 +14,14 @@ import {
   ApiResponse,
   ApiBearerAuth,
 } from "@nestjs/swagger";
-import { NotificationsService } from "./notifications.service";
-import { CreateNotificationDto } from "./dto/create-notifications.dto";
-import { NotificationDto } from "./dto/notifications.dto";
-import { UpdateNotificationDto } from "./dto/update-notifications.dto";
-import { RegisterTokenDto } from "./dto/register-token.dto";
-import { Public } from "@/decorators/public.decorator";
-import { SenderNotificationDto } from "./dto/sender-notifications.dto";
-import { ExpoService } from "@/expo/expo.service";
+import { NotificationsService } from "./notifications.service.js";
+import { CreateNotificationDto } from "./dto/create-notifications.dto.js";
+import { NotificationDto } from "./dto/notifications.dto.js";
+import { UpdateNotificationDto } from "./dto/update-notifications.dto.js";
+import { RegisterTokenDto } from "./dto/register-token.dto.js";
+import { Public } from "../decorators/public.decorator.js";
+import { SenderNotificationDto } from "./dto/sender-notifications.dto.js";
+import { ExpoService } from "../expo/expo.service.js";
 
 @ApiTags("notifications")
 @ApiBearerAuth()

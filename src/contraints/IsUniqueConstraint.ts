@@ -6,7 +6,7 @@ import {
   ValidationArguments,
 } from "class-validator";
 import { Injectable } from "@nestjs/common";
-import { SupabaseService } from "../supabase/supabase.service";
+import { SupabaseService } from "../supabase/supabase.service.js";
 
 @ValidatorConstraint({ async: true })
 @Injectable()

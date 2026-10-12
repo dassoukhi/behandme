@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query, HttpStatus, HttpException, Logger } from '@nestjs/common';
-import { CreateUserDto } from './dto/create-user.dto';
+import { CreateUserDto } from './dto/create-user.dto.js';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery, ApiBody } from '@nestjs/swagger';
-import { FabricService } from '../fabric/fabric.service';
+import { FabricService } from '../fabric/fabric.service.js';
 
 @ApiTags('User Chaincode')
 @Controller('user-chaincode')

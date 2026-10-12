@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, HttpException, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody } from '@nestjs/swagger';
-import { FabricService } from './fabric.service';
-import { CreateAssetDto, UpdateAssetDto, TransferAssetDto } from './dto';
+import { FabricService } from './fabric.service.js';
+import { CreateAssetDto, UpdateAssetDto, TransferAssetDto } from './dto/index.js';
 
 @ApiTags('Fabric Blockchain')
 @Controller('fabric')

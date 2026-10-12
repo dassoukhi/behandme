@@ -1,6 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { IsNotEmpty, IsObject, IsString } from "class-validator";
-import { CreateNotificationDto } from "./create-notifications.dto";
+import { CreateNotificationDto } from "./create-notifications.dto.js";
 
 export class SenderNotificationDto {
   @ApiProperty({

@@ -1,6 +1,6 @@
-import { CreateNotificationDto } from "@/notifications/dto/create-notifications.dto";
-import { NotificationDto } from "@/notifications/dto/notifications.dto";
-import { NotificationsService } from "@/notifications/notifications.service";
+import { CreateNotificationDto } from "../notifications/dto/create-notifications.dto.js";
+import { NotificationDto } from "../notifications/dto/notifications.dto.js";
+import { NotificationsService } from "../notifications/notifications.service.js";
 import { HttpException, HttpStatus, Injectable } from "@nestjs/common";
 import { Expo, ExpoPushMessage } from "expo-server-sdk";
 

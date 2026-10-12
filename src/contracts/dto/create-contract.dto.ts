@@ -90,6 +90,7 @@ export class CreateContractDTO {
     description: "Additional metadata in JSON format",
     example: { key: "value" },
     type: "object",
+    additionalProperties: true,
   })
   @IsOptional()
   meta?: Record<string, any>;
