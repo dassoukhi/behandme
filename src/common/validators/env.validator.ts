@@ -1,10 +1,10 @@
-import { plainToInstance } from 'class-transformer';
-import { IsEnum, IsNumber, IsString, validateSync } from 'class-validator';
+import { plainToInstance } from "class-transformer";
+import { IsEnum, IsNumber, IsString, validateSync } from "class-validator";
 
 enum Environment {
-  Development = 'development',
-  Production = 'production',
-  Test = 'test',
+  Development = "development",
+  Production = "production",
+  Test = "test",
 }
 
 class EnvironmentVariables {
@@ -31,7 +31,7 @@ export function validate(config: Record<string, unknown>) {
       ...config,
       PORT: config.PORT ? parseInt(config.PORT as string, 10) : 3000,
     },
-    { enableImplicitConversion: true },
+    { enableImplicitConversion: true }
   );
 
   const errors = validateSync(validatedConfig, {
