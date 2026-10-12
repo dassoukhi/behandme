@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query, HttpStatus, HttpException, Logger } from '@nestjs/common';
-import { CreateUserDto } from './dto/create-user.dto.js';
+import { CreateChaincodeUserDto } from './dto/create-user.dto.js';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery, ApiBody } from '@nestjs/swagger';
 import { FabricService } from '../fabric/fabric.service.js';
 
@@ -12,11 +12,11 @@ export class UserChaincodeController {
   
     @Post()
     @ApiOperation({ summary: 'Créer un nouvel utilisateur' })
-    @ApiBody({ type: CreateUserDto })
+    @ApiBody({ type: CreateChaincodeUserDto })
     @ApiResponse({ status: 201, description: 'Utilisateur créé avec succès' })
     @ApiResponse({ status: 400, description: 'Données invalides' })
     @ApiResponse({ status: 409, description: 'Utilisateur déjà existant' })
-    async createUser(@Body() createUserDto: CreateUserDto) {
+    async createUser(@Body() createUserDto: CreateChaincodeUserDto) {
       try {
         const { id } = createUserDto;
         const result = await this.fabricService.createUser(id);
@@ -66,10 +66,10 @@ export class UserChaincodeController {
     @Put(':id')
     @ApiOperation({ summary: 'Mettre à jour un utilisateur' })
     @ApiParam({ name: 'id', description: 'ID de l\'utilisateur' })
-    @ApiBody({ type: CreateUserDto })
+    @ApiBody({ type: CreateChaincodeUserDto })
     @ApiResponse({ status: 200, description: 'Utilisateur mis à jour avec succès' })
     @ApiResponse({ status: 404, description: 'Utilisateur non trouvé' })
-    async updateUser(@Param('id') id: string, @Body() updateUserDto: CreateUserDto) {
+    async updateUser(@Param('id') id: string, @Body() updateUserDto: CreateChaincodeUserDto) {
       try {
         const { status } = updateUserDto;
         const result = await this.fabricService.updateUser(id, status);
