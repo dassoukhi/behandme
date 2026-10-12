@@ -1,12 +1,12 @@
 # NestJS Supabase Backend avec Hyperledger Fabric
 
-A robust backend application built with NestJS and integrated with Supabase for authentication and database operations, plus Hyperledger Fabric for blockchain functionality.
+A robust backend application built with NestJS, using Clerk for authentication and Supabase for database operations, plus Hyperledger Fabric for blockchain functionality.
 
 ## Features
 
 - NestJS architecture with modular design
 - Supabase integration for database operations
-- User authentication with Supabase Auth
+- User authentication with Clerk
 - CRUD operations for user profiles
 - **Hyperledger Fabric blockchain integration**
 - **Asset management on blockchain**
@@ -68,9 +68,7 @@ http://localhost:3007/api/docs
 ## API Endpoints
 
 ### Authentication
-- `POST /api/v1/auth/sign-up` - Register a new user
-- `POST /api/v1/auth/sign-in` - User sign in
-- `POST /api/v1/auth/sign-out` - User sign out
+Authentication is handled by Clerk: send the Clerk session token as `Authorization: Bearer <token>`. Every endpoint requires it unless marked public.
 
 ### Users
 - `GET /api/v1/users` - Get all user profiles
