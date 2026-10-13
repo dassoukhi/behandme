@@ -3,8 +3,9 @@
 NestJS 12 (ESM) API for the BehindMe mobile app (`../behindMe`). Authentication with Clerk, data in
 Supabase Postgres (accessed with the service-role key; the public anon key is denied by RLS).
 
-The backend is being reorganised into microservices (gateway, handover, notifier, worker); see the
-project plan and `CLAUDE.md` for the target architecture and working rules.
+It is a NestJS monorepo: one app per service in `apps/` (today `gateway`, the public API; then `handover`,
+`notifier`, `worker`) and shared libraries in `libs/`. The target design is in `docs/architecture.md`; the
+working rules are in `CLAUDE.md`.
 
 ## Requirements
 
@@ -16,16 +17,17 @@ project plan and `CLAUDE.md` for the target architecture and working rules.
 ```bash
 cp .env.example .env   # fill in Supabase and Clerk keys
 npm install
-npm run start:dev      # http://localhost:3000/api/v1, Swagger UI at /api/docs
+npm run start:dev      # gateway on http://localhost:3000/api/v1, Swagger UI at /api/docs
 ```
 
 ## Commands
 
 | Command | Purpose |
 |---|---|
-| `npm run verify` | Push gate: typecheck, lint, formatting, tests, OpenAPI contract up to date |
-| `npm run openapi` | Build and write `openapi.json` (the contract consumed by the mobile app) |
-| `npm test` | Vitest specs (`src/**/*.spec.ts`) |
+| `npm run verify` | Push gate: typecheck, dependency rules, lint, formatting, tests, build, OpenAPI contract up to date |
+| `npm run openapi` | Build the gateway and write `openapi.json` (the contract consumed by the mobile app) |
+| `npm test` | Vitest specs (`{apps,libs}/*/src/**/*.spec.ts`) |
+| `npm run check:deps` | Clean architecture and service boundaries (`.dependency-cruiser.cjs`) |
 | `npm run check:rls` | Prove the anon key reads no table and calls no RPC (run after every migration) |
 | `npm run lint` | ESLint with auto-fix |
 | `npm run format` | Prettier |

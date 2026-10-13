@@ -3,7 +3,7 @@ import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { PassportStrategy } from "@nestjs/passport";
 import { Strategy } from "passport-custom";
-import { Request } from "express";
+import type { Request } from "express";
 import type { AuthUser } from "./current-user.decorator.js";
 
 @Injectable()

@@ -1,9 +1,9 @@
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
+  // Library aliases (@lib/*) come from the "paths" of tsconfig.json.
+  resolve: { tsconfigPaths: true },
   test: {
-    // Same scope as the former Jest config: the chaincode and the downloaded
-    // fabric-samples have their own test setups.
-    include: ["src/**/*.spec.ts"],
+    include: ["{apps,libs}/*/src/**/*.spec.ts"],
   },
 });

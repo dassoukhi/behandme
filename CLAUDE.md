@@ -1,14 +1,16 @@
 # behandme — backend (NestJS)
 
-NestJS 12 (ESM) API backed by Supabase, Clerk auth and Hyperledger Fabric. Its client is the
-Expo app in a **separate repo**: `../behindMe` (GitHub `dassoukhi/behindMe`). This repo is `rachadia/behandme`.
+NestJS 12 (ESM) monorepo backed by Supabase Postgres and Clerk auth. Its client is the Expo app in a
+**separate repo**: `../behindMe` (GitHub `dassoukhi/behindMe`). This repo is `rachadia/behandme`.
+The target architecture (microservices, messaging, contract life cycle, end-to-end encryption) and the
+delivery order are in `docs/architecture.md`.
 
 ## Working across front and back
 
 - The two repos stay independent: separate git history, branches, commits and deploys.
   The only shared artifact is the API contract `openapi.json` (committed here).
 - After any change to a route, DTO or response shape:
-  1. `npm run openapi` — builds and writes `openapi.json` offline (no Supabase/Clerk/Fabric needed).
+  1. `npm run openapi` — builds the gateway and writes `openapi.json` offline (no Supabase/Clerk needed).
   2. In `../behindMe`: `npm run api:types && npm run typecheck` to see what the app must adapt.
   3. Commit `openapi.json` with the code change. Commit each repo separately.
 - Keep Swagger metadata accurate — it _is_ the front's type source: `@ApiProperty` on every DTO field
@@ -17,27 +19,41 @@ Expo app in a **separate repo**: `../behindMe` (GitHub `dassoukhi/behindMe`). Th
 
 ## Commands
 
-- `npm run start:dev` — watch mode, port `PORT` (default 3000). Swagger UI `/api/docs`, JSON `/api/docs-json`.
+- `npm run start:dev` — gateway in watch mode, port `PORT` (default 3000). Swagger UI `/api/docs`, JSON `/api/docs-json`.
 - `npm run verify` — **push gate**, see "Definition of done".
-- `npm run build`, `npm run openapi`, `npm test` (vitest, specs in `src/**/*.spec.ts`),
+- `npm run build` (every app), `npm run openapi`, `npm test` (vitest, specs in `{apps,libs}/*/src/**/*.spec.ts`),
   `npm run lint` (**applies fixes**), `npm run format`.
+- `npm run check:deps` — dependency rules (`.dependency-cruiser.cjs`), see "Monorepo layout".
 - `npm run check:rls` — proves the anon key reads no table and calls no RPC (counts and status codes
   only). Run after every migration.
 - Node 24 (`.nvmrc`). Env: see `.env.example` (Supabase + Clerk required to serve requests).
 
-## Architecture
+## Monorepo layout
 
-- All routes under `/api/v1` (`app.setGlobalPrefix`). Swagger config shared in `src/swagger.ts`.
+- `apps/<service>/src` — one deployable NestJS app per service, configured in `nest-cli.json` (tsc builder) with
+  its own `tsconfig.app.json`. Today: `gateway` (the public API, the only service the mobile app calls).
+  Planned: `handover`, `notifier`, `worker`. Build output: `dist/apps/<service>/apps/<service>/src/main.js`.
+- `libs/<name>/src` — shared code imported as `@lib/<name>` (aliases in the root `tsconfig.json` "paths",
+  rewritten to relative paths at build by the Nest CLI, resolved by Vitest through `resolve.tsconfigPaths`).
+- New feature code follows clean architecture inside each module: `domain/` (pure rules, imports only
+  domain code and `@lib/kernel`), `application/` (use cases and ports), `infrastructure/` (adapters:
+  database, Clerk, push…), `interface/` (controllers, message consumers). The `*.module.ts` file wires them.
+- `npm run check:deps` enforces: layers point inwards, no service imports another service, libs never import
+  apps, no import cycle, no test code or devDependency in production code.
+
+## Gateway architecture
+
+- All routes under `/api/v1` (`app.setGlobalPrefix`). Swagger config shared in `apps/gateway/src/swagger.ts`.
 - Global `ValidationPipe({ whitelist, forbidNonWhitelisted, transform })`: **every** body field needs a
   class-validator decorator, otherwise requests fail with "property X should not exist".
-- Auth: global `ClerkAuthGuard` (passport-custom strategy, `src/auth/`). Clients send
-  `Authorization: Bearer <Clerk session JWT>`; opt out with `@Public()` (`src/decorators/`).
+- Auth: global `ClerkAuthGuard` (passport-custom strategy, `apps/gateway/src/auth/`). Clients send
+  `Authorization: Bearer <Clerk session JWT>`; opt out with `@Public()` (`apps/gateway/src/decorators/`).
   `req.user` is `{ id }` (Clerk user id = `users.id`), read with `@CurrentUserId()`.
 - Errors: `GlobalExceptionFilter` → `{ statusCode, timestamp, path, error, message }`.
-- Feature modules in `src/<feature>/` (`*.controller.ts`, `*.service.ts`, `*.module.ts`, `dto/*.dto.ts`).
-  Data: `SupabaseService` (`src/supabase/`, service-role client only). Push: `src/expo/`.
-  Fabric: `src/fabric/`, `src/documents/`, `src/user-chaincode/`.
-- Updates use **PATCH** (users, contracts, notifications); Fabric routes use PUT.
+- Existing feature modules (`apps/gateway/src/<feature>/`: `*.controller.ts`, `*.service.ts`, `*.module.ts`,
+  `dto/*.dto.ts`) predate the layers and are moved into them feature by feature.
+  Data: `SupabaseService` (`apps/gateway/src/supabase/`, service-role client only). Push: `apps/gateway/src/expo/`.
+- Updates use **PATCH** (users, contracts, notifications).
 
 ## Access control (security-critical)
 
@@ -49,26 +65,29 @@ is the only gate and connects with the service-role key, which bypasses RLS. Eve
   rejects them. Caller-scoped routes live under `/users/me`.
 - Filter in the Supabase query itself (`.eq("owner_id", me)`, `participantFilter(me)`), and return
   **404** (not 403) for resources the caller cannot see.
-- Rules: contracts readable by owner/accessor/validators, writable by the owner only, `secret_hash`
-  owner-only (`src/contracts/contract-access.ts`); profiles expose email/phone only to yourself and
-  to users who trust you (`src/users/profile-visibility.ts`); notifications are recipient-only and
-  created server-side (no client create/send route); Fabric documents and ledger users are owner/self only.
-- Tests: `src/common/access-control.spec.ts` runs the real services against an in-memory Supabase
-  (`src/testing/in-memory-supabase.ts`) with a role × action matrix — extend it for every new route.
+- Rules: contracts readable by owner/accessor/validators, name/description writable by the owner only,
+  `status` and participants never client-writable, no secret material ever returned
+  (`apps/gateway/src/contracts/`); participants must be distinct and trusted by the owner; profiles expose
+  email/phone only to yourself and to users who trust you (`apps/gateway/src/users/profile-visibility.ts`);
+  a profile's email comes from Clerk, never from the client; notifications are recipient-only and created
+  server-side (no client create/send route).
+- Tests: `apps/gateway/src/common/access-control.spec.ts` runs the real services against an in-memory Supabase
+  (`apps/gateway/src/testing/in-memory-supabase.ts`) with a role × action matrix — extend it for every new route.
 
 ## Definition of done
 
-`npm run verify` must print `VERIFY PASSED`: typecheck, ESLint without auto-fix, Prettier check,
-vitest, and `openapi.json` regenerated with no uncommitted diff. Push only then (global rule in
-`~/.claude/CLAUDE.md`). New or changed routes also extend the role × action matrix in
-`src/common/access-control.spec.ts`, and a fixed bug ships a test shown to fail without the fix.
+`npm run verify` must print `VERIFY PASSED`: typecheck, dependency rules, ESLint without auto-fix,
+Prettier check, vitest, build of every app, and `openapi.json` regenerated with no uncommitted diff.
+Push only then (global rule in `~/.claude/CLAUDE.md`). New or changed routes also extend the role × action
+matrix in `apps/gateway/src/common/access-control.spec.ts`, and a fixed bug ships a test shown to fail
+without the fix.
 If the contract changed, push this repo before the front.
 
 ## What to restart
 
 | Change                       | Action                                                                   |
 | ---------------------------- | ------------------------------------------------------------------------ |
-| any `src/` code              | `npm run start:dev` reloads by itself; redeploy any hosted instance      |
+| code in `apps/` or `libs/`   | `npm run start:dev` reloads by itself; redeploy any hosted instance      |
 | route, DTO or response shape | `npm run openapi`, then in `../behindMe`: `npm run api:sync`             |
 | `.env`                       | restart `start:dev` (env is read at boot)                                |
 | SQL migration                | the user applies it in the Supabase SQL editor, then `npm run check:rls` |
@@ -85,6 +104,7 @@ If the contract changed, push this repo before the front.
 
 ## Conventions
 
-- ESM: relative imports end in `.js` (`./app.module.js`); `import type` for type-only imports.
+- ESM: relative imports end in `.js` (`./app.module.js`); libraries are imported as `@lib/<name>`;
+  `import type` for type-only imports.
 - Prettier defaults (double quotes, trailing commas), flat ESLint config, `any` allowed.
 - Supabase columns are snake_case; notification DTOs are camelCase (known inconsistency).

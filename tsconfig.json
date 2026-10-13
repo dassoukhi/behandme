@@ -13,7 +13,7 @@
     "target": "ES2023",
     "sourceMap": true,
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": ".",
     "incremental": true,
     "skipLibCheck": true,
     "strict": false,
@@ -22,8 +22,9 @@
     "strictBindCallApply": true,
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
-    "types": ["node"]
+    "types": ["node"],
+    "paths": {}
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "fabric-network/**/*"]
+  "include": ["apps/*/src/**/*", "libs/*/src/**/*"],
+  "exclude": ["node_modules", "dist", "fabric-network"]
 }

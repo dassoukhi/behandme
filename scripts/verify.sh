@@ -18,9 +18,11 @@ contract_committed() {
 }
 
 step "typecheck" npx tsc --noEmit -p .
-step "lint (no auto-fix)" npx eslint "src/**/*.ts"
-step "formatting" npx prettier --check "src/**/*.ts"
+step "dependency rules (clean architecture)" npm run -s check:deps
+step "lint (no auto-fix)" npx eslint "{apps,libs}/**/*.ts"
+step "formatting" npx prettier --check "{apps,libs}/**/*.ts"
 step "tests" npx vitest run
+step "build (every app)" npx nest build --all
 step "OpenAPI contract up to date" contract_committed
 
 if ((${#failed[@]})); then

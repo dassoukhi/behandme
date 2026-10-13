@@ -7,8 +7,7 @@ import tseslint from "typescript-eslint";
 
 export default defineConfig(
   {
-    // The chaincode is a separate package deployed to Fabric.
-    ignores: ["dist/", "coverage/", "chaincode/", "fabric-network/"],
+    ignores: ["dist/", "coverage/", "fabric-network/"],
   },
   eslint.configs.recommended,
   tseslint.configs.recommended,
@@ -19,7 +18,7 @@ export default defineConfig(
       globals: globals.node,
     },
     rules: {
-      // Chaincode and Supabase responses are untyped JSON.
+      // Supabase responses are untyped JSON.
       "@typescript-eslint/no-explicit-any": "off",
     },
   },

@@ -1,9 +1,13 @@
 {
   "$schema": "https://json.schemastore.org/nest-cli",
   "collection": "@nestjs/schematics",
-  "sourceRoot": "src",
+  "monorepo": true,
+  "root": "apps/gateway",
+  "sourceRoot": "apps/gateway/src",
   "compilerOptions": {
+    "builder": "tsc",
     "deleteOutDir": true,
+    "tsConfigPath": "apps/gateway/tsconfig.app.json",
     "plugins": [
       {
         "name": "@nestjs/swagger",
@@ -13,5 +17,16 @@
         }
       }
     ]
+  },
+  "projects": {
+    "gateway": {
+      "type": "application",
+      "root": "apps/gateway",
+      "entryFile": "main",
+      "sourceRoot": "apps/gateway/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/gateway/tsconfig.app.json"
+      }
+    }
   }
 }
