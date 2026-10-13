@@ -10,6 +10,7 @@ import {
   HttpStatus,
   HttpException,
   Logger,
+  NotFoundException,
 } from "@nestjs/common";
 import {
   ApiTags,
@@ -18,6 +19,7 @@ import {
   ApiParam,
   ApiQuery,
   ApiBody,
+  ApiBearerAuth,
 } from "@nestjs/swagger";
 import { FabricService } from "../fabric/fabric.service.js";
 import {
@@ -25,13 +27,30 @@ import {
   UpdateDocumentDto,
   TransferDocumentDto,
 } from "./dto/document.dto.js";
+import { CurrentUserId } from "../auth/current-user.decorator.js";
 
+// Documents are visible to and managed by their ledger Owner only.
 @ApiTags("Documents")
+@ApiBearerAuth()
 @Controller("documents")
 export class DocumentController {
   private readonly logger = new Logger(DocumentController.name);
 
   constructor(private readonly fabricService: FabricService) {}
+
+  /** 404 unless the caller owns the document, so its existence is not revealed. */
+  private async assertOwner(id: string, me: string) {
+    let document: { Owner?: string } | undefined;
+    try {
+      document = await this.fabricService.readDocument(id);
+    } catch {
+      document = undefined;
+    }
+    if (document?.Owner !== me) {
+      throw new NotFoundException("Document non trouvé");
+    }
+    return document;
+  }
 
   @Post()
   @ApiOperation({ summary: "Créer un nouveau document" })
@@ -39,15 +58,18 @@ export class DocumentController {
   @ApiResponse({ status: 201, description: "Document créé avec succès" })
   @ApiResponse({ status: 400, description: "Données invalides" })
   @ApiResponse({ status: 409, description: "Document déjà existant" })
-  async createDocument(@Body() createDocumentDto: CreateDocumentDto) {
+  async createDocument(
+    @CurrentUserId() me: string,
+    @Body() createDocumentDto: CreateDocumentDto,
+  ) {
     try {
-      const { id, title, type, content, owner, hash } = createDocumentDto;
+      const { id, title, type, content, hash } = createDocumentDto;
       const result = await this.fabricService.createDocument(
         id,
         title,
         type,
         content,
-        owner,
+        me,
         hash,
       );
 
@@ -74,9 +96,9 @@ export class DocumentController {
   @ApiParam({ name: "id", description: "ID du document" })
   @ApiResponse({ status: 200, description: "Document trouvé" })
   @ApiResponse({ status: 404, description: "Document non trouvé" })
-  async getDocument(@Param("id") id: string) {
+  async getDocument(@CurrentUserId() me: string, @Param("id") id: string) {
+    const result = await this.assertOwner(id, me);
     try {
-      const result = await this.fabricService.readDocument(id);
       return {
         success: true,
         data: result,
@@ -100,9 +122,11 @@ export class DocumentController {
   @ApiResponse({ status: 200, description: "Document mis à jour avec succès" })
   @ApiResponse({ status: 404, description: "Document non trouvé" })
   async updateDocument(
+    @CurrentUserId() me: string,
     @Param("id") id: string,
     @Body() updateDocumentDto: UpdateDocumentDto,
   ) {
+    await this.assertOwner(id, me);
     try {
       const { title, type, content, status, hash } = updateDocumentDto;
       const result = await this.fabricService.updateDocument(
@@ -137,7 +161,8 @@ export class DocumentController {
   @ApiParam({ name: "id", description: "ID du document" })
   @ApiResponse({ status: 200, description: "Document supprimé avec succès" })
   @ApiResponse({ status: 404, description: "Document non trouvé" })
-  async deleteDocument(@Param("id") id: string) {
+  async deleteDocument(@CurrentUserId() me: string, @Param("id") id: string) {
+    await this.assertOwner(id, me);
     try {
       await this.fabricService.deleteDocument(id);
 
@@ -160,33 +185,22 @@ export class DocumentController {
 
   @Get()
   @ApiOperation({
-    summary: "Obtenir tous les documents ou filtrer par critères",
+    summary: "Obtenir mes documents, éventuellement filtrés par type",
   })
   @ApiQuery({
     name: "type",
     required: false,
     description: "Filtrer par type de document",
   })
-  @ApiQuery({
-    name: "owner",
-    required: false,
-    description: "Filtrer par propriétaire",
-  })
   @ApiResponse({ status: 200, description: "Liste des documents" })
   async getAllDocuments(
+    @CurrentUserId() me: string,
     @Query("type") type?: string,
-    @Query("owner") owner?: string,
   ) {
     try {
-      let result;
-
-      if (type) {
-        result = await this.fabricService.getDocumentsByType(type);
-      } else if (owner) {
-        result = await this.fabricService.getDocumentsByOwner(owner);
-      } else {
-        result = await this.fabricService.getAllDocuments();
-      }
+      const owned: { Type?: string }[] =
+        await this.fabricService.getDocumentsByOwner(me);
+      const result = type ? owned.filter((d) => d.Type === type) : owned;
 
       return {
         success: true,
@@ -216,9 +230,11 @@ export class DocumentController {
     description: "Document ou nouveau propriétaire non trouvé",
   })
   async transferDocument(
+    @CurrentUserId() me: string,
     @Param("id") id: string,
     @Body() transferDto: TransferDocumentDto,
   ) {
+    await this.assertOwner(id, me);
     try {
       const { newOwner } = transferDto;
       const result = await this.fabricService.transferDocument(id, newOwner);

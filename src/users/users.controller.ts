@@ -19,7 +19,8 @@ import { UsersService } from "./users.service.js";
 import { CreateUserDto } from "./dto/create-user.dto.js";
 import { UpdateUserDto } from "./dto/update-user.dto.js";
 import { UserProfileDto } from "./dto/user-profile.dto.js";
-import { AddTrustedDto } from "./dto/add-trusted.dto.js";
+import { AddTrustedDto, TrustedLinkDto } from "./dto/add-trusted.dto.js";
+import { CurrentUserId } from "../auth/current-user.decorator.js";
 
 @ApiTags("users")
 @ApiBearerAuth()
@@ -27,107 +28,89 @@ import { AddTrustedDto } from "./dto/add-trusted.dto.js";
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  @Post()
-  @ApiOperation({ summary: "Create a new user profile" })
-  @ApiResponse({
-    status: 201,
-    description: "Profile created successfully",
-    type: UserProfileDto,
-  })
-  @ApiResponse({ status: 400, description: "Bad request" })
-  create(@Body() createUserDto: CreateUserDto): Promise<UserProfileDto> {
-    return this.usersService.create(createUserDto);
+  // Static routes (me, search) must be declared before ":id".
+
+  @Post("me")
+  @ApiOperation({ summary: "Create the caller's profile" })
+  @ApiResponse({ status: 201, type: UserProfileDto })
+  @ApiResponse({ status: 409, description: "Profile already exists" })
+  createMe(
+    @CurrentUserId() me: string,
+    @Body() createUserDto: CreateUserDto,
+  ): Promise<UserProfileDto> {
+    return this.usersService.createMe(me, createUserDto);
   }
 
-  @Get()
-  @ApiOperation({ summary: "Get all user profiles" })
-  @ApiResponse({
-    status: 200,
-    description: "Return all profiles",
-    type: [UserProfileDto],
-  })
-  findAll(): Promise<UserProfileDto[]> {
-    return this.usersService.findAll();
-  }
-
-  // ⚠️ IMPORTANT: Cette route doit être AVANT /:id
-  @Get("search")
-  @ApiOperation({ summary: "Search users by first_name, last_name or email" })
-  @ApiQuery({ name: "q", required: true, description: "Search query" })
-  @ApiQuery({
-    name: "excludeId",
-    required: false,
-    description: "ID of the current user to exclude from results",
-  })
-  @ApiResponse({
-    status: 200,
-    description: "Return matching profiles",
-    type: [UserProfileDto],
-  })
-  searchUsers(
-    @Query("q") query: string,
-    @Query("excludeId") excludeId?: string,
-  ): Promise<UserProfileDto[]> {
-    return this.usersService.searchUsers(query, excludeId);
-  }
-
-  // ⚠️ Cette route doit être AVANT getTrusteds/:id aussi
-  @Get("getTrusteds/:id")
-  @ApiOperation({ summary: "Get Trusteds by owner_id" })
-  @ApiResponse({
-    status: 200,
-    description: "Return all Trusteds",
-    type: [UserProfileDto],
-  })
-  getTrusteds(@Param("id") id: string): Promise<UserProfileDto[]> {
-    return this.usersService.getTrusteds(id);
-  }
-
-  // Cette route dynamique /:id doit être EN DERNIER des routes GET
-  @Get(":id")
-  @ApiOperation({ summary: "Get a user profile by ID" })
-  @ApiResponse({
-    status: 200,
-    description: "Return the profile",
-    type: UserProfileDto,
-  })
+  @Get("me")
+  @ApiOperation({ summary: "Get the caller's profile" })
+  @ApiResponse({ status: 200, type: UserProfileDto })
   @ApiResponse({ status: 404, description: "Profile not found" })
-  findOne(@Param("id") id: string): Promise<UserProfileDto> {
-    return this.usersService.findOne(id);
+  findMe(@CurrentUserId() me: string): Promise<UserProfileDto> {
+    return this.usersService.findMe(me);
   }
 
-  @Patch(":id")
-  @ApiOperation({ summary: "Update a user profile" })
-  @ApiResponse({
-    status: 200,
-    description: "Profile updated successfully",
-    type: UserProfileDto,
-  })
+  @Patch("me")
+  @ApiOperation({ summary: "Update the caller's profile" })
+  @ApiResponse({ status: 200, type: UserProfileDto })
   @ApiResponse({ status: 404, description: "Profile not found" })
-  update(
-    @Param("id") id: string,
+  updateMe(
+    @CurrentUserId() me: string,
     @Body() updateUserDto: UpdateUserDto,
   ): Promise<UserProfileDto> {
-    return this.usersService.update(id, updateUserDto);
+    return this.usersService.updateMe(me, updateUserDto);
   }
 
-  @Delete(":id")
-  @ApiOperation({ summary: "Delete a user profile" })
+  @Delete("me")
+  @ApiOperation({ summary: "Delete the caller's profile" })
   @ApiResponse({ status: 200, description: "Profile deleted successfully" })
   @ApiResponse({ status: 404, description: "Profile not found" })
-  remove(@Param("id") id: string): Promise<{ message: string }> {
-    return this.usersService.remove(id);
+  removeMe(@CurrentUserId() me: string): Promise<{ message: string }> {
+    return this.usersService.removeMe(me);
   }
 
-  @Post("addTrusted")
-  @ApiOperation({ summary: "Add a new trusted" })
-  @ApiResponse({
-    status: 201,
-    description: "Trusted added successfully",
-    type: AddTrustedDto,
+  @Get("me/trusteds")
+  @ApiOperation({ summary: "List the users the caller trusts" })
+  @ApiResponse({ status: 200, type: [UserProfileDto] })
+  getMyTrusteds(@CurrentUserId() me: string): Promise<UserProfileDto[]> {
+    return this.usersService.getMyTrusteds(me);
+  }
+
+  @Post("me/trusteds")
+  @ApiOperation({ summary: "Trust a user" })
+  @ApiResponse({ status: 201, type: TrustedLinkDto })
+  @ApiResponse({ status: 404, description: "User not found" })
+  @ApiResponse({ status: 409, description: "User is already trusted" })
+  addTrusted(
+    @CurrentUserId() me: string,
+    @Body() addTrustedDto: AddTrustedDto,
+  ): Promise<TrustedLinkDto> {
+    return this.usersService.addTrusted(me, addTrustedDto);
+  }
+
+  @Get("search")
+  @ApiOperation({
+    summary:
+      "Search users by first/last name (partial) or email (exact), excluding the caller and users they already trust",
   })
-  @ApiResponse({ status: 400, description: "Bad request" })
-  addTrusted(@Body() addTrustedDto: AddTrustedDto): Promise<AddTrustedDto> {
-    return this.usersService.addTrusted(addTrustedDto);
+  @ApiQuery({ name: "q", required: true, description: "Search query" })
+  @ApiResponse({ status: 200, type: [UserProfileDto] })
+  searchUsers(
+    @CurrentUserId() me: string,
+    @Query("q") query: string,
+  ): Promise<UserProfileDto[]> {
+    return this.usersService.searchUsers(me, query);
+  }
+
+  @Get(":id")
+  @ApiOperation({
+    summary: "Get a user profile (contact details only if they trust you)",
+  })
+  @ApiResponse({ status: 200, type: UserProfileDto })
+  @ApiResponse({ status: 404, description: "Profile not found" })
+  findOne(
+    @CurrentUserId() me: string,
+    @Param("id") id: string,
+  ): Promise<UserProfileDto> {
+    return this.usersService.findOne(me, id);
   }
 }

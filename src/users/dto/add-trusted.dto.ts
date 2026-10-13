@@ -3,18 +3,24 @@ import { IsNotEmpty, IsString } from "class-validator";
 
 export class AddTrustedDto {
   @ApiProperty({
-    description: "Unique identifier of the owner (UUID format).",
-    example: "987e6543-b21c-45d1-b123-123456789abc",
-  })
-  @IsString()
-  @IsNotEmpty()
-  owner_id: string;
-
-  @ApiProperty({
-    description: "Unique identifier of the trusted user (UUID format).",
-    example: "111e2222-c33b-44c4-b555-666676165543",
+    description: "Clerk ID of the user to trust. The owner is the caller.",
+    example: "user_2abc123def456",
   })
   @IsString()
   @IsNotEmpty()
   trusted_id: string;
+}
+
+export class TrustedLinkDto {
+  @ApiProperty({ example: "4bce1a03-3fa5-4d39-8c7e-7f3b7e3468a5" })
+  id: string;
+
+  @ApiProperty({ example: "user_2abc123def456" })
+  owner_id: string;
+
+  @ApiProperty({ example: "user_2qrstuvwxyz123456" })
+  trusted_id: string;
+
+  @ApiProperty({ example: "2023-01-01T00:00:00.000Z", nullable: true })
+  created_at: string | null;
 }

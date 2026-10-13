@@ -1,38 +1,32 @@
-import { User, verifyToken } from "@clerk/backend";
-import { Inject, Injectable, UnauthorizedException } from "@nestjs/common";
+import { verifyToken } from "@clerk/backend";
+import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { PassportStrategy } from "@nestjs/passport";
 import { Strategy } from "passport-custom";
 import { Request } from "express";
-import type { ClerkClient } from "@clerk/backend";
+import type { AuthUser } from "./current-user.decorator.js";
 
 @Injectable()
 export class ClerkStrategy extends PassportStrategy(Strategy, "clerk") {
-  constructor(
-    @Inject("ClerkClient")
-    private readonly clerkClient: ClerkClient,
-    private readonly configService: ConfigService,
-  ) {
+  constructor(private readonly configService: ConfigService) {
     super();
   }
 
-  async validate(req: Request): Promise<User> {
-    const token = req.headers.authorization?.split(" ").pop();
+  async validate(req: Request): Promise<AuthUser> {
+    const header = req.headers.authorization;
+    const token = header?.startsWith("Bearer ") ? header.slice(7) : undefined;
 
     if (!token) {
       throw new UnauthorizedException("No token provided");
     }
 
     try {
-      const tokenPayload = await verifyToken(token, {
+      // The verified session token is enough to identify the user; no Clerk API call.
+      const payload = await verifyToken(token, {
         secretKey: this.configService.get("CLERK_SECRET_KEY"),
       });
-
-      const user = await this.clerkClient.users.getUser(tokenPayload.sub);
-
-      return user;
-    } catch (error) {
-      console.error(error);
+      return { id: payload.sub };
+    } catch {
       throw new UnauthorizedException("Invalid token");
     }
   }

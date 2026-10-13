@@ -31,10 +31,11 @@ export class ContractDTO {
   owner_id: string;
 
   @ApiProperty({
-    description: "Unique hash of the secret",
+    description: "Unique hash of the secret. Only returned to the owner.",
     example: "abc123def456...",
+    required: false,
   })
-  secret_hash: string;
+  secret_hash?: string;
 
   @ApiProperty({
     description: "Blockchain transaction ID for proof",

@@ -1,6 +1,5 @@
 import { Injectable } from "@nestjs/common";
 import { FabricService } from "../fabric/fabric.service.js";
-import { CreateChaincodeUserDto } from "./dto/create-user.dto.js";
 
 @Injectable()
 export class UserChaincodeService {
@@ -8,11 +7,11 @@ export class UserChaincodeService {
 
   constructor(private readonly fabricService: FabricService) {}
 
-  async createUser(createUserDto: CreateChaincodeUserDto): Promise<string> {
+  async createUser(id: string): Promise<string> {
     return this.fabricService.submitTransaction(
       this.contractName,
       "CreateUser",
-      createUserDto.id,
+      id,
     );
   }
 

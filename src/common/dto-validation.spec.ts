@@ -4,10 +4,12 @@ import { describe, expect, it } from "vitest";
 import { CreateContractDTO } from "../contracts/dto/create-contract.dto.js";
 import { UpdateContractDTO } from "../contracts/dto/update-contract.dto.js";
 import { CreateNotificationDto } from "../notifications/dto/create-notifications.dto.js";
-import { SenderNotificationDto } from "../notifications/dto/sender-notifications.dto.js";
+import { RegisterTokenDto } from "../notifications/dto/register-token.dto.js";
 import { UpdateNotificationDto } from "../notifications/dto/update-notifications.dto.js";
 import { CreateUserDto } from "../users/dto/create-user.dto.js";
 import { UpdateUserDto } from "../users/dto/update-user.dto.js";
+import { AddTrustedDto } from "../users/dto/add-trusted.dto.js";
+import { CreateDocumentDto } from "../documents/dto/document.dto.js";
 
 // Same options as the global pipe in main.ts.
 const pipe = new ValidationPipe({
@@ -22,7 +24,6 @@ const validate = (metatype: ArgumentMetadata["metatype"], value: unknown) =>
 const contract = {
   name: "networks",
   description: "desc",
-  owner_id: "user_2abcdefghijklmnop",
   secret_hash: "hash",
   blockchain_tx_id: "0xabc",
   accessor_id: "user_2qrstuvwxyz123456",
@@ -64,18 +65,9 @@ describe("notification DTOs", () => {
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
-  it("validates the nested notification of a push", async () => {
+  it("only lets the app change the read state", async () => {
     await expect(
-      validate(SenderNotificationDto, {
-        token: "ExponentPushToken[abc]",
-        notification,
-      }),
-    ).resolves.toBeDefined();
-    await expect(
-      validate(SenderNotificationDto, {
-        token: "ExponentPushToken[abc]",
-        notification: { ...notification, title: "" },
-      }),
+      validate(UpdateNotificationDto, { is_read: true, title: "hijacked" }),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 });
@@ -107,7 +99,6 @@ describe("user DTOs", () => {
   it("accepts a user matching the users table", async () => {
     await expect(
       validate(CreateUserDto, {
-        id: "user_2abcdefghijklmnop",
         email: "john.doe@example.com",
         first_name: "John",
         last_name: "Doe",
@@ -118,7 +109,6 @@ describe("user DTOs", () => {
   it("rejects the non-existent full_name column", async () => {
     await expect(
       validate(CreateUserDto, {
-        id: "user_2abcdefghijklmnop",
         email: "john.doe@example.com",
         full_name: "John Doe",
       }),
@@ -136,5 +126,49 @@ describe("contract update defaults", () => {
   it("does not inject blockchain_network into a partial update", async () => {
     const result = await validate(UpdateContractDTO, { status: "active" });
     expect(result).not.toHaveProperty("blockchain_network");
+  });
+});
+
+// Identity always comes from the Clerk token: any body field that would let a
+// client act as someone else must be rejected by the whitelist.
+describe("identity fields are rejected in request bodies", () => {
+  const cases: [string, ArgumentMetadata["metatype"], object][] = [
+    [
+      "contract owner_id on create",
+      CreateContractDTO,
+      { ...contract, owner_id: "user_x" },
+    ],
+    ["contract owner_id on update", UpdateContractDTO, { owner_id: "user_x" }],
+    ["user id on create", CreateUserDto, { id: "user_x", email: "a@b.co" }],
+    [
+      "trusted owner_id",
+      AddTrustedDto,
+      { owner_id: "user_x", trusted_id: "user_y" },
+    ],
+    [
+      "push token user_id",
+      RegisterTokenDto,
+      { token: "ExponentPushToken[a]", user_id: "user_x" },
+    ],
+    [
+      "document owner",
+      CreateDocumentDto,
+      {
+        id: "d1",
+        title: "t",
+        type: "contract",
+        content: "c",
+        owner: "user_x",
+        docType: "document",
+        status: "active",
+        hash: "h",
+      },
+    ],
+  ];
+
+  it.each(cases)("rejects %s", async (_name, metatype, body) => {
+    await expect(validate(metatype, body)).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
   });
 });

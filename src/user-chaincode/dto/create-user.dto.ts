@@ -1,12 +1,8 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsString, IsNotEmpty } from "class-validator";
+import { IsString } from "class-validator";
 
+// The ledger user id is the authenticated caller, never taken from the body.
 export class CreateChaincodeUserDto {
-  @ApiProperty({ description: "ID unique de l'utilisateur", example: "user4" })
-  @IsString()
-  @IsNotEmpty()
-  id: string;
-
   @ApiProperty({ description: "status", example: "active" })
   @IsString()
   status: string;

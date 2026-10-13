@@ -1,89 +1,122 @@
 import { Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { SupabaseService } from "../supabase/supabase.service.js";
-import { ContractDTO } from "./dto/contract.dto.js";
+import { UsersService } from "../users/users.service.js";
 import { CreateContractDTO } from "./dto/create-contract.dto.js";
+import { ContractDTO } from "./dto/contract.dto.js";
 import { UpdateContractDTO } from "./dto/update-contract.dto.js";
 import { ContractValidatorsDTO } from "./dto/contractWtihValidators.dto.js";
+import {
+  contractRole,
+  joinedProfileIds,
+  participantFilter,
+  projectContract,
+} from "./contract-access.js";
 
+const WITH_PARTICIPANTS = `
+  *,
+  owner:users!contracts_owner_id_fkey(*),
+  accessor:users!contracts_accessor_id_fkey(*)`;
+
+/**
+ * Access rules: owner, accessor and validators can read a contract; only the
+ * owner can update or delete it and see its secret_hash. Contracts the caller
+ * cannot see are reported as 404 so their existence is not revealed.
+ */
 @Injectable()
 export class ContractService {
   private readonly logger = new Logger(ContractService.name);
 
-  constructor(private readonly supabaseService: SupabaseService) {}
+  constructor(
+    private readonly supabaseService: SupabaseService,
+    private readonly usersService: UsersService,
+  ) {}
 
-  async create(createContractDTO: CreateContractDTO): Promise<ContractDTO> {
+  async create(
+    me: string,
+    createContractDTO: CreateContractDTO,
+  ): Promise<ContractDTO> {
     const { data, error } = await this.supabaseService
       .getClient()
       .from("contracts")
       // Default applied here, not on the DTO: UpdateContractDTO inherits field initializers.
-      .insert([{ blockchain_network: "Fabric-Network", ...createContractDTO }])
+      .insert([
+        {
+          blockchain_network: "Fabric-Network",
+          ...createContractDTO,
+          owner_id: me,
+        },
+      ])
       .select()
       .single();
 
     if (error) {
-      this.logger.error(`Failed to create user: ${error.message}`);
+      this.logger.error(`Failed to create contract: ${error.message}`);
       throw error;
     }
 
     return data;
   }
 
-  async findAll(): Promise<ContractDTO[]> {
+  async findAll(me: string): Promise<ContractDTO[]> {
     const { data, error } = await this.supabaseService
       .getClient()
-      .from("contracts").select(`
-        *,
-        owner:users!contracts_owner_id_fkey(*),
-        accessor:users!contracts_accessor_id_fkey(*)`);
+      .from("contracts")
+      .select(WITH_PARTICIPANTS)
+      .or(participantFilter(me));
 
     if (error) {
-      this.logger.error(`Failed to fetch Contracts: ${error.message}`);
+      this.logger.error(`Failed to fetch contracts: ${error.message}`);
       throw error;
     }
-    console.log("data:", data);
 
-    return data;
+    const contracts = (data ?? []) as ContractDTO[];
+    const trustingMe = await this.usersService.whoTrusts(
+      me,
+      joinedProfileIds(contracts),
+    );
+    return contracts.map((c) => projectContract(c, me, trustingMe));
   }
 
-  async findOne(id: string): Promise<ContractValidatorsDTO> {
-    const { data: contract, error } = await this.supabaseService
-      .getClient()
+  async findOne(me: string, id: string): Promise<ContractValidatorsDTO> {
+    const client = this.supabaseService.getClient();
+    const { data: contract, error } = await client
       .from("contracts")
-      .select(
-        `
-        *,
-        owner:users!contracts_owner_id_fkey(*),
-        accessor:users!contracts_accessor_id_fkey(*)`,
-      )
+      .select(WITH_PARTICIPANTS)
       .eq("id", id)
-      .single<ContractValidatorsDTO>();
+      .maybeSingle<ContractValidatorsDTO>();
 
     if (error) {
-      this.logger.error(`Failed to fetch Contract: ${error.message}`);
+      this.logger.error(`Failed to fetch contract: ${error.message}`);
+      throw error;
+    }
+    if (!contract || !contractRole(contract, me)) {
       throw new NotFoundException(`Contract with ID ${id} not found`);
     }
-    if (contract?.validators && contract.validators.length > 0) {
-      const { data: validators, error: validatorsError } =
-        await this.supabaseService
-          .getClient()
-          .from("users")
-          .select("*")
-          .in("id", contract.validators);
+
+    contract.validators_list = [];
+    if (contract.validators?.length) {
+      const { data: validators, error: validatorsError } = await client
+        .from("users")
+        .select("*")
+        .in("id", contract.validators);
 
       if (validatorsError) throw validatorsError;
 
-      // Maintenir l'ordre des validators selon le tableau original
+      // Keep the order of the validators array
       contract.validators_list = contract.validators
-        .map((id) => validators.find((user) => user.id === id))
+        .map((validatorId) => validators.find((u) => u.id === validatorId))
         .filter(Boolean);
-    } else {
-      contract.validators_list = [];
     }
 
-    return contract;
+    const trustingMe = await this.usersService.whoTrusts(
+      me,
+      joinedProfileIds([contract]),
+    );
+    return projectContract(contract, me, trustingMe);
   }
 
   async update(
+    me: string,
     id: string,
     updateContractDTO: UpdateContractDTO,
   ): Promise<ContractDTO> {
@@ -92,33 +125,38 @@ export class ContractService {
       .from("contracts")
       .update(updateContractDTO)
       .eq("id", id)
+      .eq("owner_id", me)
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) {
-      this.logger.error(`Failed to update user: ${error.message}`);
+      this.logger.error(`Failed to update contract: ${error.message}`);
       throw error;
     }
-
     if (!data) {
-      throw new NotFoundException(`User with ID ${id} not found`);
+      throw new NotFoundException(`Contract with ID ${id} not found`);
     }
 
     return data;
   }
 
-  async remove(id: string): Promise<{ message: string }> {
-    const { error } = await this.supabaseService
+  async remove(me: string, id: string): Promise<{ message: string }> {
+    const { data, error } = await this.supabaseService
       .getClient()
       .from("contracts")
       .delete()
-      .eq("id", id);
+      .eq("id", id)
+      .eq("owner_id", me)
+      .select("id");
 
     if (error) {
-      this.logger.error(`Failed to delete user: ${error.message}`);
+      this.logger.error(`Failed to delete contract: ${error.message}`);
       throw error;
     }
+    if (!data?.length) {
+      throw new NotFoundException(`Contract with ID ${id} not found`);
+    }
 
-    return { message: `User with ID ${id} deleted successfully` };
+    return { message: `Contract with ID ${id} deleted successfully` };
   }
 }

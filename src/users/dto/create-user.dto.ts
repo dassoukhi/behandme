@@ -1,15 +1,8 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsEmail, IsNotEmpty, IsOptional, IsString } from "class-validator";
+import { IsEmail, IsOptional, IsString } from "class-validator";
 
+// The profile id is the authenticated Clerk user id, never taken from the body.
 export class CreateUserDto {
-  @ApiProperty({
-    description: "Clerk user ID",
-    example: "user_2abc123def456",
-  })
-  @IsString()
-  @IsNotEmpty()
-  id: string;
-
   @ApiProperty({
     description: "User email",
     example: "john.doe@example.com",

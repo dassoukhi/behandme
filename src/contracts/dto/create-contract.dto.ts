@@ -8,6 +8,7 @@ import {
   IsString,
 } from "class-validator";
 
+// owner_id is the authenticated caller, never taken from the body.
 export class CreateContractDTO {
   @ApiProperty({
     description: "Name of Contracts",
@@ -23,14 +24,6 @@ export class CreateContractDTO {
   })
   @IsString()
   description: string;
-
-  @ApiProperty({
-    description: "Owner ID which references the users table",
-    example: "user123",
-  })
-  @IsString()
-  @IsNotEmpty()
-  owner_id: string;
 
   @ApiProperty({
     description: "Unique hash of the secret",

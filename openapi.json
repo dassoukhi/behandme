@@ -41,6 +41,11 @@
             "description": "Document déjà existant"
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Créer un nouveau document",
         "tags": [
           "Documents"
@@ -57,15 +62,6 @@
             "schema": {
               "type": "string"
             }
-          },
-          {
-            "name": "owner",
-            "required": false,
-            "in": "query",
-            "description": "Filtrer par propriétaire",
-            "schema": {
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -73,7 +69,12 @@
             "description": "Liste des documents"
           }
         },
-        "summary": "Obtenir tous les documents ou filtrer par critères",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Obtenir mes documents, éventuellement filtrés par type",
         "tags": [
           "Documents"
         ]
@@ -101,6 +102,11 @@
             "description": "Document non trouvé"
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Obtenir un document par ID",
         "tags": [
           "Documents"
@@ -137,6 +143,11 @@
             "description": "Document non trouvé"
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Mettre à jour un document",
         "tags": [
           "Documents"
@@ -163,6 +174,11 @@
             "description": "Document non trouvé"
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Supprimer un document",
         "tags": [
           "Documents"
@@ -201,6 +217,11 @@
             "description": "Document ou nouveau propriétaire non trouvé"
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Transférer un document à un nouveau propriétaire",
         "tags": [
           "Documents"
@@ -209,7 +230,7 @@
     },
     "/api/v1/notifications/register-token": {
       "post": {
-        "operationId": "NotificationsController_registerToken",
+        "operationId": "NotificationsController_registerOrphanToken",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -223,7 +244,7 @@
         },
         "responses": {
           "200": {
-            "description": "Token Registred successfully",
+            "description": "",
             "content": {
               "application/json": {
                 "schema": {
@@ -231,9 +252,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "description": "Bad request"
           }
         },
         "security": [
@@ -241,39 +259,36 @@
             "bearer": []
           }
         ],
-        "summary": "Register new Token",
+        "summary": "Register a device push token before sign-in (not linked to any user)",
         "tags": [
           "notifications"
         ]
       }
     },
-    "/api/v1/notifications/send": {
+    "/api/v1/notifications/push-token": {
       "post": {
-        "operationId": "NotificationsController_sendNotification",
+        "operationId": "NotificationsController_registerPushToken",
         "parameters": [],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SenderNotificationDto"
+                "$ref": "#/components/schemas/RegisterTokenDto"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Notification sent successfully",
+            "description": "",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/NotificationDto"
+                  "$ref": "#/components/schemas/RegisterTokenDto"
                 }
               }
             }
-          },
-          "400": {
-            "description": "Bad request"
           }
         },
         "security": [
@@ -281,57 +296,19 @@
             "bearer": []
           }
         ],
-        "summary": "Send Notification to a device by token i",
+        "summary": "Link a device push token to the caller",
         "tags": [
           "notifications"
         ]
       }
     },
     "/api/v1/notifications": {
-      "post": {
-        "operationId": "NotificationsController_create",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateNotificationDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Notification created successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/NotificationDto"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Create a new Notification",
-        "tags": [
-          "notifications"
-        ]
-      },
       "get": {
         "operationId": "NotificationsController_findAll",
         "parameters": [],
         "responses": {
           "200": {
-            "description": "Return all Notifications",
+            "description": "",
             "content": {
               "application/json": {
                 "schema": {
@@ -349,7 +326,7 @@
             "bearer": []
           }
         ],
-        "summary": "Get all Notifications",
+        "summary": "List the caller's notifications",
         "tags": [
           "notifications"
         ]
@@ -370,7 +347,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Return the Notification",
+            "description": "",
             "content": {
               "application/json": {
                 "schema": {
@@ -388,7 +365,7 @@
             "bearer": []
           }
         ],
-        "summary": "Get a Notification by ID",
+        "summary": "Get one of the caller's notifications",
         "tags": [
           "notifications"
         ]
@@ -417,7 +394,7 @@
         },
         "responses": {
           "200": {
-            "description": "Notification updated successfully",
+            "description": "",
             "content": {
               "application/json": {
                 "schema": {
@@ -435,7 +412,7 @@
             "bearer": []
           }
         ],
-        "summary": "Update a Notification",
+        "summary": "Mark one of the caller's notifications as read",
         "tags": [
           "notifications"
         ]
@@ -454,7 +431,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Notification deleted successfully"
+            "description": "Notification deleted"
           },
           "404": {
             "description": "Notification not found"
@@ -465,7 +442,7 @@
             "bearer": []
           }
         ],
-        "summary": "Delete a Notification",
+        "summary": "Delete one of the caller's notifications",
         "tags": [
           "notifications"
         ]
@@ -533,7 +510,7 @@
             "bearer": []
           }
         ],
-        "summary": "Get all contracts",
+        "summary": "List the contracts the caller owns, accesses or validates",
         "tags": [
           "contracts"
         ]
@@ -619,7 +596,7 @@
             "bearer": []
           }
         ],
-        "summary": "Update a contract",
+        "summary": "Update a contract (owner only)",
         "tags": [
           "contracts"
         ]
@@ -649,15 +626,15 @@
             "bearer": []
           }
         ],
-        "summary": "Delete a contract",
+        "summary": "Delete a contract (owner only)",
         "tags": [
           "contracts"
         ]
       }
     },
-    "/api/v1/users": {
+    "/api/v1/users/me": {
       "post": {
-        "operationId": "UsersController_create",
+        "operationId": "UsersController_createMe",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -671,7 +648,7 @@
         },
         "responses": {
           "201": {
-            "description": "Profile created successfully",
+            "description": "",
             "content": {
               "application/json": {
                 "schema": {
@@ -680,8 +657,8 @@
               }
             }
           },
-          "400": {
-            "description": "Bad request"
+          "409": {
+            "description": "Profile already exists"
           }
         },
         "security": [
@@ -689,17 +666,106 @@
             "bearer": []
           }
         ],
-        "summary": "Create a new user profile",
+        "summary": "Create the caller's profile",
         "tags": [
           "users"
         ]
       },
       "get": {
-        "operationId": "UsersController_findAll",
+        "operationId": "UsersController_findMe",
         "parameters": [],
         "responses": {
           "200": {
-            "description": "Return all profiles",
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfileDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Profile not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get the caller's profile",
+        "tags": [
+          "users"
+        ]
+      },
+      "patch": {
+        "operationId": "UsersController_updateMe",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfileDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Profile not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update the caller's profile",
+        "tags": [
+          "users"
+        ]
+      },
+      "delete": {
+        "operationId": "UsersController_removeMe",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Profile deleted successfully"
+          },
+          "404": {
+            "description": "Profile not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete the caller's profile",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/api/v1/users/me/trusteds": {
+      "get": {
+        "operationId": "UsersController_getMyTrusteds",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
             "content": {
               "application/json": {
                 "schema": {
@@ -717,7 +783,48 @@
             "bearer": []
           }
         ],
-        "summary": "Get all user profiles",
+        "summary": "List the users the caller trusts",
+        "tags": [
+          "users"
+        ]
+      },
+      "post": {
+        "operationId": "UsersController_addTrusted",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddTrustedDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrustedLinkDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found"
+          },
+          "409": {
+            "description": "User is already trusted"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Trust a user",
         "tags": [
           "users"
         ]
@@ -735,20 +842,11 @@
             "schema": {
               "type": "string"
             }
-          },
-          {
-            "name": "excludeId",
-            "required": false,
-            "in": "query",
-            "description": "ID of the current user to exclude from results",
-            "schema": {
-              "type": "string"
-            }
           }
         ],
         "responses": {
           "200": {
-            "description": "Return matching profiles",
+            "description": "",
             "content": {
               "application/json": {
                 "schema": {
@@ -766,46 +864,7 @@
             "bearer": []
           }
         ],
-        "summary": "Search users by first_name, last_name or email",
-        "tags": [
-          "users"
-        ]
-      }
-    },
-    "/api/v1/users/getTrusteds/{id}": {
-      "get": {
-        "operationId": "UsersController_getTrusteds",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Return all Trusteds",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/UserProfileDto"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Get Trusteds by owner_id",
+        "summary": "Search users by first/last name (partial) or email (exact), excluding the caller and users they already trust",
         "tags": [
           "users"
         ]
@@ -826,7 +885,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Return the profile",
+            "description": "",
             "content": {
               "application/json": {
                 "schema": {
@@ -844,124 +903,7 @@
             "bearer": []
           }
         ],
-        "summary": "Get a user profile by ID",
-        "tags": [
-          "users"
-        ]
-      },
-      "patch": {
-        "operationId": "UsersController_update",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateUserDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Profile updated successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserProfileDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Profile not found"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Update a user profile",
-        "tags": [
-          "users"
-        ]
-      },
-      "delete": {
-        "operationId": "UsersController_remove",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Profile deleted successfully"
-          },
-          "404": {
-            "description": "Profile not found"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Delete a user profile",
-        "tags": [
-          "users"
-        ]
-      }
-    },
-    "/api/v1/users/addTrusted": {
-      "post": {
-        "operationId": "UsersController_addTrusted",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AddTrustedDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Trusted added successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AddTrustedDto"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Add a new trusted",
+        "summary": "Get a user profile (contact details only if they trust you)",
         "tags": [
           "users"
         ]
@@ -971,16 +913,6 @@
       "post": {
         "operationId": "UserChaincodeController_createUser",
         "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateChaincodeUserDto"
-              }
-            }
-          }
-        },
         "responses": {
           "201": {
             "description": "Utilisateur créé avec succès"
@@ -992,30 +924,12 @@
             "description": "Utilisateur déjà existant"
           }
         },
-        "summary": "Créer un nouvel utilisateur",
-        "tags": [
-          "User Chaincode"
-        ]
-      },
-      "get": {
-        "operationId": "UserChaincodeController_getAllUsers",
-        "parameters": [
+        "security": [
           {
-            "name": "status",
-            "required": false,
-            "in": "query",
-            "description": "Filtrer par statut (active, inactive)",
-            "schema": {
-              "type": "string"
-            }
+            "bearer": []
           }
         ],
-        "responses": {
-          "200": {
-            "description": "Liste des utilisateurs"
-          }
-        },
-        "summary": "Obtenir tous les utilisateurs ou filtrer par statut",
+        "summary": "Créer un nouvel utilisateur",
         "tags": [
           "User Chaincode"
         ]
@@ -1043,6 +957,11 @@
             "description": "Utilisateur non trouvé"
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Obtenir un utilisateur par ID",
         "tags": [
           "User Chaincode"
@@ -1079,6 +998,11 @@
             "description": "Utilisateur non trouvé"
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Mettre à jour un utilisateur",
         "tags": [
           "User Chaincode"
@@ -1108,6 +1032,11 @@
             "description": "Impossible de supprimer: utilisateur possède des documents"
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Supprimer un utilisateur",
         "tags": [
           "User Chaincode"
@@ -1133,6 +1062,11 @@
             "description": "Liste des documents de l'utilisateur"
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Obtenir tous les documents d'un utilisateur",
         "tags": [
           "User Chaincode"
@@ -1158,6 +1092,11 @@
             "description": "Liste des documents accessibles"
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Obtenir tous les documents accessibles par un utilisateur",
         "tags": [
           "User Chaincode"
@@ -1183,6 +1122,11 @@
             "description": "Liste des documents à valider"
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Obtenir tous les documents à valider par un utilisateur",
         "tags": [
           "User Chaincode"
@@ -1208,6 +1152,11 @@
             "description": "Historique de l'utilisateur"
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Obtenir l'historique d'un utilisateur",
         "tags": [
           "User Chaincode"
@@ -1255,11 +1204,6 @@
             "description": "Description du contrat",
             "example": "Contenu du contrat de vente..."
           },
-          "owner": {
-            "type": "string",
-            "description": "proprietaire",
-            "example": "user1"
-          },
           "docType": {
             "type": "string",
             "description": "Type de document",
@@ -1281,7 +1225,6 @@
           "title",
           "type",
           "content",
-          "owner",
           "docType",
           "status",
           "hash"
@@ -1372,96 +1315,12 @@
         "properties": {
           "token": {
             "type": "string",
-            "description": "The unique token string used for device registration.",
-            "example": "abc123def456"
-          },
-          "user_id": {
-            "type": "string",
-            "description": "The unique identifier of the user who owns the token. Optional field.",
-            "example": "user-12345"
+            "description": "Expo push token of the device",
+            "example": "ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]"
           }
         },
         "required": [
           "token"
-        ]
-      },
-      "CreateNotificationDto": {
-        "type": "object",
-        "properties": {
-          "userId": {
-            "type": "string",
-            "description": "Identifier of the recipient user",
-            "example": "user_2abc123def456"
-          },
-          "title": {
-            "type": "string",
-            "description": "Title of the notification",
-            "example": "Contract update"
-          },
-          "message": {
-            "type": "string",
-            "description": "Message content of the notification",
-            "example": "Your contract has been updated."
-          },
-          "type": {
-            "enum": [
-              "contract_created",
-              "contract_updated",
-              "reminder",
-              "system"
-            ],
-            "type": "string",
-            "description": "Type of notification",
-            "default": "system"
-          },
-          "scheduled_at": {
-            "type": "string",
-            "description": "Scheduled time for the notification (ISO 8601)",
-            "example": "2023-10-11T12:00:00Z"
-          },
-          "meta": {
-            "type": "object",
-            "additionalProperties": true,
-            "description": "Additional metadata",
-            "example": {
-              "key": "value"
-            }
-          },
-          "data": {
-            "type": "object",
-            "additionalProperties": true,
-            "description": "Payload delivered with the notification (defaults to {})",
-            "example": {
-              "contractId": "4bce1a03-3fa5-4d39-8c7e-7f3b7e3468a5"
-            }
-          }
-        },
-        "required": [
-          "userId",
-          "title",
-          "message"
-        ]
-      },
-      "SenderNotificationDto": {
-        "type": "object",
-        "properties": {
-          "token": {
-            "type": "string",
-            "description": "Expo push token of the target device",
-            "example": "ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]"
-          },
-          "notification": {
-            "description": "Notification to store and push",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/CreateNotificationDto"
-              }
-            ]
-          }
-        },
-        "required": [
-          "token",
-          "notification"
         ]
       },
       "NotificationDto": {
@@ -1551,59 +1410,15 @@
       "UpdateNotificationDto": {
         "type": "object",
         "properties": {
-          "userId": {
-            "type": "string",
-            "description": "Identifier of the recipient user",
-            "example": "user_2abc123def456"
-          },
-          "title": {
-            "type": "string",
-            "description": "Title of the notification",
-            "example": "Contract update"
-          },
-          "message": {
-            "type": "string",
-            "description": "Message content of the notification",
-            "example": "Your contract has been updated."
-          },
-          "type": {
-            "enum": [
-              "contract_created",
-              "contract_updated",
-              "reminder",
-              "system"
-            ],
-            "type": "string",
-            "description": "Type of notification",
-            "default": "system"
-          },
-          "scheduled_at": {
-            "type": "string",
-            "description": "Scheduled time for the notification (ISO 8601)",
-            "example": "2023-10-11T12:00:00Z"
-          },
-          "meta": {
-            "type": "object",
-            "additionalProperties": true,
-            "description": "Additional metadata",
-            "example": {
-              "key": "value"
-            }
-          },
-          "data": {
-            "type": "object",
-            "additionalProperties": true,
-            "description": "Payload delivered with the notification (defaults to {})",
-            "example": {
-              "contractId": "4bce1a03-3fa5-4d39-8c7e-7f3b7e3468a5"
-            }
-          },
           "is_read": {
             "type": "boolean",
             "description": "Indicates whether the notification has been read",
             "example": true
           }
-        }
+        },
+        "required": [
+          "is_read"
+        ]
       },
       "CreateContractDTO": {
         "type": "object",
@@ -1617,11 +1432,6 @@
             "type": "string",
             "description": "Description of Contracts",
             "example": "My description"
-          },
-          "owner_id": {
-            "type": "string",
-            "description": "Owner ID which references the users table",
-            "example": "user123"
           },
           "secret_hash": {
             "type": "string",
@@ -1687,7 +1497,6 @@
         "required": [
           "name",
           "description",
-          "owner_id",
           "secret_hash",
           "blockchain_tx_id",
           "accessor_id",
@@ -1704,7 +1513,7 @@
           },
           "email": {
             "type": "string",
-            "description": "User email",
+            "description": "User email. Only returned for yourself and for users who trust you.",
             "example": "john.doe@example.com"
           },
           "first_name": {
@@ -1728,7 +1537,7 @@
           "phone_number": {
             "type": "string",
             "nullable": true,
-            "description": "User phone number",
+            "description": "User phone number. Only returned for yourself and for users who trust you.",
             "example": "+33612345678"
           },
           "created_at": {
@@ -1744,7 +1553,6 @@
         },
         "required": [
           "id",
-          "email",
           "created_at",
           "updated_at"
         ]
@@ -1781,7 +1589,7 @@
           },
           "secret_hash": {
             "type": "string",
-            "description": "Unique hash of the secret",
+            "description": "Unique hash of the secret. Only returned to the owner.",
             "example": "abc123def456..."
           },
           "blockchain_tx_id": {
@@ -1877,7 +1685,6 @@
           "name",
           "description",
           "owner_id",
-          "secret_hash",
           "blockchain_tx_id",
           "blockchain_network",
           "validators",
@@ -1918,7 +1725,7 @@
           },
           "secret_hash": {
             "type": "string",
-            "description": "Unique hash of the secret",
+            "description": "Unique hash of the secret. Only returned to the owner.",
             "example": "abc123def456..."
           },
           "blockchain_tx_id": {
@@ -2021,7 +1828,6 @@
           "name",
           "description",
           "owner_id",
-          "secret_hash",
           "blockchain_tx_id",
           "blockchain_network",
           "validators",
@@ -2043,11 +1849,6 @@
             "type": "string",
             "description": "Description of Contracts",
             "example": "My description"
-          },
-          "owner_id": {
-            "type": "string",
-            "description": "Owner ID which references the users table",
-            "example": "user123"
           },
           "secret_hash": {
             "type": "string",
@@ -2114,11 +1915,6 @@
       "CreateUserDto": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string",
-            "description": "Clerk user ID",
-            "example": "user_2abc123def456"
-          },
           "email": {
             "type": "string",
             "format": "email",
@@ -2147,7 +1943,6 @@
           }
         },
         "required": [
-          "id",
           "email"
         ]
       },
@@ -2185,30 +1980,47 @@
       "AddTrustedDto": {
         "type": "object",
         "properties": {
-          "owner_id": {
-            "type": "string",
-            "description": "Unique identifier of the owner (UUID format).",
-            "example": "987e6543-b21c-45d1-b123-123456789abc"
-          },
           "trusted_id": {
             "type": "string",
-            "description": "Unique identifier of the trusted user (UUID format).",
-            "example": "111e2222-c33b-44c4-b555-666676165543"
+            "description": "Clerk ID of the user to trust. The owner is the caller.",
+            "example": "user_2abc123def456"
           }
         },
         "required": [
-          "owner_id",
           "trusted_id"
+        ]
+      },
+      "TrustedLinkDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "4bce1a03-3fa5-4d39-8c7e-7f3b7e3468a5"
+          },
+          "owner_id": {
+            "type": "string",
+            "example": "user_2abc123def456"
+          },
+          "trusted_id": {
+            "type": "string",
+            "example": "user_2qrstuvwxyz123456"
+          },
+          "created_at": {
+            "type": "string",
+            "nullable": true,
+            "example": "2023-01-01T00:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "owner_id",
+          "trusted_id",
+          "created_at"
         ]
       },
       "CreateChaincodeUserDto": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string",
-            "description": "ID unique de l'utilisateur",
-            "example": "user4"
-          },
           "status": {
             "type": "string",
             "description": "status",
@@ -2216,7 +2028,6 @@
           }
         },
         "required": [
-          "id",
           "status"
         ]
       }

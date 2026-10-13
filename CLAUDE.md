@@ -29,12 +29,29 @@ Expo app in a **separate repo**: `../behindMe` (GitHub `dassoukhi/behindMe`). Th
   class-validator decorator, otherwise requests fail with "property X should not exist".
 - Auth: global `ClerkAuthGuard` (passport-custom strategy, `src/auth/`). Clients send
   `Authorization: Bearer <Clerk session JWT>`; opt out with `@Public()` (`src/decorators/`).
-  `req.user` is the Clerk `User`; handlers currently take user ids from the path/body.
+  `req.user` is `{ id }` (Clerk user id = `users.id`), read with `@CurrentUserId()`.
 - Errors: `GlobalExceptionFilter` → `{ statusCode, timestamp, path, error, message }`.
 - Feature modules in `src/<feature>/` (`*.controller.ts`, `*.service.ts`, `*.module.ts`, `dto/*.dto.ts`).
-  Data: `SupabaseService` (`src/supabase/`, anon + service-role clients). Push: `src/expo/`.
+  Data: `SupabaseService` (`src/supabase/`, service-role client only). Push: `src/expo/`.
   Fabric: `src/fabric/`, `src/documents/`, `src/user-chaincode/`.
 - Updates use **PATCH** (users, contracts, notifications); Fabric routes use PUT.
+
+## Access control (security-critical)
+
+The database denies the public anon key (RLS on, no policies — `supabase/migrations/`), so this API
+is the only gate and connects with the service-role key, which bypasses RLS. Every handler must:
+
+- Take the caller's identity from `@CurrentUserId()`, **never** from the path, query or body. DTOs
+  must not expose identity fields (`owner_id`, `user_id`, `id` of the caller…); the whitelist then
+  rejects them. Caller-scoped routes live under `/users/me`.
+- Filter in the Supabase query itself (`.eq("owner_id", me)`, `participantFilter(me)`), and return
+  **404** (not 403) for resources the caller cannot see.
+- Rules: contracts readable by owner/accessor/validators, writable by the owner only, `secret_hash`
+  owner-only (`src/contracts/contract-access.ts`); profiles expose email/phone only to yourself and
+  to users who trust you (`src/users/profile-visibility.ts`); notifications are recipient-only and
+  created server-side (no client create/send route); Fabric documents and ledger users are owner/self only.
+- Tests: `src/common/access-control.spec.ts` runs the real services against an in-memory Supabase
+  (`src/testing/in-memory-supabase.ts`) with a role × action matrix — extend it for every new route.
 
 ## Conventions
 

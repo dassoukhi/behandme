@@ -8,7 +8,6 @@ import { fileURLToPath } from "node:url";
 
 process.env.NODE_ENV ??= "development";
 process.env.SUPABASE_URL ??= "http://localhost:54321";
-process.env.SUPABASE_ANON_KEY ??= "placeholder";
 process.env.SUPABASE_SERVICE_ROLE_KEY ??= "placeholder";
 
 // Imported after the env defaults: ConfigModule validates env when app.module is evaluated.

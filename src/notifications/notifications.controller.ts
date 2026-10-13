@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  HttpCode,
 } from "@nestjs/common";
 import {
   ApiTags,
@@ -14,112 +15,83 @@ import {
   ApiBearerAuth,
 } from "@nestjs/swagger";
 import { NotificationsService } from "./notifications.service.js";
-import { CreateNotificationDto } from "./dto/create-notifications.dto.js";
 import { NotificationDto } from "./dto/notifications.dto.js";
 import { UpdateNotificationDto } from "./dto/update-notifications.dto.js";
 import { RegisterTokenDto } from "./dto/register-token.dto.js";
 import { Public } from "../decorators/public.decorator.js";
-import { SenderNotificationDto } from "./dto/sender-notifications.dto.js";
-import { ExpoService } from "../expo/expo.service.js";
+import { CurrentUserId } from "../auth/current-user.decorator.js";
 
+// Notifications are created and pushed by the server (NotificationsService /
+// ExpoService), never by clients: there is no create or send route.
 @ApiTags("notifications")
 @ApiBearerAuth()
 @Controller("notifications")
 export class NotificationsController {
-  constructor(
-    private readonly notificationservice: NotificationsService,
-    private readonly expoService: ExpoService,
-  ) {}
+  constructor(private readonly notificationservice: NotificationsService) {}
 
   @Public()
   @Post("register-token")
-  @ApiOperation({ summary: "Register new Token" })
-  @ApiResponse({
-    status: 200,
-    description: "Token Registred successfully",
-    type: RegisterTokenDto,
+  @HttpCode(200)
+  @ApiOperation({
+    summary:
+      "Register a device push token before sign-in (not linked to any user)",
   })
-  @ApiResponse({ status: 400, description: "Bad request" })
-  registerToken(
+  @ApiResponse({ status: 200, type: RegisterTokenDto })
+  registerOrphanToken(
     @Body() registerTokenDto: RegisterTokenDto,
   ): Promise<RegisterTokenDto> {
-    return this.notificationservice.registerToken(registerTokenDto);
+    return this.notificationservice.registerOrphanToken(registerTokenDto);
   }
 
-  @Post("send")
-  @ApiOperation({ summary: "Send Notification to a device by token i" })
-  @ApiResponse({
-    status: 200,
-    description: "Notification sent successfully",
-    type: NotificationDto,
-  })
-  @ApiResponse({ status: 400, description: "Bad request" })
-  sendNotification(
-    @Body() sender: SenderNotificationDto,
-  ): Promise<NotificationDto> {
-    return this.expoService.sendNotification(sender.token, sender.notification);
-  }
-
-  @Post()
-  @ApiOperation({ summary: "Create a new Notification" })
-  @ApiResponse({
-    status: 201,
-    description: "Notification created successfully",
-    type: NotificationDto,
-  })
-  @ApiResponse({ status: 400, description: "Bad request" })
-  create(
-    @Body() createNotificationDto: CreateNotificationDto,
-  ): Promise<NotificationDto> {
-    return this.notificationservice.create(createNotificationDto);
+  @Post("push-token")
+  @HttpCode(200)
+  @ApiOperation({ summary: "Link a device push token to the caller" })
+  @ApiResponse({ status: 200, type: RegisterTokenDto })
+  registerPushToken(
+    @CurrentUserId() me: string,
+    @Body() registerTokenDto: RegisterTokenDto,
+  ): Promise<RegisterTokenDto> {
+    return this.notificationservice.registerPushToken(me, registerTokenDto);
   }
 
   @Get()
-  @ApiOperation({ summary: "Get all Notifications" })
-  @ApiResponse({
-    status: 200,
-    description: "Return all Notifications",
-    type: [NotificationDto],
-  })
-  findAll(): Promise<NotificationDto[]> {
-    return this.notificationservice.findAll();
+  @ApiOperation({ summary: "List the caller's notifications" })
+  @ApiResponse({ status: 200, type: [NotificationDto] })
+  findAll(@CurrentUserId() me: string): Promise<NotificationDto[]> {
+    return this.notificationservice.findAll(me);
   }
 
   @Get(":id")
-  @ApiOperation({ summary: "Get a Notification by ID" })
-  @ApiResponse({
-    status: 200,
-    description: "Return the Notification",
-    type: NotificationDto,
-  })
+  @ApiOperation({ summary: "Get one of the caller's notifications" })
+  @ApiResponse({ status: 200, type: NotificationDto })
   @ApiResponse({ status: 404, description: "Notification not found" })
-  findOne(@Param("id") id: string): Promise<NotificationDto> {
-    return this.notificationservice.findOne(id);
+  findOne(
+    @CurrentUserId() me: string,
+    @Param("id") id: string,
+  ): Promise<NotificationDto> {
+    return this.notificationservice.findOne(me, id);
   }
 
   @Patch(":id")
-  @ApiOperation({ summary: "Update a Notification" })
-  @ApiResponse({
-    status: 200,
-    description: "Notification updated successfully",
-    type: NotificationDto,
-  })
+  @ApiOperation({ summary: "Mark one of the caller's notifications as read" })
+  @ApiResponse({ status: 200, type: NotificationDto })
   @ApiResponse({ status: 404, description: "Notification not found" })
   update(
+    @CurrentUserId() me: string,
     @Param("id") id: string,
     @Body() updateNotificationDto: UpdateNotificationDto,
   ): Promise<NotificationDto> {
-    return this.notificationservice.update(id, updateNotificationDto);
+    return this.notificationservice.update(me, id, updateNotificationDto);
   }
 
   @Delete(":id")
-  @ApiOperation({ summary: "Delete a Notification" })
-  @ApiResponse({
-    status: 200,
-    description: "Notification deleted successfully",
-  })
+  @ApiOperation({ summary: "Delete one of the caller's notifications" })
+  @ApiResponse({ status: 200, description: "Notification deleted" })
   @ApiResponse({ status: 404, description: "Notification not found" })
-  remove(@Param("id") id: string): Promise<{ message: string }> {
-    return this.notificationservice.remove(id);
+  remove(
+    @CurrentUserId() me: string,
+    @Param("id") id: string,
+  ): Promise<{ message: string }> {
+    return this.notificationservice.remove(me, id);
   }
 }

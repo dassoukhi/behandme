@@ -6,10 +6,10 @@ import {
   Delete,
   Body,
   Param,
-  Query,
   HttpStatus,
   HttpException,
   Logger,
+  NotFoundException,
 } from "@nestjs/common";
 import { CreateChaincodeUserDto } from "./dto/create-user.dto.js";
 import {
@@ -17,27 +17,35 @@ import {
   ApiOperation,
   ApiResponse,
   ApiParam,
-  ApiQuery,
   ApiBody,
+  ApiBearerAuth,
 } from "@nestjs/swagger";
 import { FabricService } from "../fabric/fabric.service.js";
+import { CurrentUserId } from "../auth/current-user.decorator.js";
 
+// Each user can only manage and read their own ledger identity.
 @ApiTags("User Chaincode")
+@ApiBearerAuth()
 @Controller("user-chaincode")
 export class UserChaincodeController {
   private readonly logger = new Logger(UserChaincodeController.name);
 
   constructor(private readonly fabricService: FabricService) {}
 
+  private assertSelf(id: string, me: string) {
+    if (id !== me) {
+      throw new NotFoundException("Utilisateur non trouvé");
+    }
+  }
+
   @Post()
   @ApiOperation({ summary: "Créer un nouvel utilisateur" })
-  @ApiBody({ type: CreateChaincodeUserDto })
   @ApiResponse({ status: 201, description: "Utilisateur créé avec succès" })
   @ApiResponse({ status: 400, description: "Données invalides" })
   @ApiResponse({ status: 409, description: "Utilisateur déjà existant" })
-  async createUser(@Body() createUserDto: CreateChaincodeUserDto) {
+  async createUser(@CurrentUserId() me: string) {
+    const id = me;
     try {
-      const { id } = createUserDto;
       const result = await this.fabricService.createUser(id);
 
       this.logger.log(`Utilisateur créé: ${id}`);
@@ -64,7 +72,8 @@ export class UserChaincodeController {
   @ApiParam({ name: "id", description: "ID de l'utilisateur" })
   @ApiResponse({ status: 200, description: "Utilisateur trouvé" })
   @ApiResponse({ status: 404, description: "Utilisateur non trouvé" })
-  async getUser(@Param("id") id: string) {
+  async getUser(@CurrentUserId() me: string, @Param("id") id: string) {
+    this.assertSelf(id, me);
     try {
       const result = await this.fabricService.readUser(id);
       return {
@@ -93,9 +102,11 @@ export class UserChaincodeController {
   })
   @ApiResponse({ status: 404, description: "Utilisateur non trouvé" })
   async updateUser(
+    @CurrentUserId() me: string,
     @Param("id") id: string,
     @Body() updateUserDto: CreateChaincodeUserDto,
   ) {
+    this.assertSelf(id, me);
     try {
       const { status } = updateUserDto;
       const result = await this.fabricService.updateUser(id, status);
@@ -130,7 +141,8 @@ export class UserChaincodeController {
     status: 409,
     description: "Impossible de supprimer: utilisateur possède des documents",
   })
-  async deleteUser(@Param("id") id: string) {
+  async deleteUser(@CurrentUserId() me: string, @Param("id") id: string) {
+    this.assertSelf(id, me);
     try {
       await this.fabricService.deleteUser(id);
 
@@ -159,43 +171,6 @@ export class UserChaincodeController {
     }
   }
 
-  @Get()
-  @ApiOperation({
-    summary: "Obtenir tous les utilisateurs ou filtrer par statut",
-  })
-  @ApiQuery({
-    name: "status",
-    required: false,
-    description: "Filtrer par statut (active, inactive)",
-  })
-  @ApiResponse({ status: 200, description: "Liste des utilisateurs" })
-  async getAllUsers(@Query("status") status?: string) {
-    try {
-      let result;
-      if (status) {
-        result = await this.fabricService.getUsersByStatus(status);
-      } else {
-        result = await this.fabricService.getAllUsers();
-      }
-
-      return {
-        success: true,
-        count: result.length,
-        data: result,
-      };
-    } catch (error) {
-      this.logger.error(`Erreur récupération utilisateurs: ${error.message}`);
-      throw new HttpException(
-        {
-          success: false,
-          message:
-            error.message || "Erreur lors de la récupération des utilisateurs",
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
   @Get(":id/documents")
   @ApiOperation({ summary: "Obtenir tous les documents d'un utilisateur" })
   @ApiParam({ name: "id", description: "ID de l'utilisateur" })
@@ -203,7 +178,8 @@ export class UserChaincodeController {
     status: 200,
     description: "Liste des documents de l'utilisateur",
   })
-  async getUserDocuments(@Param("id") id: string) {
+  async getUserDocuments(@CurrentUserId() me: string, @Param("id") id: string) {
+    this.assertSelf(id, me);
     try {
       const result = await this.fabricService.getDocumentsByOwner(id);
 
@@ -233,7 +209,11 @@ export class UserChaincodeController {
   })
   @ApiParam({ name: "id", description: "ID de l'utilisateur" })
   @ApiResponse({ status: 200, description: "Liste des documents accessibles" })
-  async getAccessibleDocuments(@Param("id") id: string) {
+  async getAccessibleDocuments(
+    @CurrentUserId() me: string,
+    @Param("id") id: string,
+  ) {
+    this.assertSelf(id, me);
     try {
       const result = await this.fabricService.getDocumentsByAccessor(id);
 
@@ -264,7 +244,11 @@ export class UserChaincodeController {
   })
   @ApiParam({ name: "id", description: "ID de l'utilisateur validateur" })
   @ApiResponse({ status: 200, description: "Liste des documents à valider" })
-  async getValidationDocuments(@Param("id") id: string) {
+  async getValidationDocuments(
+    @CurrentUserId() me: string,
+    @Param("id") id: string,
+  ) {
+    this.assertSelf(id, me);
     try {
       const result = await this.fabricService.getDocumentsByValidator(id);
 
@@ -293,7 +277,8 @@ export class UserChaincodeController {
   @ApiOperation({ summary: "Obtenir l'historique d'un utilisateur" })
   @ApiParam({ name: "id", description: "ID de l'utilisateur" })
   @ApiResponse({ status: 200, description: "Historique de l'utilisateur" })
-  async getUserHistory(@Param("id") id: string) {
+  async getUserHistory(@CurrentUserId() me: string, @Param("id") id: string) {
+    this.assertSelf(id, me);
     try {
       const result = await this.fabricService.getHistory(id);
 

@@ -1,5 +1,11 @@
 import { plainToInstance } from "class-transformer";
-import { IsEnum, IsNumber, IsString, validateSync } from "class-validator";
+import {
+  IsEnum,
+  IsNumber,
+  IsOptional,
+  IsString,
+  validateSync,
+} from "class-validator";
 
 enum Environment {
   Development = "development",
@@ -17,8 +23,10 @@ class EnvironmentVariables {
   @IsString()
   SUPABASE_URL: string;
 
+  // No longer used by the API (service-role only); kept optional for tooling.
+  @IsOptional()
   @IsString()
-  SUPABASE_ANON_KEY: string;
+  SUPABASE_ANON_KEY?: string;
 
   @IsString()
   SUPABASE_SERVICE_ROLE_KEY: string;

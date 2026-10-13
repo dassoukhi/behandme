@@ -10,13 +10,12 @@ export class ClerkAuthGuard extends AuthGuard("clerk") {
   }
 
   canActivate(context: ExecutionContext) {
-    const request = context.switchToHttp().getRequest();
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),
     ]);
 
-    if (isPublic || request?.url === "/api/v1/notifications/register-token") {
+    if (isPublic) {
       return true;
     }
 

@@ -8,10 +8,12 @@ export class UserProfileDto {
   id: string;
 
   @ApiProperty({
-    description: "User email",
+    description:
+      "User email. Only returned for yourself and for users who trust you.",
     example: "john.doe@example.com",
+    required: false,
   })
-  email: string;
+  email?: string;
 
   @ApiProperty({
     description: "User first name",
@@ -38,7 +40,8 @@ export class UserProfileDto {
   avatar_url?: string | null;
 
   @ApiProperty({
-    description: "User phone number",
+    description:
+      "User phone number. Only returned for yourself and for users who trust you.",
     example: "+33612345678",
     required: false,
     nullable: true,

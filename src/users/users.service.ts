@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   Logger,
   NotFoundException,
@@ -8,7 +9,10 @@ import { SupabaseService } from "../supabase/supabase.service.js";
 import { CreateUserDto } from "./dto/create-user.dto.js";
 import { UpdateUserDto } from "./dto/update-user.dto.js";
 import { UserProfileDto } from "./dto/user-profile.dto.js";
-import { AddTrustedDto } from "./dto/add-trusted.dto.js";
+import { AddTrustedDto, TrustedLinkDto } from "./dto/add-trusted.dto.js";
+import { projectProfile } from "./profile-visibility.js";
+
+const SEARCH_LIMIT = 20;
 
 @Injectable()
 export class UsersService {
@@ -16,15 +20,21 @@ export class UsersService {
 
   constructor(private readonly supabaseService: SupabaseService) {}
 
-  async create(createUserDto: CreateUserDto): Promise<UserProfileDto> {
+  async createMe(
+    me: string,
+    createUserDto: CreateUserDto,
+  ): Promise<UserProfileDto> {
     const { data, error } = await this.supabaseService
       .getClient()
       .from("users")
-      .insert([createUserDto])
+      .insert([{ ...createUserDto, id: me }])
       .select()
       .single();
 
     if (error) {
+      if (error.code === "23505") {
+        throw new ConflictException("Profile already exists");
+      }
       this.logger.error(`Failed to create user: ${error.message}`);
       throw error;
     }
@@ -32,86 +42,87 @@ export class UsersService {
     return data;
   }
 
-  async findAll(): Promise<UserProfileDto[]> {
-    const { data, error } = await this.supabaseService
-      .getClient()
-      .from("users")
-      .select("*");
-
-    if (error) {
-      this.logger.error(`Failed to fetch users: ${error.message}`);
-      throw error;
+  async findMe(me: string): Promise<UserProfileDto> {
+    const user = await this.findRow(me);
+    if (!user) {
+      throw new NotFoundException("Profile not found");
     }
-    return data;
+    return user;
   }
 
-  async findOne(id: string): Promise<UserProfileDto> {
-    const { data, error } = await this.supabaseService
-      .getClient()
-      .from("users")
-      .select("*")
-      .eq("id", id)
-      .single<UserProfileDto>();
-
-    if (error) {
-      this.logger.error(`Failed to fetch user: ${error.message}`);
+  async findOne(me: string, id: string): Promise<UserProfileDto> {
+    const user = await this.findRow(id);
+    if (!user) {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
-    return data;
+    const trustingMe = await this.whoTrusts(me, [id]);
+    return projectProfile(user, me, trustingMe.has(id));
   }
 
-  async update(
-    id: string,
+  async updateMe(
+    me: string,
     updateUserDto: UpdateUserDto,
   ): Promise<UserProfileDto> {
     const { data, error } = await this.supabaseService
       .getClient()
       .from("users")
       .update(updateUserDto)
-      .eq("id", id)
+      .eq("id", me)
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) {
       this.logger.error(`Failed to update user: ${error.message}`);
       throw error;
     }
-
     if (!data) {
-      throw new NotFoundException(`User with ID ${id} not found`);
+      throw new NotFoundException("Profile not found");
     }
 
     return data;
   }
 
-  async remove(id: string): Promise<{ message: string }> {
-    const { error } = await this.supabaseService
+  async removeMe(me: string): Promise<{ message: string }> {
+    const { data, error } = await this.supabaseService
       .getClient()
       .from("users")
       .delete()
-      .eq("id", id);
+      .eq("id", me)
+      .select("id");
 
     if (error) {
       this.logger.error(`Failed to delete user: ${error.message}`);
       throw error;
     }
+    if (!data?.length) {
+      throw new NotFoundException("Profile not found");
+    }
 
-    return { message: `User with ID ${id} deleted successfully` };
+    return { message: "Profile deleted successfully" };
   }
 
-  async addTrusted(addTrustedDto: AddTrustedDto): Promise<AddTrustedDto> {
-    // Both users must exist: findOne throws NotFoundException otherwise.
-    await this.findOne(addTrustedDto.owner_id);
-    await this.findOne(addTrustedDto.trusted_id);
+  async addTrusted(
+    me: string,
+    { trusted_id }: AddTrustedDto,
+  ): Promise<TrustedLinkDto> {
+    if (trusted_id === me) {
+      throw new BadRequestException("You cannot trust yourself");
+    }
+    if (!(await this.findRow(trusted_id))) {
+      throw new NotFoundException(`User with ID ${trusted_id} not found`);
+    }
 
     const { data, error } = await this.supabaseService
       .getClient()
       .from("trusted")
-      .insert([addTrustedDto])
+      .insert([{ owner_id: me, trusted_id }])
       .select()
       .single();
 
     if (error) {
+      if (error.code === "23505") {
+        throw new ConflictException("User is already trusted");
+      }
       this.logger.error(`Failed to add trusted user: ${error.message}`);
       throw error;
     }
@@ -119,88 +130,129 @@ export class UsersService {
     return data;
   }
 
-  async getTrusteds(owner_id: string): Promise<UserProfileDto[]> {
+  async getMyTrusteds(me: string): Promise<UserProfileDto[]> {
     const { data, error } = await this.supabaseService
       .getClient()
-      .rpc("get_trusted_users", {
-        owner_uuid: owner_id,
-      });
+      .rpc("get_trusted_users", { owner_uuid: me });
 
     if (error) {
       this.logger.error(`Failed to fetch trusted users: ${error.message}`);
       throw error;
     }
 
+    const users = (data ?? []) as UserProfileDto[];
+    const trustingMe = await this.whoTrusts(
+      me,
+      users.map((u) => u.id),
+    );
+    return users.map((u) => projectProfile(u, me, trustingMe.has(u.id)));
+  }
+
+  /**
+   * Partial match on first/last name, exact (case-insensitive) match on email so
+   * addresses cannot be harvested from a fragment. Excludes the caller and the
+   * users they already trust.
+   */
+  async searchUsers(me: string, query: string): Promise<UserProfileDto[]> {
+    const term = query?.trim();
+    if (!term) {
+      throw new BadRequestException("Search query cannot be empty");
+    }
+
+    const client = this.supabaseService.getClient();
+    const pattern = `%${escapeLike(term)}%`;
+
+    // Separate queries instead of an `.or()` filter string: values passed to
+    // ilike/eq are encoded by supabase-js, so user input cannot inject filters.
+    const [byFirst, byLast, byEmail, trusted] = await Promise.all([
+      client
+        .from("users")
+        .select("*")
+        .ilike("first_name", pattern)
+        .limit(SEARCH_LIMIT),
+      client
+        .from("users")
+        .select("*")
+        .ilike("last_name", pattern)
+        .limit(SEARCH_LIMIT),
+      client
+        .from("users")
+        .select("*")
+        .ilike("email", escapeLike(term))
+        .limit(SEARCH_LIMIT),
+      client.from("trusted").select("trusted_id").eq("owner_id", me),
+    ]);
+
+    for (const result of [byFirst, byLast, byEmail, trusted]) {
+      if (result.error) {
+        this.logger.error(`Failed to search users: ${result.error.message}`);
+        throw result.error;
+      }
+    }
+
+    const excluded = new Set<string>([
+      me,
+      ...(trusted.data ?? []).map((t) => t.trusted_id as string),
+    ]);
+    const unique = new Map<string, UserProfileDto>();
+    for (const user of [
+      ...(byFirst.data ?? []),
+      ...(byLast.data ?? []),
+      ...(byEmail.data ?? []),
+    ] as UserProfileDto[]) {
+      if (!excluded.has(user.id)) {
+        unique.set(user.id, user);
+      }
+    }
+
+    const users = [...unique.values()]
+      .sort((a, b) => (a.first_name ?? "").localeCompare(b.first_name ?? ""))
+      .slice(0, SEARCH_LIMIT);
+    const trustingMe = await this.whoTrusts(
+      me,
+      users.map((u) => u.id),
+    );
+    return users.map((u) => projectProfile(u, me, trustingMe.has(u.id)));
+  }
+
+  private async findRow(id: string): Promise<UserProfileDto | null> {
+    const { data, error } = await this.supabaseService
+      .getClient()
+      .from("users")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle<UserProfileDto>();
+
+    if (error) {
+      this.logger.error(`Failed to fetch user: ${error.message}`);
+      throw error;
+    }
     return data;
   }
 
-  async searchUsers(
-    query: string,
-    excludeId?: string,
-  ): Promise<UserProfileDto[]> {
-    try {
-      if (!query || query.trim().length === 0) {
-        throw new BadRequestException("Search query cannot be empty");
-      }
-
-      const searchTerm = query.trim().toLowerCase();
-      console.log("query:", searchTerm);
-
-      // Construction de la requête
-      let queryBuilder = this.supabaseService
-        .getAdminClient()
-        .from("users")
-        .select("*");
-
-      // Recherche sur plusieurs champs
-      queryBuilder = queryBuilder.or(
-        `first_name.ilike.%${searchTerm}%,` +
-          `last_name.ilike.%${searchTerm}%,` +
-          `email.ilike.%${searchTerm}%`,
-      );
-
-      // Exclure l'utilisateur actuel
-      if (excludeId) {
-        queryBuilder = queryBuilder.neq("id", excludeId);
-      }
-
-      // Vérifier qu'ils ne sont pas déjà trusteds
-      if (excludeId) {
-        const { data: existingTrusteds } = await this.supabaseService
-          .getAdminClient()
-          .from("trusted")
-          .select("trusted_id")
-          .eq("owner_id", excludeId);
-
-        if (existingTrusteds && existingTrusteds.length > 0) {
-          const trustedIds = existingTrusteds.map((t) => t.trusted_id);
-          queryBuilder = queryBuilder.not(
-            "id",
-            "in",
-            `(${trustedIds.join(",")})`,
-          );
-        }
-      }
-
-      // Ordonner par pertinence (nom commence par la recherche en premier)
-      queryBuilder = queryBuilder
-        .order("first_name", { ascending: true })
-        .limit(20);
-
-      const { data, error } = await queryBuilder;
-
-      if (error) {
-        throw new Error(`Error searching users: ${error.message}`);
-      }
-
-      return data || [];
-    } catch (error) {
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
-      throw new Error(`Failed to search users: ${error.message}`, {
-        cause: error,
-      });
+  /** IDs among `ids` of users who trust `me`. */
+  async whoTrusts(me: string, ids: string[]): Promise<Set<string>> {
+    const others = ids.filter((id) => id !== me);
+    if (others.length === 0) {
+      return new Set();
     }
+
+    const { data, error } = await this.supabaseService
+      .getClient()
+      .from("trusted")
+      .select("owner_id")
+      .eq("trusted_id", me)
+      .in("owner_id", others);
+
+    if (error) {
+      this.logger.error(`Failed to fetch trust links: ${error.message}`);
+      throw error;
+    }
+    return new Set((data ?? []).map((row) => row.owner_id as string));
   }
+}
+
+/** Escapes LIKE wildcards so the search term is matched literally. */
+function escapeLike(value: string): string {
+  return value.replace(/[\\%_]/g, (c) => `\\${c}`);
 }

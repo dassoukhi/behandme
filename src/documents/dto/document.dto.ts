@@ -1,6 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { IsString, IsNotEmpty } from "class-validator";
 
+// The owner is the authenticated caller, never taken from the body.
 export class CreateDocumentDto {
   @ApiProperty({
     description: "Document ID (UUID)",
@@ -33,14 +34,6 @@ export class CreateDocumentDto {
   @IsString()
   @IsNotEmpty()
   content: string;
-
-  @ApiProperty({
-    description: "proprietaire",
-    example: "user1",
-  })
-  @IsString()
-  @IsNotEmpty()
-  owner: string;
 
   @ApiProperty({
     description: "Type de document",

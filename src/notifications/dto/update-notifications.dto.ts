@@ -1,14 +1,12 @@
-import { ApiProperty, PartialType } from "@nestjs/swagger";
-import { IsBoolean, IsOptional } from "class-validator";
-import { CreateNotificationDto } from "./create-notifications.dto.js";
+import { ApiProperty } from "@nestjs/swagger";
+import { IsBoolean } from "class-validator";
 
-export class UpdateNotificationDto extends PartialType(CreateNotificationDto) {
+// The app may only change the read state of its own notifications.
+export class UpdateNotificationDto {
   @ApiProperty({
     description: "Indicates whether the notification has been read",
     example: true,
-    required: false,
   })
   @IsBoolean()
-  @IsOptional()
-  is_read?: boolean;
+  is_read: boolean;
 }
