@@ -1,4 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
+import { UserProfileDto } from "../../users/dto/user-profile.dto.js";
 
 export class ContractDTO {
   @ApiProperty({
@@ -58,7 +59,7 @@ export class ContractDTO {
   @ApiProperty({
     description:
       "Array of validator IDs referencing the users table, maximum of 3 validators",
-    isArray: true,
+    type: [String],
     example: ["validator1", "validator2"],
     maxItems: 3,
   })
@@ -91,4 +92,20 @@ export class ContractDTO {
     additionalProperties: true,
   })
   meta?: Record<string, any>;
+
+  @ApiProperty({
+    description: "Owner profile (joined on list and detail endpoints)",
+    type: () => UserProfileDto,
+    required: false,
+    nullable: true,
+  })
+  owner?: UserProfileDto | null;
+
+  @ApiProperty({
+    description: "Accessor profile (joined on list and detail endpoints)",
+    type: () => UserProfileDto,
+    required: false,
+    nullable: true,
+  })
+  accessor?: UserProfileDto | null;
 }

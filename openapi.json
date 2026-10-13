@@ -267,7 +267,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RegisterTokenDto"
+                  "$ref": "#/components/schemas/NotificationDto"
                 }
               }
             }
@@ -1390,8 +1390,8 @@
         "properties": {
           "userId": {
             "type": "string",
-            "description": "Identifier for the associated user",
-            "example": "user-1234"
+            "description": "Identifier of the recipient user",
+            "example": "user_2abc123def456"
           },
           "title": {
             "type": "string",
@@ -1404,7 +1404,6 @@
             "example": "Your contract has been updated."
           },
           "type": {
-            "default": "system",
             "enum": [
               "contract_created",
               "contract_updated",
@@ -1412,28 +1411,35 @@
               "system"
             ],
             "type": "string",
-            "description": "Type of notification"
+            "description": "Type of notification",
+            "default": "system"
           },
-          "scheduledAt": {
-            "format": "date-time",
+          "scheduled_at": {
             "type": "string",
-            "description": "Scheduled time for the notification",
+            "description": "Scheduled time for the notification (ISO 8601)",
             "example": "2023-10-11T12:00:00Z"
           },
           "meta": {
             "type": "object",
             "additionalProperties": true,
-            "description": "Additional metadata for the notification",
+            "description": "Additional metadata",
             "example": {
               "key": "value"
+            }
+          },
+          "data": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Payload delivered with the notification (defaults to {})",
+            "example": {
+              "contractId": "4bce1a03-3fa5-4d39-8c7e-7f3b7e3468a5"
             }
           }
         },
         "required": [
           "userId",
           "title",
-          "message",
-          "type"
+          "message"
         ]
       },
       "SenderNotificationDto": {
@@ -1441,16 +1447,11 @@
         "properties": {
           "token": {
             "type": "string",
-            "description": "token",
-            "example": true
+            "description": "Expo push token of the target device",
+            "example": "ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]"
           },
           "notification": {
-            "description": "Notification",
-            "example": {
-              "title": "Welcome Notification",
-              "message": "Hello! Welcome to our service!",
-              "data": "{\"action\":\"welcome\"}"
-            },
+            "description": "Notification to store and push",
             "allOf": [
               {
                 "$ref": "#/components/schemas/CreateNotificationDto"
@@ -1468,14 +1469,14 @@
         "properties": {
           "id": {
             "type": "string",
-            "format": "uuid",
             "description": "Unique identifier for the notification",
             "example": "123e4567-e89b-12d3-a456-426614174000"
           },
           "userId": {
             "type": "string",
-            "description": "Identifier for the associated user",
-            "example": "user-1234"
+            "nullable": true,
+            "description": "Identifier of the recipient user",
+            "example": "user_2abc123def456"
           },
           "title": {
             "type": "string",
@@ -1488,39 +1489,49 @@
             "example": "Your contract has been updated."
           },
           "type": {
-            "type": "string",
-            "description": "Type of notification",
+            "nullable": true,
             "enum": [
               "contract_created",
               "contract_updated",
               "reminder",
               "system"
             ],
-            "default": "system"
+            "type": "string",
+            "description": "Type of notification"
           },
-          "isRead": {
+          "is_read": {
             "type": "boolean",
+            "nullable": true,
             "description": "Indicates whether the notification has been read",
             "default": false
           },
-          "createdAt": {
-            "format": "date-time",
+          "created_at": {
             "type": "string",
-            "description": "Timestamp when notification was created",
+            "nullable": true,
+            "description": "Timestamp when the notification was created",
             "example": "2023-10-10T12:34:56Z"
           },
-          "scheduledAt": {
-            "format": "date-time",
+          "scheduled_at": {
             "type": "string",
+            "nullable": true,
             "description": "Scheduled time for the notification",
             "example": "2023-10-11T12:00:00Z"
           },
           "meta": {
             "type": "object",
-            "description": "Additional metadata for the notification",
             "additionalProperties": true,
+            "nullable": true,
+            "description": "Additional metadata",
             "example": {
               "key": "value"
+            }
+          },
+          "data": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Payload delivered with the notification",
+            "example": {
+              "contractId": "4bce1a03-3fa5-4d39-8c7e-7f3b7e3468a5"
             }
           }
         },
@@ -1530,8 +1541,11 @@
           "title",
           "message",
           "type",
-          "isRead",
-          "createdAt"
+          "is_read",
+          "created_at",
+          "scheduled_at",
+          "meta",
+          "data"
         ]
       },
       "UpdateNotificationDto": {
@@ -1539,8 +1553,8 @@
         "properties": {
           "userId": {
             "type": "string",
-            "description": "Identifier for the associated user",
-            "example": "user-1234"
+            "description": "Identifier of the recipient user",
+            "example": "user_2abc123def456"
           },
           "title": {
             "type": "string",
@@ -1553,7 +1567,6 @@
             "example": "Your contract has been updated."
           },
           "type": {
-            "default": "system",
             "enum": [
               "contract_created",
               "contract_updated",
@@ -1561,23 +1574,31 @@
               "system"
             ],
             "type": "string",
-            "description": "Type of notification"
+            "description": "Type of notification",
+            "default": "system"
           },
-          "scheduledAt": {
-            "format": "date-time",
+          "scheduled_at": {
             "type": "string",
-            "description": "Scheduled time for the notification",
+            "description": "Scheduled time for the notification (ISO 8601)",
             "example": "2023-10-11T12:00:00Z"
           },
           "meta": {
             "type": "object",
             "additionalProperties": true,
-            "description": "Additional metadata for the notification",
+            "description": "Additional metadata",
             "example": {
               "key": "value"
             }
           },
-          "isRead": {
+          "data": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Payload delivered with the notification (defaults to {})",
+            "example": {
+              "contractId": "4bce1a03-3fa5-4d39-8c7e-7f3b7e3468a5"
+            }
+          },
+          "is_read": {
             "type": "boolean",
             "description": "Indicates whether the notification has been read",
             "example": true
@@ -1614,7 +1635,6 @@
           },
           "blockchain_network": {
             "type": "string",
-            "default": "Fabric-Network",
             "description": "Network on which the contract is stored",
             "example": "Ethereum",
             "enum": [
@@ -1622,7 +1642,8 @@
               "Polygon",
               "Solana",
               "Fabric-Network"
-            ]
+            ],
+            "default": "Fabric-Network"
           },
           "accessor_id": {
             "type": "string",
@@ -1630,19 +1651,15 @@
             "example": "user456"
           },
           "validators": {
+            "maxItems": 3,
+            "description": "Array of validator IDs referencing the users table, maximum of 3 validators",
+            "example": [
+              "validator1",
+              "validator2"
+            ],
             "type": "array",
             "items": {
-              "required": true,
-              "description": "Array of validator IDs referencing the users table, maximum of 3 validators",
-              "example": [
-                "validator1",
-                "validator2"
-              ],
-              "type": "array",
-              "items": {
-                "type": "string",
-                "maxLength": 3
-              }
+              "type": "string"
             }
           },
           "status": {
@@ -1675,6 +1692,61 @@
           "blockchain_tx_id",
           "accessor_id",
           "validators"
+        ]
+      },
+      "UserProfileDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Clerk user ID",
+            "example": "user_2abc123def456"
+          },
+          "email": {
+            "type": "string",
+            "description": "User email",
+            "example": "john.doe@example.com"
+          },
+          "first_name": {
+            "type": "string",
+            "nullable": true,
+            "description": "User first name",
+            "example": "John"
+          },
+          "last_name": {
+            "type": "string",
+            "nullable": true,
+            "description": "User last name",
+            "example": "Doe"
+          },
+          "avatar_url": {
+            "type": "string",
+            "nullable": true,
+            "description": "User avatar URL",
+            "example": "https://example.com/avatar.png"
+          },
+          "phone_number": {
+            "type": "string",
+            "nullable": true,
+            "description": "User phone number",
+            "example": "+33612345678"
+          },
+          "created_at": {
+            "type": "string",
+            "description": "Timestamp when the profile was created",
+            "example": "2023-01-01T00:00:00.000Z"
+          },
+          "updated_at": {
+            "type": "string",
+            "description": "Timestamp when the profile was last updated",
+            "example": "2023-01-01T00:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "created_at",
+          "updated_at"
         ]
       },
       "ContractDTO": {
@@ -1735,19 +1807,15 @@
             "example": "user456"
           },
           "validators": {
+            "description": "Array of validator IDs referencing the users table, maximum of 3 validators",
+            "example": [
+              "validator1",
+              "validator2"
+            ],
+            "maxItems": 3,
             "type": "array",
             "items": {
-              "required": true,
-              "description": "Array of validator IDs referencing the users table, maximum of 3 validators",
-              "example": [
-                "validator1",
-                "validator2"
-              ],
-              "maxItems": 3,
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
+              "type": "string"
             }
           },
           "status": {
@@ -1782,6 +1850,26 @@
             "example": {
               "key": "value"
             }
+          },
+          "owner": {
+            "nullable": true,
+            "description": "Owner profile (joined on list and detail endpoints)",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserProfileDto"
+              }
+            ]
+          },
+          "accessor": {
+            "nullable": true,
+            "description": "Accessor profile (joined on list and detail endpoints)",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserProfileDto"
+              }
+            ]
           }
         },
         "required": [
@@ -1794,48 +1882,6 @@
           "blockchain_network",
           "validators",
           "status",
-          "created_at",
-          "updated_at"
-        ]
-      },
-      "UserProfileDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "User ID (UUID)",
-            "example": "123e4567-e89b-12d3-a456-426614174000"
-          },
-          "first_name": {
-            "type": "string",
-            "description": "User first name",
-            "example": "John Doe"
-          },
-          "last_name": {
-            "type": "string",
-            "description": "User last name",
-            "example": "John Doe"
-          },
-          "avatar_url": {
-            "type": "string",
-            "description": "User avatar URL",
-            "example": "https://example.com/avatar.png"
-          },
-          "created_at": {
-            "type": "string",
-            "description": "Timestamp when the profile was created",
-            "example": "2023-01-01T00:00:00.000Z"
-          },
-          "updated_at": {
-            "type": "string",
-            "description": "Timestamp when the profile was last updated",
-            "example": "2023-01-01T00:00:00.000Z"
-          }
-        },
-        "required": [
-          "id",
-          "first_name",
-          "last_name",
           "created_at",
           "updated_at"
         ]
@@ -1863,7 +1909,7 @@
             "type": "string",
             "description": "Current Description of the contract",
             "example": "Ce contrat contient des informations confidentielles transmises après validation.",
-            "default": "Ce contrat contient des informations confidentielles transmises après validation."
+            "default": "networks"
           },
           "owner_id": {
             "type": "string",
@@ -1898,35 +1944,15 @@
             "example": "user456"
           },
           "validators": {
+            "description": "Array of validator IDs referencing the users table, maximum of 3 validators",
+            "example": [
+              "validator1",
+              "validator2"
+            ],
+            "maxItems": 3,
             "type": "array",
             "items": {
-              "required": true,
-              "description": "Array of validator IDs referencing the users table, maximum of 3 validators",
-              "example": [
-                "validator1",
-                "validator2"
-              ],
-              "maxItems": 3,
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            }
-          },
-          "validators_list": {
-            "type": "array",
-            "items": {
-              "required": true,
-              "description": "Array of validator IDs referencing the users table, maximum of 3 validators",
-              "example": [
-                "validator1",
-                "validator2"
-              ],
-              "maxItems": 3,
-              "type": "array",
-              "items": {
-                "$ref": "#/components/schemas/UserProfileDto"
-              }
+              "type": "string"
             }
           },
           "status": {
@@ -1961,6 +1987,33 @@
             "example": {
               "key": "value"
             }
+          },
+          "owner": {
+            "nullable": true,
+            "description": "Owner profile (joined on list and detail endpoints)",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserProfileDto"
+              }
+            ]
+          },
+          "accessor": {
+            "nullable": true,
+            "description": "Accessor profile (joined on list and detail endpoints)",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserProfileDto"
+              }
+            ]
+          },
+          "validators_list": {
+            "description": "Validator profiles, in the order of `validators`",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserProfileDto"
+            }
           }
         },
         "required": [
@@ -1971,17 +2024,83 @@
           "secret_hash",
           "blockchain_tx_id",
           "blockchain_network",
-          "accessor_id",
           "validators",
-          "validators_list",
           "status",
           "created_at",
-          "updated_at"
+          "updated_at",
+          "validators_list"
         ]
       },
       "UpdateContractDTO": {
         "type": "object",
         "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of Contracts",
+            "example": "networks"
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of Contracts",
+            "example": "My description"
+          },
+          "owner_id": {
+            "type": "string",
+            "description": "Owner ID which references the users table",
+            "example": "user123"
+          },
+          "secret_hash": {
+            "type": "string",
+            "description": "Unique hash of the secret",
+            "example": "abc123def456..."
+          },
+          "blockchain_tx_id": {
+            "type": "string",
+            "description": "Blockchain transaction ID for proof",
+            "example": "0xabc123..."
+          },
+          "blockchain_network": {
+            "type": "string",
+            "description": "Network on which the contract is stored",
+            "example": "Ethereum",
+            "enum": [
+              "Ethereum",
+              "Polygon",
+              "Solana",
+              "Fabric-Network"
+            ],
+            "default": "Fabric-Network"
+          },
+          "accessor_id": {
+            "type": "string",
+            "description": "Accessor ID which references the users table",
+            "example": "user456"
+          },
+          "validators": {
+            "maxItems": 3,
+            "description": "Array of validator IDs referencing the users table, maximum of 3 validators",
+            "example": [
+              "validator1",
+              "validator2"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "status": {
+            "type": "string",
+            "description": "Current status of the contract",
+            "example": "draft",
+            "enum": [
+              "draft",
+              "active",
+              "validated",
+              "released",
+              "revoked"
+            ],
+            "default": "draft"
+          },
           "meta": {
             "type": "object",
             "additionalProperties": true,
@@ -1997,42 +2116,69 @@
         "properties": {
           "id": {
             "type": "string",
-            "description": "User ID (UUID)",
-            "example": "123e4567-e89b-12d3-a456-426614174000"
+            "description": "Clerk user ID",
+            "example": "user_2abc123def456"
           },
-          "full_name": {
+          "email": {
             "type": "string",
-            "description": "User full name",
-            "example": "John Doe"
+            "format": "email",
+            "description": "User email",
+            "example": "john.doe@example.com"
+          },
+          "first_name": {
+            "type": "string",
+            "description": "User first name",
+            "example": "John"
+          },
+          "last_name": {
+            "type": "string",
+            "description": "User last name",
+            "example": "Doe"
           },
           "avatar_url": {
             "type": "string",
             "description": "User avatar URL",
             "example": "https://example.com/avatar.png"
+          },
+          "phone_number": {
+            "type": "string",
+            "description": "User phone number",
+            "example": "+33612345678"
           }
         },
         "required": [
           "id",
-          "full_name"
+          "email"
         ]
       },
       "UpdateUserDto": {
         "type": "object",
         "properties": {
-          "id": {
+          "email": {
             "type": "string",
-            "description": "User ID (UUID)",
-            "example": "123e4567-e89b-12d3-a456-426614174000"
+            "format": "email",
+            "description": "User email",
+            "example": "john.doe@example.com"
           },
-          "full_name": {
+          "first_name": {
             "type": "string",
-            "description": "User full name",
-            "example": "John Doe"
+            "description": "User first name",
+            "example": "John"
+          },
+          "last_name": {
+            "type": "string",
+            "description": "User last name",
+            "example": "Doe"
           },
           "avatar_url": {
             "type": "string",
             "description": "User avatar URL",
             "example": "https://example.com/avatar.png"
+          },
+          "phone_number": {
+            "type": "string",
+            "description": "User phone number",
+            "example": "+33612345678"
           }
         }
       },

@@ -2,28 +2,48 @@ import { ApiProperty } from "@nestjs/swagger";
 
 export class UserProfileDto {
   @ApiProperty({
-    description: "User ID (UUID)",
-    example: "123e4567-e89b-12d3-a456-426614174000",
+    description: "Clerk user ID",
+    example: "user_2abc123def456",
   })
   id: string;
 
   @ApiProperty({
-    description: "User first name",
-    example: "John Doe",
+    description: "User email",
+    example: "john.doe@example.com",
   })
-  first_name: string;
+  email: string;
+
+  @ApiProperty({
+    description: "User first name",
+    example: "John",
+    required: false,
+    nullable: true,
+  })
+  first_name?: string | null;
 
   @ApiProperty({
     description: "User last name",
-    example: "John Doe",
+    example: "Doe",
+    required: false,
+    nullable: true,
   })
-  last_name: string;
+  last_name?: string | null;
 
   @ApiProperty({
     description: "User avatar URL",
     example: "https://example.com/avatar.png",
+    required: false,
+    nullable: true,
   })
-  avatar_url?: string;
+  avatar_url?: string | null;
+
+  @ApiProperty({
+    description: "User phone number",
+    example: "+33612345678",
+    required: false,
+    nullable: true,
+  })
+  phone_number?: string | null;
 
   @ApiProperty({
     description: "Timestamp when the profile was created",

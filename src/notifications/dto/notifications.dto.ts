@@ -1,79 +1,78 @@
 import { ApiProperty } from "@nestjs/swagger";
 import {
-  IsUUID,
-  IsString,
-  IsBoolean,
-  IsDate,
-  IsOptional,
-} from "class-validator";
+  NOTIFICATION_TYPES,
+  type NotificationType,
+} from "./create-notifications.dto.js";
 
+// Mirrors a row of the `notifications` table.
 export class NotificationDto {
   @ApiProperty({
     description: "Unique identifier for the notification",
     example: "123e4567-e89b-12d3-a456-426614174000",
   })
-  @IsUUID()
   id: string;
 
   @ApiProperty({
-    description: "Identifier for the associated user",
-    example: "user-1234",
+    description: "Identifier of the recipient user",
+    example: "user_2abc123def456",
+    nullable: true,
   })
-  @IsString()
-  userId: string;
+  userId: string | null;
 
   @ApiProperty({
     description: "Title of the notification",
     example: "Contract updated",
   })
-  @IsString()
   title: string;
 
   @ApiProperty({
     description: "Message content of the notification",
     example: "Your contract has been updated.",
   })
-  @IsString()
   message: string;
 
   @ApiProperty({
     description: "Type of notification",
-    enum: ["contract_created", "contract_updated", "reminder", "system"],
-    default: "system",
+    enum: NOTIFICATION_TYPES,
+    nullable: true,
   })
-  @IsString()
-  type: string;
+  type: NotificationType | null;
 
   @ApiProperty({
     description: "Indicates whether the notification has been read",
     default: false,
+    nullable: true,
   })
-  @IsBoolean()
-  isRead: boolean;
+  is_read: boolean | null;
 
   @ApiProperty({
-    description: "Timestamp when notification was created",
+    description: "Timestamp when the notification was created",
     example: "2023-10-10T12:34:56Z",
+    nullable: true,
   })
-  @IsDate()
-  createdAt: Date;
+  created_at: string | null;
 
   @ApiProperty({
     description: "Scheduled time for the notification",
     example: "2023-10-11T12:00:00Z",
-    required: false,
+    nullable: true,
   })
-  @IsOptional()
-  @IsDate()
-  scheduledAt?: Date;
+  scheduled_at: string | null;
 
   @ApiProperty({
-    description: "Additional metadata for the notification",
+    description: "Additional metadata",
     type: "object",
     additionalProperties: true,
     example: { key: "value" },
-    selfRequired: false,
+    nullable: true,
   })
-  @IsOptional()
-  meta?: object;
+  meta: Record<string, any> | null;
+
+  @ApiProperty({
+    description: "Payload delivered with the notification",
+    type: "object",
+    additionalProperties: true,
+    example: { contractId: "4bce1a03-3fa5-4d39-8c7e-7f3b7e3468a5" },
+  })
+  data: Record<string, any>;
 }

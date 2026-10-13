@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { SupabaseService } from "../supabase/supabase.service.js";
 import { NotificationDto } from "./dto/notifications.dto.js";
@@ -76,7 +77,7 @@ export class NotificationsService {
     const { data, error } = await this.supabaseService
       .getClient()
       .from("notifications")
-      .insert([createNotificationDto])
+      .insert([{ id: randomUUID(), data: {}, ...createNotificationDto }])
       .select()
       .single();
 

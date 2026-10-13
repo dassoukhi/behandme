@@ -15,7 +15,8 @@ export class ContractService {
     const { data, error } = await this.supabaseService
       .getClient()
       .from("contracts")
-      .insert([createContractDTO])
+      // Default applied here, not on the DTO: UpdateContractDTO inherits field initializers.
+      .insert([{ blockchain_network: "Fabric-Network", ...createContractDTO }])
       .select()
       .single();
 

@@ -1,11 +1,11 @@
 import { ApiProperty } from "@nestjs/swagger";
 import {
+  ArrayMaxSize,
   IsArray,
   IsEnum,
   IsNotEmpty,
   IsOptional,
   IsString,
-  MaxLength,
 } from "class-validator";
 
 export class CreateContractDTO {
@@ -52,10 +52,12 @@ export class CreateContractDTO {
     description: "Network on which the contract is stored",
     example: "Ethereum",
     enum: ["Ethereum", "Polygon", "Solana", "Fabric-Network"],
+    default: "Fabric-Network",
+    required: false,
   })
   @IsEnum(["Ethereum", "Polygon", "Solana", "Fabric-Network"])
   @IsOptional()
-  blockchain_network?: string = "Fabric-Network";
+  blockchain_network?: string;
 
   @ApiProperty({
     description: "Accessor ID which references the users table",
@@ -68,12 +70,13 @@ export class CreateContractDTO {
   @ApiProperty({
     description:
       "Array of validator IDs referencing the users table, maximum of 3 validators",
-    isArray: true,
+    type: [String],
     example: ["validator1", "validator2"],
+    maxItems: 3,
   })
   @IsArray()
+  @ArrayMaxSize(3)
   @IsString({ each: true })
-  @MaxLength(3, { each: true })
   validators: string[];
 
   @ApiProperty({

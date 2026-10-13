@@ -1,4 +1,5 @@
 import { ApiProperty, PartialType } from "@nestjs/swagger";
+import { IsBoolean, IsOptional } from "class-validator";
 import { CreateNotificationDto } from "./create-notifications.dto.js";
 
 export class UpdateNotificationDto extends PartialType(CreateNotificationDto) {
@@ -7,5 +8,7 @@ export class UpdateNotificationDto extends PartialType(CreateNotificationDto) {
     example: true,
     required: false,
   })
-  isRead?: boolean;
+  @IsBoolean()
+  @IsOptional()
+  is_read?: boolean;
 }

@@ -51,7 +51,7 @@ export class NotificationsController {
   @ApiResponse({
     status: 200,
     description: "Notification sent successfully",
-    type: RegisterTokenDto,
+    type: NotificationDto,
   })
   @ApiResponse({ status: 400, description: "Bad request" })
   sendNotification(

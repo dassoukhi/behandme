@@ -1,26 +1,22 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsNotEmpty, IsObject, IsString } from "class-validator";
+import { Type } from "class-transformer";
+import { IsNotEmpty, IsString, ValidateNested } from "class-validator";
 import { CreateNotificationDto } from "./create-notifications.dto.js";
 
 export class SenderNotificationDto {
   @ApiProperty({
-    description: "token",
-    example: true,
-    required: true,
+    description: "Expo push token of the target device",
+    example: "ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]",
   })
   @IsString()
   @IsNotEmpty()
   token: string;
 
   @ApiProperty({
-    description: "Notification",
-    example: {
-      title: "Welcome Notification",
-      message: "Hello! Welcome to our service!",
-      data: '{"action":"welcome"}',
-    },
+    description: "Notification to store and push",
+    type: () => CreateNotificationDto,
   })
-  @IsNotEmpty()
-  @IsObject()
+  @ValidateNested()
+  @Type(() => CreateNotificationDto)
   notification: CreateNotificationDto;
 }
