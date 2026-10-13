@@ -18,8 +18,11 @@ Expo app in a **separate repo**: `../behindMe` (GitHub `dassoukhi/behindMe`). Th
 ## Commands
 
 - `npm run start:dev` — watch mode, port `PORT` (default 3000). Swagger UI `/api/docs`, JSON `/api/docs-json`.
+- `npm run verify` — **push gate**, see "Definition of done".
 - `npm run build`, `npm run openapi`, `npm test` (vitest, specs in `src/**/*.spec.ts`),
   `npm run lint` (**applies fixes**), `npm run format`.
+- `npm run check:rls` — proves the anon key reads no table and calls no RPC (counts and status codes
+  only). Run after every migration.
 - Node 24 (`.nvmrc`). Env: see `.env.example` (Supabase + Clerk required to serve requests).
 
 ## Architecture
@@ -52,6 +55,33 @@ is the only gate and connects with the service-role key, which bypasses RLS. Eve
   created server-side (no client create/send route); Fabric documents and ledger users are owner/self only.
 - Tests: `src/common/access-control.spec.ts` runs the real services against an in-memory Supabase
   (`src/testing/in-memory-supabase.ts`) with a role × action matrix — extend it for every new route.
+
+## Definition of done
+
+`npm run verify` must print `VERIFY PASSED`: typecheck, ESLint without auto-fix, Prettier check,
+vitest, and `openapi.json` regenerated with no uncommitted diff. Push only then (global rule in
+`~/.claude/CLAUDE.md`). New or changed routes also extend the role × action matrix in
+`src/common/access-control.spec.ts`, and a fixed bug ships a test shown to fail without the fix.
+If the contract changed, push this repo before the front.
+
+## What to restart
+
+| Change                       | Action                                                                   |
+| ---------------------------- | ------------------------------------------------------------------------ |
+| any `src/` code              | `npm run start:dev` reloads by itself; redeploy any hosted instance      |
+| route, DTO or response shape | `npm run openapi`, then in `../behindMe`: `npm run api:sync`             |
+| `.env`                       | restart `start:dev` (env is read at boot)                                |
+| SQL migration                | the user applies it in the Supabase SQL editor, then `npm run check:rls` |
+
+## Data changes (Supabase)
+
+- Schema, RLS and grants: a new file in `supabase/migrations/` (`YYYYMMDDHHMMSS_name.sql`), wrapped in
+  `begin; … commit;`. Deploy the API first if it depends on the change.
+- Row fixes or test-data changes: a versioned SQL script too, never ad-hoc. Save the rows it will touch
+  (service-role read into the scratchpad) before it runs, and verify the result after.
+- `npx supabase db query --linked` hangs on this network (TLS-inspecting proxy): hand the SQL to the
+  user for the dashboard SQL editor. Do not read CLI tokens from the keychain.
+- The database is shared; confirm before any write.
 
 ## Conventions
 
