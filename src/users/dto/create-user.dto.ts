@@ -1,48 +1,18 @@
-import { ApiProperty } from "@nestjs/swagger";
-import { IsEmail, IsOptional, IsString } from "class-validator";
+import { ApiPropertyOptional } from "@nestjs/swagger";
+import { IsOptional, IsString, MaxLength } from "class-validator";
 
-// The profile id is the authenticated Clerk user id, never taken from the body.
-export class CreateUserDto {
-  @ApiProperty({
-    description: "User email",
-    example: "john.doe@example.com",
-  })
-  @IsEmail()
-  email: string;
-
-  @ApiProperty({
-    description: "User first name",
-    example: "John",
-    required: false,
-  })
-  @IsString()
+// The profile id and email come from the verified Clerk identity, never from
+// the body. Names default to the Clerk values and can be overridden here.
+export class EnsureProfileDto {
+  @ApiPropertyOptional({ example: "John", maxLength: 100 })
   @IsOptional()
+  @IsString()
+  @MaxLength(100)
   first_name?: string;
 
-  @ApiProperty({
-    description: "User last name",
-    example: "Doe",
-    required: false,
-  })
-  @IsString()
+  @ApiPropertyOptional({ example: "Doe", maxLength: 100 })
   @IsOptional()
+  @IsString()
+  @MaxLength(100)
   last_name?: string;
-
-  @ApiProperty({
-    description: "User avatar URL",
-    example: "https://example.com/avatar.png",
-    required: false,
-  })
-  @IsString()
-  @IsOptional()
-  avatar_url?: string;
-
-  @ApiProperty({
-    description: "User phone number",
-    example: "+33612345678",
-    required: false,
-  })
-  @IsString()
-  @IsOptional()
-  phone_number?: string;
 }

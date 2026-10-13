@@ -7,7 +7,9 @@ import {
   Param,
   Delete,
   Query,
+  Res,
 } from "@nestjs/common";
+import type { Response } from "express";
 import {
   ApiTags,
   ApiOperation,
@@ -16,7 +18,7 @@ import {
   ApiQuery,
 } from "@nestjs/swagger";
 import { UsersService } from "./users.service.js";
-import { CreateUserDto } from "./dto/create-user.dto.js";
+import { EnsureProfileDto } from "./dto/create-user.dto.js";
 import { UpdateUserDto } from "./dto/update-user.dto.js";
 import { UserProfileDto } from "./dto/user-profile.dto.js";
 import { AddTrustedDto, TrustedLinkDto } from "./dto/add-trusted.dto.js";
@@ -31,14 +33,35 @@ export class UsersController {
   // Static routes (me, search) must be declared before ":id".
 
   @Post("me")
-  @ApiOperation({ summary: "Create the caller's profile" })
-  @ApiResponse({ status: 201, type: UserProfileDto })
-  @ApiResponse({ status: 409, description: "Profile already exists" })
-  createMe(
+  @ApiOperation({
+    summary:
+      "Create or sync the caller's profile from their verified identity (idempotent; call after sign-in)",
+  })
+  @ApiResponse({
+    status: 201,
+    description: "Profile created",
+    type: UserProfileDto,
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Existing profile synced",
+    type: UserProfileDto,
+  })
+  @ApiResponse({
+    status: 422,
+    description: "The account has no verified email",
+  })
+  async ensureMe(
     @CurrentUserId() me: string,
-    @Body() createUserDto: CreateUserDto,
+    @Body() ensureProfileDto: EnsureProfileDto,
+    @Res({ passthrough: true }) res: Response,
   ): Promise<UserProfileDto> {
-    return this.usersService.createMe(me, createUserDto);
+    const { profile, created } = await this.usersService.ensureMe(
+      me,
+      ensureProfileDto,
+    );
+    res.status(created ? 201 : 200);
+    return profile;
   }
 
   @Get("me")

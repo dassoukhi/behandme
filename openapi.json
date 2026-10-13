@@ -422,21 +422,21 @@
     },
     "/api/v1/users/me": {
       "post": {
-        "operationId": "UsersController_createMe",
+        "operationId": "UsersController_ensureMe",
         "parameters": [],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateUserDto"
+                "$ref": "#/components/schemas/EnsureProfileDto"
               }
             }
           }
         },
         "responses": {
-          "201": {
-            "description": "",
+          "200": {
+            "description": "Existing profile synced",
             "content": {
               "application/json": {
                 "schema": {
@@ -445,8 +445,18 @@
               }
             }
           },
-          "409": {
-            "description": "Profile already exists"
+          "201": {
+            "description": "Profile created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfileDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The account has no verified email"
           }
         },
         "security": [
@@ -454,7 +464,7 @@
             "bearer": []
           }
         ],
-        "summary": "Create the caller's profile",
+        "summary": "Create or sync the caller's profile from their verified identity (idempotent; call after sign-in)",
         "tags": [
           "users"
         ]
@@ -1143,67 +1153,27 @@
           }
         }
       },
-      "CreateUserDto": {
+      "EnsureProfileDto": {
         "type": "object",
         "properties": {
-          "email": {
-            "type": "string",
-            "format": "email",
-            "description": "User email",
-            "example": "john.doe@example.com"
-          },
           "first_name": {
             "type": "string",
-            "description": "User first name",
+            "maxLength": 100,
             "example": "John"
           },
           "last_name": {
             "type": "string",
-            "description": "User last name",
+            "maxLength": 100,
             "example": "Doe"
-          },
-          "avatar_url": {
-            "type": "string",
-            "description": "User avatar URL",
-            "example": "https://example.com/avatar.png"
-          },
-          "phone_number": {
-            "type": "string",
-            "description": "User phone number",
-            "example": "+33612345678"
           }
-        },
-        "required": [
-          "email"
-        ]
+        }
       },
       "UpdateUserDto": {
         "type": "object",
         "properties": {
-          "email": {
-            "type": "string",
-            "format": "email",
-            "description": "User email",
-            "example": "john.doe@example.com"
-          },
-          "first_name": {
-            "type": "string",
-            "description": "User first name",
-            "example": "John"
-          },
-          "last_name": {
-            "type": "string",
-            "description": "User last name",
-            "example": "Doe"
-          },
-          "avatar_url": {
-            "type": "string",
-            "description": "User avatar URL",
-            "example": "https://example.com/avatar.png"
-          },
           "phone_number": {
             "type": "string",
-            "description": "User phone number",
+            "maxLength": 32,
             "example": "+33612345678"
           }
         }

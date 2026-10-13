@@ -30,6 +30,10 @@ class EnvironmentVariables {
 
   @IsString()
   SUPABASE_SERVICE_ROLE_KEY: string;
+
+  // Verifies session tokens and reads verified identities (profile emails).
+  @IsString()
+  CLERK_SECRET_KEY: string;
 }
 
 export function validate(config: Record<string, unknown>) {

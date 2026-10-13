@@ -1,8 +1,13 @@
-import { BadRequestException, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  NotFoundException,
+  UnprocessableEntityException,
+} from "@nestjs/common";
 import { beforeEach, describe, expect, it } from "vitest";
 import { ContractService } from "../contracts/contract.service.js";
 import { NotificationsService } from "../notifications/notifications.service.js";
 import { UsersService } from "../users/users.service.js";
+import type { IdentityProfile } from "../users/identity-provider.js";
 import { fakeSupabaseService } from "../testing/in-memory-supabase.js";
 
 const OWNER = "user_owner";
@@ -73,11 +78,19 @@ let db: ReturnType<typeof seed>;
 let contracts: ContractService;
 let notifications: NotificationsService;
 let users: UsersService;
+// What Clerk would return for each user id (the only trusted source of emails).
+let identities: Record<string, IdentityProfile>;
 
 beforeEach(() => {
   db = seed();
+  identities = {};
   const supabase = fakeSupabaseService(db);
-  users = new UsersService(supabase);
+  users = new UsersService(supabase, {
+    getProfile: async (id) => {
+      if (!identities[id]) throw new Error(`unknown identity ${id}`);
+      return identities[id];
+    },
+  });
   contracts = new ContractService(supabase, users);
   notifications = new NotificationsService(supabase);
 });
@@ -259,9 +272,56 @@ describe("users: profile visibility", () => {
   });
 
   it("only updates the caller's own profile", async () => {
-    await users.updateMe(STRANGER, { first_name: "Changed" });
-    expect(db.users.find((u) => u.id === STRANGER)?.first_name).toBe("Changed");
-    expect(db.users.find((u) => u.id === OWNER)?.first_name).toBe(OWNER);
+    await users.updateMe(STRANGER, { phone_number: "+33700000000" });
+    expect(db.users.find((u) => u.id === STRANGER)?.phone_number).toBe(
+      "+33700000000",
+    );
+    expect(db.users.find((u) => u.id === OWNER)?.phone_number).toBe(
+      "+33600000000",
+    );
+  });
+
+  describe("profile provisioning", () => {
+    const NEW_USER = "user_newcomer";
+    const identity = (email: string | null): IdentityProfile => ({
+      email,
+      first_name: "Nina",
+      last_name: "Nouvelle",
+      avatar_url: "https://img.clerk.com/a.png",
+    });
+
+    it("creates the profile with the email verified by Clerk", async () => {
+      identities[NEW_USER] = identity("nina@example.com");
+      const { profile, created } = await users.ensureMe(NEW_USER);
+      expect(created).toBe(true);
+      expect(profile).toMatchObject({
+        id: NEW_USER,
+        email: "nina@example.com",
+      });
+    });
+
+    it("is idempotent and resyncs the email from Clerk", async () => {
+      identities[NEW_USER] = identity("nina@example.com");
+      await users.ensureMe(NEW_USER);
+      identities[NEW_USER] = identity("nina.new@example.com");
+      const { profile, created } = await users.ensureMe(NEW_USER, {
+        first_name: "Nina-Rose",
+      });
+      expect(created).toBe(false);
+      expect(profile).toMatchObject({
+        email: "nina.new@example.com",
+        first_name: "Nina-Rose",
+      });
+      expect(db.users.filter((u) => u.id === NEW_USER)).toHaveLength(1);
+    });
+
+    it("refuses an account without a verified email", async () => {
+      identities[NEW_USER] = identity(null);
+      await expect(users.ensureMe(NEW_USER)).rejects.toBeInstanceOf(
+        UnprocessableEntityException,
+      );
+      expect(db.users.find((u) => u.id === NEW_USER)).toBeUndefined();
+    });
   });
 
   it("only trusts on behalf of the caller", async () => {

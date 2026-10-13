@@ -1,16 +1,22 @@
 import {
   BadRequestException,
   ConflictException,
+  Inject,
   Injectable,
   Logger,
   NotFoundException,
+  UnprocessableEntityException,
 } from "@nestjs/common";
 import { SupabaseService } from "../supabase/supabase.service.js";
-import { CreateUserDto } from "./dto/create-user.dto.js";
+import { EnsureProfileDto } from "./dto/create-user.dto.js";
 import { UpdateUserDto } from "./dto/update-user.dto.js";
 import { UserProfileDto } from "./dto/user-profile.dto.js";
 import { AddTrustedDto, TrustedLinkDto } from "./dto/add-trusted.dto.js";
 import { projectProfile } from "./profile-visibility.js";
+import {
+  IDENTITY_PROVIDER,
+  type IdentityProvider,
+} from "./identity-provider.js";
 
 const SEARCH_LIMIT = 20;
 
@@ -18,28 +24,48 @@ const SEARCH_LIMIT = 20;
 export class UsersService {
   private readonly logger = new Logger(UsersService.name);
 
-  constructor(private readonly supabaseService: SupabaseService) {}
+  constructor(
+    private readonly supabaseService: SupabaseService,
+    @Inject(IDENTITY_PROVIDER) private readonly identity: IdentityProvider,
+  ) {}
 
-  async createMe(
+  /**
+   * Creates the caller's profile, or syncs it, from the verified identity
+   * (Clerk). The email is never taken from the client, so nobody can claim
+   * someone else's address. Idempotent: safe to call after every sign-in.
+   */
+  async ensureMe(
     me: string,
-    createUserDto: CreateUserDto,
-  ): Promise<UserProfileDto> {
-    const { data, error } = await this.supabaseService
-      .getClient()
-      .from("users")
-      .insert([{ ...createUserDto, id: me }])
-      .select()
-      .single();
+    overrides: EnsureProfileDto = {},
+  ): Promise<{ profile: UserProfileDto; created: boolean }> {
+    const identity = await this.identity.getProfile(me);
+    if (!identity.email) {
+      throw new UnprocessableEntityException(
+        "The account has no verified email address",
+      );
+    }
+    const fields = {
+      email: identity.email,
+      first_name: overrides.first_name ?? identity.first_name,
+      last_name: overrides.last_name ?? identity.last_name,
+      avatar_url: identity.avatar_url,
+    };
+
+    const existing = await this.findRow(me);
+    const client = this.supabaseService.getClient();
+    const { data, error } = existing
+      ? await client.from("users").update(fields).eq("id", me).select().single()
+      : await client
+          .from("users")
+          .insert([{ id: me, ...fields }])
+          .select()
+          .single();
 
     if (error) {
-      if (error.code === "23505") {
-        throw new ConflictException("Profile already exists");
-      }
-      this.logger.error(`Failed to create user: ${error.message}`);
+      this.logger.error(`Failed to save profile: ${error.message}`);
       throw error;
     }
-
-    return data;
+    return { profile: data, created: !existing };
   }
 
   async findMe(me: string): Promise<UserProfileDto> {

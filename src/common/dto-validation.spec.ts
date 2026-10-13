@@ -6,7 +6,7 @@ import { UpdateContractDTO } from "../contracts/dto/update-contract.dto.js";
 import { CreateNotificationDto } from "../notifications/dto/create-notifications.dto.js";
 import { RegisterTokenDto } from "../notifications/dto/register-token.dto.js";
 import { UpdateNotificationDto } from "../notifications/dto/update-notifications.dto.js";
-import { CreateUserDto } from "../users/dto/create-user.dto.js";
+import { EnsureProfileDto } from "../users/dto/create-user.dto.js";
 import { UpdateUserDto } from "../users/dto/update-user.dto.js";
 import { AddTrustedDto } from "../users/dto/add-trusted.dto.js";
 
@@ -93,29 +93,31 @@ describe("contract DTOs", () => {
 });
 
 describe("user DTOs", () => {
-  it("accepts a user matching the users table", async () => {
+  it("accepts optional name overrides when ensuring a profile", async () => {
     await expect(
-      validate(CreateUserDto, {
-        email: "john.doe@example.com",
-        first_name: "John",
-        last_name: "Doe",
-      }),
+      validate(EnsureProfileDto, { first_name: "John", last_name: "Doe" }),
     ).resolves.toBeDefined();
+    await expect(validate(EnsureProfileDto, {})).resolves.toBeDefined();
   });
 
-  it("rejects the non-existent full_name column", async () => {
-    await expect(
-      validate(CreateUserDto, {
-        email: "john.doe@example.com",
-        full_name: "John Doe",
-      }),
-    ).rejects.toBeInstanceOf(BadRequestException);
-  });
-
-  it("does not allow changing the user id", async () => {
-    await expect(
-      validate(UpdateUserDto, { id: "other" }),
-    ).rejects.toBeInstanceOf(BadRequestException);
+  it.each([
+    [
+      "an email (comes from Clerk only)",
+      EnsureProfileDto,
+      { email: "victim@example.com" },
+    ],
+    [
+      "an avatar url (comes from Clerk only)",
+      EnsureProfileDto,
+      { avatar_url: "https://x" },
+    ],
+    ["the user id", UpdateUserDto, { id: "other" }],
+    ["an email on update", UpdateUserDto, { email: "victim@example.com" }],
+    ["names on update (managed in Clerk)", UpdateUserDto, { first_name: "X" }],
+  ])("rejects %s", async (_case, metatype, body) => {
+    await expect(validate(metatype, body)).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
   });
 });
 
@@ -167,7 +169,7 @@ describe("identity fields are rejected in request bodies", () => {
       { ...contract, owner_id: "user_x" },
     ],
     ["contract owner_id on update", UpdateContractDTO, { owner_id: "user_x" }],
-    ["user id on create", CreateUserDto, { id: "user_x", email: "a@b.co" }],
+    ["user id on profile ensure", EnsureProfileDto, { id: "user_x" }],
     [
       "trusted owner_id",
       AddTrustedDto,
