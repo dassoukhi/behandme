@@ -1,93 +1,62 @@
-import { ApiProperty } from "@nestjs/swagger";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import {
   ArrayMaxSize,
+  ArrayMinSize,
+  ArrayUnique,
   IsArray,
-  IsEnum,
+  IsIn,
   IsNotEmpty,
   IsOptional,
   IsString,
+  MaxLength,
 } from "class-validator";
 
-// owner_id is the authenticated caller, never taken from the body.
+export const CONTRACT_CATEGORIES = ["networks", "devices", "storage"] as const;
+export type ContractCategory = (typeof CONTRACT_CATEGORIES)[number];
+
+// The owner is the authenticated caller. Status, secret material and any
+// lifecycle field are server-controlled and never accepted from the client.
 export class CreateContractDTO {
   @ApiProperty({
-    description: "Name of Contracts",
+    description: "Contract category",
+    enum: CONTRACT_CATEGORIES,
     example: "networks",
   })
-  @IsString()
-  @IsNotEmpty()
-  name: string;
+  @IsIn(CONTRACT_CATEGORIES)
+  name: ContractCategory;
 
-  @ApiProperty({
-    description: "Description of Contracts",
-    example: "My description",
+  @ApiPropertyOptional({
+    description:
+      "Short description visible to every participant: never put anything secret here",
+    maxLength: 280,
+    example: "Accès à mes réseaux sociaux",
   })
-  @IsString()
-  description: string;
-
-  @ApiProperty({
-    description: "Unique hash of the secret",
-    example: "abc123def456...",
-  })
-  @IsString()
-  @IsNotEmpty()
-  secret_hash: string;
-
-  @ApiProperty({
-    description: "Blockchain transaction ID for proof",
-    example: "0xabc123...",
-  })
-  @IsString()
-  @IsNotEmpty()
-  blockchain_tx_id: string;
-
-  @ApiProperty({
-    description: "Network on which the contract is stored",
-    example: "Ethereum",
-    enum: ["Ethereum", "Polygon", "Solana", "Fabric-Network"],
-    default: "Fabric-Network",
-    required: false,
-  })
-  @IsEnum(["Ethereum", "Polygon", "Solana", "Fabric-Network"])
   @IsOptional()
-  blockchain_network?: string;
+  @IsString()
+  @MaxLength(280)
+  description?: string;
 
   @ApiProperty({
-    description: "Accessor ID which references the users table",
-    example: "user456",
+    description: "Clerk ID of the accessor (must be someone the caller trusts)",
+    example: "user_2qrstuvwxyz123456",
   })
-  @IsNotEmpty()
   @IsString()
+  @IsNotEmpty()
   accessor_id: string;
 
   @ApiProperty({
     description:
-      "Array of validator IDs referencing the users table, maximum of 3 validators",
+      "Clerk IDs of 1 to 3 distinct validators (people the caller trusts)",
     type: [String],
-    example: ["validator1", "validator2"],
+    minItems: 1,
     maxItems: 3,
+    example: ["user_2aaaaaaaaaaaaaaa", "user_2bbbbbbbbbbbbbbb"],
   })
   @IsArray()
+  @ArrayMinSize(1)
   @ArrayMaxSize(3)
+  @ArrayUnique()
   @IsString({ each: true })
+  @IsNotEmpty({ each: true })
   validators: string[];
-
-  @ApiProperty({
-    description: "Current status of the contract",
-    example: "draft",
-    enum: ["draft", "active", "validated", "released", "revoked"],
-    default: "draft",
-  })
-  @IsOptional()
-  @IsEnum(["draft", "active", "validated", "released", "revoked"])
-  status?: string;
-
-  @ApiProperty({
-    description: "Additional metadata in JSON format",
-    example: { key: "value" },
-    type: "object",
-    additionalProperties: true,
-  })
-  @IsOptional()
-  meta?: Record<string, any>;
 }

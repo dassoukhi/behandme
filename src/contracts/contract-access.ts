@@ -26,25 +26,18 @@ export function participantFilter(me: string): string {
 }
 
 type ContractView = ContractParticipants & {
-  secret_hash?: string;
   owner?: UserProfileDto | null;
   accessor?: UserProfileDto | null;
   validators_list?: UserProfileDto[];
 };
 
-/**
- * Shapes a contract for the caller: only the owner sees `secret_hash`, and
- * joined profiles follow the profile visibility rule.
- */
+/** Shapes a contract for the caller: joined profiles follow the profile visibility rule. */
 export function projectContract<T extends ContractView>(
   contract: T,
   me: string,
   trustingMe: Set<string>,
 ): T {
   const view = { ...contract };
-  if (contractRole(contract, me) !== "owner") {
-    delete view.secret_hash;
-  }
   const profile = (user: UserProfileDto) =>
     projectProfile(user, me, trustingMe.has(user.id));
   if (view.owner) view.owner = profile(view.owner);

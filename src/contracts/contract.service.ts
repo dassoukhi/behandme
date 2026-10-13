@@ -1,4 +1,9 @@
-import { Injectable, Logger, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from "@nestjs/common";
 import { SupabaseService } from "../supabase/supabase.service.js";
 import { UsersService } from "../users/users.service.js";
 import { CreateContractDTO } from "./dto/create-contract.dto.js";
@@ -12,15 +17,19 @@ import {
   projectContract,
 } from "./contract-access.js";
 
+// Explicit columns: legacy secret/blockchain/meta columns are never read back.
+const CONTRACT_COLUMNS =
+  "id, name, description, owner_id, accessor_id, validators, status, created_at, updated_at";
 const WITH_PARTICIPANTS = `
-  *,
+  ${CONTRACT_COLUMNS},
   owner:users!contracts_owner_id_fkey(*),
   accessor:users!contracts_accessor_id_fkey(*)`;
 
 /**
  * Access rules: owner, accessor and validators can read a contract; only the
- * owner can update or delete it and see its secret_hash. Contracts the caller
- * cannot see are reported as 404 so their existence is not revealed.
+ * owner can update or delete it. Contracts the caller cannot see are reported
+ * as 404 so their existence is not revealed. Participants must be people the
+ * owner trusts; status and secret material are never set by the client.
  */
 @Injectable()
 export class ContractService {
@@ -35,18 +44,21 @@ export class ContractService {
     me: string,
     createContractDTO: CreateContractDTO,
   ): Promise<ContractDTO> {
+    await this.assertValidParticipants(me, createContractDTO);
+
     const { data, error } = await this.supabaseService
       .getClient()
       .from("contracts")
-      // Default applied here, not on the DTO: UpdateContractDTO inherits field initializers.
       .insert([
         {
-          blockchain_network: "Fabric-Network",
-          ...createContractDTO,
+          name: createContractDTO.name,
+          description: createContractDTO.description ?? null,
+          accessor_id: createContractDTO.accessor_id,
+          validators: createContractDTO.validators,
           owner_id: me,
         },
       ])
-      .select()
+      .select(CONTRACT_COLUMNS)
       .single();
 
     if (error) {
@@ -69,7 +81,8 @@ export class ContractService {
       throw error;
     }
 
-    const contracts = (data ?? []) as ContractDTO[];
+    // PostgREST types embedded relations as arrays; the FK joins return one row.
+    const contracts = (data ?? []) as unknown as ContractDTO[];
     const trustingMe = await this.usersService.whoTrusts(
       me,
       joinedProfileIds(contracts),
@@ -126,7 +139,7 @@ export class ContractService {
       .update(updateContractDTO)
       .eq("id", id)
       .eq("owner_id", me)
-      .select()
+      .select(CONTRACT_COLUMNS)
       .maybeSingle();
 
     if (error) {
@@ -158,5 +171,31 @@ export class ContractService {
     }
 
     return { message: `Contract with ID ${id} deleted successfully` };
+  }
+
+  /**
+   * Accessor and validators must be distinct people the owner trusts, and the
+   * owner cannot hold another role on their own contract.
+   */
+  private async assertValidParticipants(
+    me: string,
+    { accessor_id, validators }: CreateContractDTO,
+  ): Promise<void> {
+    const participants = [accessor_id, ...validators];
+    if (participants.includes(me)) {
+      throw new BadRequestException(
+        "You cannot be the accessor or a validator of your own contract",
+      );
+    }
+    if (validators.includes(accessor_id)) {
+      throw new BadRequestException("The accessor cannot also be a validator");
+    }
+    const trusted = await this.usersService.trustedAmong(me, participants);
+    const untrusted = participants.filter((id) => !trusted.has(id));
+    if (untrusted.length) {
+      throw new BadRequestException(
+        "Accessor and validators must be people you trust",
+      );
+    }
   }
 }

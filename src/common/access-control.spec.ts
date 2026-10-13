@@ -1,4 +1,4 @@
-import { NotFoundException } from "@nestjs/common";
+import { BadRequestException, NotFoundException } from "@nestjs/common";
 import { beforeEach, describe, expect, it } from "vitest";
 import { ContractService } from "../contracts/contract.service.js";
 import { NotificationsService } from "../notifications/notifications.service.js";
@@ -35,9 +35,11 @@ function seed() {
         owner_id: OWNER,
         accessor_id: ACCESSOR,
         validators: [VALIDATOR],
+        // Legacy columns still present in the hosted table: never returned.
         secret_hash: "s3cret",
         blockchain_tx_id: "0x1",
         blockchain_network: "Fabric-Network",
+        meta: { note: "private" },
         status: "draft",
         // Joined relations, as returned by the real select.
         owner: profile(OWNER),
@@ -102,12 +104,14 @@ describe("contracts: role × action", () => {
     });
 
     it(`${can.write ? "can" : "cannot"} update it`, async () => {
-      const update = contracts.update(me, CONTRACT_ID, { status: "active" });
+      const update = contracts.update(me, CONTRACT_ID, {
+        description: "changed",
+      });
       if (can.write)
-        await expect(update).resolves.toMatchObject({ status: "active" });
+        await expect(update).resolves.toMatchObject({ description: "changed" });
       else {
         await expect(update).rejects.toBeInstanceOf(NotFoundException);
-        expect(db.contracts[0].status).toBe("draft");
+        expect(db.contracts[0].description).toBe("desc");
       }
     });
 
@@ -121,16 +125,23 @@ describe("contracts: role × action", () => {
     });
   });
 
-  it("only shows secret_hash to the owner", async () => {
-    expect((await contracts.findOne(OWNER, CONTRACT_ID)).secret_hash).toBe(
-      "s3cret",
-    );
-    expect(await contracts.findOne(ACCESSOR, CONTRACT_ID)).not.toHaveProperty(
-      "secret_hash",
-    );
-    expect((await contracts.findAll(VALIDATOR))[0]).not.toHaveProperty(
-      "secret_hash",
-    );
+  it("never returns secret material or legacy columns, even to the owner", async () => {
+    const views = [
+      await contracts.findOne(OWNER, CONTRACT_ID),
+      await contracts.findOne(ACCESSOR, CONTRACT_ID),
+      (await contracts.findAll(VALIDATOR))[0],
+      await contracts.update(OWNER, CONTRACT_ID, { description: "x" }),
+    ];
+    for (const view of views) {
+      for (const column of [
+        "secret_hash",
+        "blockchain_tx_id",
+        "blockchain_network",
+        "meta",
+      ]) {
+        expect(view).not.toHaveProperty(column);
+      }
+    }
   });
 
   it("applies the profile visibility rule to joined users", async () => {
@@ -146,16 +157,47 @@ describe("contracts: role × action", () => {
     );
   });
 
-  it("always creates contracts owned by the caller", async () => {
-    const created = await contracts.create(STRANGER, {
-      name: "n",
-      description: "d",
-      secret_hash: "h",
-      blockchain_tx_id: "0x2",
+  describe("creation", () => {
+    const trust = (owner: string, ...ids: string[]) =>
+      ids.forEach((id, i) =>
+        db.trusted.push({
+          id: `t-${owner}-${i}`,
+          owner_id: owner,
+          trusted_id: id,
+        }),
+      );
+    const body = {
+      name: "devices" as const,
       accessor_id: OWNER,
-      validators: [],
+      validators: [VALIDATOR],
+    };
+
+    it("always creates contracts owned by the caller, with no client-set status", async () => {
+      trust(STRANGER, OWNER, VALIDATOR);
+      const created = await contracts.create(STRANGER, body);
+      expect(created.owner_id).toBe(STRANGER);
+      expect(db.contracts.at(-1)).not.toHaveProperty("secret_hash");
+      expect(db.contracts.at(-1)).not.toHaveProperty("status");
     });
-    expect(created.owner_id).toBe(STRANGER);
+
+    it("rejects participants the caller does not trust", async () => {
+      trust(STRANGER, OWNER); // the validator is not trusted
+      await expect(contracts.create(STRANGER, body)).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+      expect(db.contracts).toHaveLength(1);
+    });
+
+    it.each([
+      ["the caller as accessor", { ...body, accessor_id: STRANGER }],
+      ["the caller as validator", { ...body, validators: [STRANGER] }],
+      ["the accessor as validator", { ...body, validators: [OWNER] }],
+    ])("rejects %s", async (_case, invalid) => {
+      trust(STRANGER, OWNER, VALIDATOR, STRANGER);
+      await expect(contracts.create(STRANGER, invalid)).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+    });
   });
 });
 

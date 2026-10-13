@@ -1,7 +1,7 @@
 /**
  * Writes the OpenAPI contract to openapi.json without starting the server.
  * Run with `npm run openapi` (builds first so the Swagger CLI plugin metadata is included).
- * Supabase/Clerk/Fabric are never contacted: placeholder env values are used when missing.
+ * Supabase and Clerk are never contacted: placeholder env values are used when missing.
  */
 import { writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -24,5 +24,5 @@ writeFileSync(outFile, `${JSON.stringify(document, null, 2)}\n`);
 console.log(`OpenAPI contract written to ${outFile}`);
 
 await app.close();
-// FabricService may leave a gRPC client open; exit explicitly.
+// Exit explicitly in case a provider keeps a handle open.
 process.exit(0);

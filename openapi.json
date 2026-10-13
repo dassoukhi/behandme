@@ -16,218 +16,6 @@
         ]
       }
     },
-    "/api/v1/documents": {
-      "post": {
-        "operationId": "DocumentController_createDocument",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateDocumentDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Document créé avec succès"
-          },
-          "400": {
-            "description": "Données invalides"
-          },
-          "409": {
-            "description": "Document déjà existant"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Créer un nouveau document",
-        "tags": [
-          "Documents"
-        ]
-      },
-      "get": {
-        "operationId": "DocumentController_getAllDocuments",
-        "parameters": [
-          {
-            "name": "type",
-            "required": false,
-            "in": "query",
-            "description": "Filtrer par type de document",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Liste des documents"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Obtenir mes documents, éventuellement filtrés par type",
-        "tags": [
-          "Documents"
-        ]
-      }
-    },
-    "/api/v1/documents/{id}": {
-      "get": {
-        "operationId": "DocumentController_getDocument",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "description": "ID du document",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Document trouvé"
-          },
-          "404": {
-            "description": "Document non trouvé"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Obtenir un document par ID",
-        "tags": [
-          "Documents"
-        ]
-      },
-      "put": {
-        "operationId": "DocumentController_updateDocument",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "description": "ID du document",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateDocumentDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Document mis à jour avec succès"
-          },
-          "404": {
-            "description": "Document non trouvé"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Mettre à jour un document",
-        "tags": [
-          "Documents"
-        ]
-      },
-      "delete": {
-        "operationId": "DocumentController_deleteDocument",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "description": "ID du document",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Document supprimé avec succès"
-          },
-          "404": {
-            "description": "Document non trouvé"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Supprimer un document",
-        "tags": [
-          "Documents"
-        ]
-      }
-    },
-    "/api/v1/documents/{id}/transfer": {
-      "post": {
-        "operationId": "DocumentController_transferDocument",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "description": "ID du document",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TransferDocumentDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Document transféré avec succès"
-          },
-          "404": {
-            "description": "Document ou nouveau propriétaire non trouvé"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Transférer un document à un nouveau propriétaire",
-        "tags": [
-          "Documents"
-        ]
-      }
-    },
     "/api/v1/notifications/register-token": {
       "post": {
         "operationId": "NotificationsController_registerOrphanToken",
@@ -908,260 +696,6 @@
           "users"
         ]
       }
-    },
-    "/api/v1/user-chaincode": {
-      "post": {
-        "operationId": "UserChaincodeController_createUser",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": "Utilisateur créé avec succès"
-          },
-          "400": {
-            "description": "Données invalides"
-          },
-          "409": {
-            "description": "Utilisateur déjà existant"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Créer un nouvel utilisateur",
-        "tags": [
-          "User Chaincode"
-        ]
-      }
-    },
-    "/api/v1/user-chaincode/{id}": {
-      "get": {
-        "operationId": "UserChaincodeController_getUser",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "description": "ID de l'utilisateur",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Utilisateur trouvé"
-          },
-          "404": {
-            "description": "Utilisateur non trouvé"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Obtenir un utilisateur par ID",
-        "tags": [
-          "User Chaincode"
-        ]
-      },
-      "put": {
-        "operationId": "UserChaincodeController_updateUser",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "description": "ID de l'utilisateur",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateChaincodeUserDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Utilisateur mis à jour avec succès"
-          },
-          "404": {
-            "description": "Utilisateur non trouvé"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Mettre à jour un utilisateur",
-        "tags": [
-          "User Chaincode"
-        ]
-      },
-      "delete": {
-        "operationId": "UserChaincodeController_deleteUser",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "description": "ID de l'utilisateur",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Utilisateur supprimé avec succès"
-          },
-          "404": {
-            "description": "Utilisateur non trouvé"
-          },
-          "409": {
-            "description": "Impossible de supprimer: utilisateur possède des documents"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Supprimer un utilisateur",
-        "tags": [
-          "User Chaincode"
-        ]
-      }
-    },
-    "/api/v1/user-chaincode/{id}/documents": {
-      "get": {
-        "operationId": "UserChaincodeController_getUserDocuments",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "description": "ID de l'utilisateur",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Liste des documents de l'utilisateur"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Obtenir tous les documents d'un utilisateur",
-        "tags": [
-          "User Chaincode"
-        ]
-      }
-    },
-    "/api/v1/user-chaincode/{id}/accessible-documents": {
-      "get": {
-        "operationId": "UserChaincodeController_getAccessibleDocuments",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "description": "ID de l'utilisateur",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Liste des documents accessibles"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Obtenir tous les documents accessibles par un utilisateur",
-        "tags": [
-          "User Chaincode"
-        ]
-      }
-    },
-    "/api/v1/user-chaincode/{id}/validation-documents": {
-      "get": {
-        "operationId": "UserChaincodeController_getValidationDocuments",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "description": "ID de l'utilisateur validateur",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Liste des documents à valider"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Obtenir tous les documents à valider par un utilisateur",
-        "tags": [
-          "User Chaincode"
-        ]
-      }
-    },
-    "/api/v1/user-chaincode/{id}/history": {
-      "get": {
-        "operationId": "UserChaincodeController_getUserHistory",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "description": "ID de l'utilisateur",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Historique de l'utilisateur"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Obtenir l'historique d'un utilisateur",
-        "tags": [
-          "User Chaincode"
-        ]
-      }
     }
   },
   "info": {
@@ -1181,135 +715,6 @@
       }
     },
     "schemas": {
-      "CreateDocumentDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "Document ID (UUID)",
-            "example": "123e4567-e89b-12d3-a456-426614174000"
-          },
-          "title": {
-            "type": "string",
-            "description": "Title",
-            "example": "Contrat de Vente"
-          },
-          "type": {
-            "type": "string",
-            "description": "type",
-            "example": "contract"
-          },
-          "content": {
-            "type": "string",
-            "description": "Description du contrat",
-            "example": "Contenu du contrat de vente..."
-          },
-          "docType": {
-            "type": "string",
-            "description": "Type de document",
-            "example": "user2"
-          },
-          "status": {
-            "type": "string",
-            "description": "statut",
-            "example": "active"
-          },
-          "hash": {
-            "type": "string",
-            "description": "hash du doccument",
-            "example": "3445chgfgh666"
-          }
-        },
-        "required": [
-          "id",
-          "title",
-          "type",
-          "content",
-          "docType",
-          "status",
-          "hash"
-        ]
-      },
-      "UpdateDocumentDto": {
-        "type": "object",
-        "properties": {
-          "Id": {
-            "type": "string",
-            "description": "Document ID (UUID)",
-            "example": "123e4567-e89b-12d3-a456-426614174000"
-          },
-          "title": {
-            "type": "string",
-            "description": "Title",
-            "example": "Contrat de Vente"
-          },
-          "type": {
-            "type": "string",
-            "description": "type",
-            "example": "contract"
-          },
-          "content": {
-            "type": "string",
-            "description": "Description du contrat",
-            "example": "Contenu du contrat de vente..."
-          },
-          "owner": {
-            "type": "string",
-            "description": "proprietaire",
-            "example": "user1"
-          },
-          "hash": {
-            "type": "string",
-            "description": "hash du doccument",
-            "example": "3445chgfgh666"
-          },
-          "docType": {
-            "type": "string",
-            "description": "Type de document",
-            "example": "user2"
-          },
-          "status": {
-            "type": "string",
-            "description": "statut",
-            "example": "active"
-          }
-        },
-        "required": [
-          "Id",
-          "title",
-          "type",
-          "content",
-          "owner",
-          "hash",
-          "docType",
-          "status"
-        ]
-      },
-      "TransferDocumentDto": {
-        "type": "object",
-        "properties": {
-          "documentId": {
-            "type": "string",
-            "description": "Document ID (UUID)",
-            "example": "123e4567-e89b-12d3-a456-426614174000"
-          },
-          "oldOwner": {
-            "type": "string",
-            "description": "ancien proprietaire",
-            "example": "user1"
-          },
-          "newOwner": {
-            "type": "string",
-            "description": "nouveau proprietaire",
-            "example": "user1"
-          }
-        },
-        "required": [
-          "documentId",
-          "oldOwner",
-          "newOwner"
-        ]
-      },
       "RegisterTokenDto": {
         "type": "object",
         "properties": {
@@ -1424,81 +829,43 @@
         "type": "object",
         "properties": {
           "name": {
+            "enum": [
+              "networks",
+              "devices",
+              "storage"
+            ],
             "type": "string",
-            "description": "Name of Contracts",
+            "description": "Contract category",
             "example": "networks"
           },
           "description": {
             "type": "string",
-            "description": "Description of Contracts",
-            "example": "My description"
-          },
-          "secret_hash": {
-            "type": "string",
-            "description": "Unique hash of the secret",
-            "example": "abc123def456..."
-          },
-          "blockchain_tx_id": {
-            "type": "string",
-            "description": "Blockchain transaction ID for proof",
-            "example": "0xabc123..."
-          },
-          "blockchain_network": {
-            "type": "string",
-            "description": "Network on which the contract is stored",
-            "example": "Ethereum",
-            "enum": [
-              "Ethereum",
-              "Polygon",
-              "Solana",
-              "Fabric-Network"
-            ],
-            "default": "Fabric-Network"
+            "maxLength": 280,
+            "description": "Short description visible to every participant: never put anything secret here",
+            "example": "Accès à mes réseaux sociaux"
           },
           "accessor_id": {
             "type": "string",
-            "description": "Accessor ID which references the users table",
-            "example": "user456"
+            "description": "Clerk ID of the accessor (must be someone the caller trusts)",
+            "example": "user_2qrstuvwxyz123456"
           },
           "validators": {
+            "uniqueItems": true,
+            "minItems": 1,
             "maxItems": 3,
-            "description": "Array of validator IDs referencing the users table, maximum of 3 validators",
+            "description": "Clerk IDs of 1 to 3 distinct validators (people the caller trusts)",
             "example": [
-              "validator1",
-              "validator2"
+              "user_2aaaaaaaaaaaaaaa",
+              "user_2bbbbbbbbbbbbbbb"
             ],
             "type": "array",
             "items": {
               "type": "string"
             }
-          },
-          "status": {
-            "type": "string",
-            "description": "Current status of the contract",
-            "example": "draft",
-            "enum": [
-              "draft",
-              "active",
-              "validated",
-              "released",
-              "revoked"
-            ],
-            "default": "draft"
-          },
-          "meta": {
-            "type": "object",
-            "additionalProperties": true,
-            "description": "Additional metadata in JSON format",
-            "example": {
-              "key": "value"
-            }
           }
         },
         "required": [
           "name",
-          "description",
-          "secret_hash",
-          "blockchain_tx_id",
           "accessor_id",
           "validators"
         ]
@@ -1562,74 +929,43 @@
         "properties": {
           "id": {
             "type": "string",
-            "description": "Unique identifier for the contract",
             "example": "4bce1a03-3fa5-4d39-8c7e-7f3b7e3468a5"
           },
           "name": {
-            "type": "string",
-            "description": "Current name of the contract",
-            "example": "networks",
             "enum": [
               "networks",
               "devices",
               "storage"
             ],
-            "default": "networks"
+            "type": "string",
+            "example": "networks"
           },
           "description": {
             "type": "string",
-            "description": "Current Description of the contract",
-            "example": "Ce contrat contient des informations confidentielles transmises après validation.",
-            "default": "networks"
+            "nullable": true,
+            "description": "Short description visible to every participant",
+            "example": "Accès à mes réseaux sociaux"
           },
           "owner_id": {
             "type": "string",
-            "description": "Owner ID which references the users table",
-            "example": "user123"
-          },
-          "secret_hash": {
-            "type": "string",
-            "description": "Unique hash of the secret. Only returned to the owner.",
-            "example": "abc123def456..."
-          },
-          "blockchain_tx_id": {
-            "type": "string",
-            "description": "Blockchain transaction ID for proof",
-            "example": "0xabc123..."
-          },
-          "blockchain_network": {
-            "type": "string",
-            "description": "Network on which the contract is stored",
-            "example": "Ethereum",
-            "enum": [
-              "Ethereum",
-              "Polygon",
-              "Solana",
-              "Fabric-Network"
-            ],
-            "default": "Fabric-Network"
+            "example": "user_2abcdefghijklmnop"
           },
           "accessor_id": {
             "type": "string",
-            "description": "Accessor ID which references the users table",
-            "example": "user456"
+            "nullable": true,
+            "example": "user_2qrstuvwxyz123456"
           },
           "validators": {
-            "description": "Array of validator IDs referencing the users table, maximum of 3 validators",
             "example": [
-              "validator1",
-              "validator2"
+              "user_2aaaaaaaaaaaaaaa"
             ],
-            "maxItems": 3,
             "type": "array",
             "items": {
               "type": "string"
             }
           },
           "status": {
-            "type": "string",
-            "description": "Current status of the contract",
-            "example": "draft",
+            "nullable": true,
             "enum": [
               "draft",
               "active",
@@ -1637,27 +973,18 @@
               "released",
               "revoked"
             ],
-            "default": "draft"
+            "type": "string",
+            "description": "Lifecycle status, changed only by dedicated actions"
           },
           "created_at": {
-            "format": "date-time",
             "type": "string",
-            "description": "Timestamp when the contract was created",
-            "example": "2023-10-12T07:20:50.52Z"
+            "nullable": true,
+            "example": "2026-10-12T07:20:50.52Z"
           },
           "updated_at": {
-            "format": "date-time",
             "type": "string",
-            "description": "Timestamp when the contract was last updated",
-            "example": "2023-10-15T09:30:50.52Z"
-          },
-          "meta": {
-            "type": "object",
-            "additionalProperties": true,
-            "description": "Additional metadata in JSON format",
-            "example": {
-              "key": "value"
-            }
+            "nullable": true,
+            "example": "2026-10-15T09:30:50.52Z"
           },
           "owner": {
             "nullable": true,
@@ -1685,8 +1012,7 @@
           "name",
           "description",
           "owner_id",
-          "blockchain_tx_id",
-          "blockchain_network",
+          "accessor_id",
           "validators",
           "status",
           "created_at",
@@ -1698,74 +1024,43 @@
         "properties": {
           "id": {
             "type": "string",
-            "description": "Unique identifier for the contract",
             "example": "4bce1a03-3fa5-4d39-8c7e-7f3b7e3468a5"
           },
           "name": {
-            "type": "string",
-            "description": "Current name of the contract",
-            "example": "networks",
             "enum": [
               "networks",
               "devices",
               "storage"
             ],
-            "default": "networks"
+            "type": "string",
+            "example": "networks"
           },
           "description": {
             "type": "string",
-            "description": "Current Description of the contract",
-            "example": "Ce contrat contient des informations confidentielles transmises après validation.",
-            "default": "networks"
+            "nullable": true,
+            "description": "Short description visible to every participant",
+            "example": "Accès à mes réseaux sociaux"
           },
           "owner_id": {
             "type": "string",
-            "description": "Owner ID which references the users table",
-            "example": "user123"
-          },
-          "secret_hash": {
-            "type": "string",
-            "description": "Unique hash of the secret. Only returned to the owner.",
-            "example": "abc123def456..."
-          },
-          "blockchain_tx_id": {
-            "type": "string",
-            "description": "Blockchain transaction ID for proof",
-            "example": "0xabc123..."
-          },
-          "blockchain_network": {
-            "type": "string",
-            "description": "Network on which the contract is stored",
-            "example": "Ethereum",
-            "enum": [
-              "Ethereum",
-              "Polygon",
-              "Solana",
-              "Fabric-Network"
-            ],
-            "default": "Fabric-Network"
+            "example": "user_2abcdefghijklmnop"
           },
           "accessor_id": {
             "type": "string",
-            "description": "Accessor ID which references the users table",
-            "example": "user456"
+            "nullable": true,
+            "example": "user_2qrstuvwxyz123456"
           },
           "validators": {
-            "description": "Array of validator IDs referencing the users table, maximum of 3 validators",
             "example": [
-              "validator1",
-              "validator2"
+              "user_2aaaaaaaaaaaaaaa"
             ],
-            "maxItems": 3,
             "type": "array",
             "items": {
               "type": "string"
             }
           },
           "status": {
-            "type": "string",
-            "description": "Current status of the contract",
-            "example": "draft",
+            "nullable": true,
             "enum": [
               "draft",
               "active",
@@ -1773,27 +1068,18 @@
               "released",
               "revoked"
             ],
-            "default": "draft"
+            "type": "string",
+            "description": "Lifecycle status, changed only by dedicated actions"
           },
           "created_at": {
-            "format": "date-time",
             "type": "string",
-            "description": "Timestamp when the contract was created",
-            "example": "2023-10-12T07:20:50.52Z"
+            "nullable": true,
+            "example": "2026-10-12T07:20:50.52Z"
           },
           "updated_at": {
-            "format": "date-time",
             "type": "string",
-            "description": "Timestamp when the contract was last updated",
-            "example": "2023-10-15T09:30:50.52Z"
-          },
-          "meta": {
-            "type": "object",
-            "additionalProperties": true,
-            "description": "Additional metadata in JSON format",
-            "example": {
-              "key": "value"
-            }
+            "nullable": true,
+            "example": "2026-10-15T09:30:50.52Z"
           },
           "owner": {
             "nullable": true,
@@ -1828,8 +1114,7 @@
           "name",
           "description",
           "owner_id",
-          "blockchain_tx_id",
-          "blockchain_network",
+          "accessor_id",
           "validators",
           "status",
           "created_at",
@@ -1841,74 +1126,20 @@
         "type": "object",
         "properties": {
           "name": {
+            "enum": [
+              "networks",
+              "devices",
+              "storage"
+            ],
             "type": "string",
-            "description": "Name of Contracts",
+            "description": "Contract category",
             "example": "networks"
           },
           "description": {
             "type": "string",
-            "description": "Description of Contracts",
-            "example": "My description"
-          },
-          "secret_hash": {
-            "type": "string",
-            "description": "Unique hash of the secret",
-            "example": "abc123def456..."
-          },
-          "blockchain_tx_id": {
-            "type": "string",
-            "description": "Blockchain transaction ID for proof",
-            "example": "0xabc123..."
-          },
-          "blockchain_network": {
-            "type": "string",
-            "description": "Network on which the contract is stored",
-            "example": "Ethereum",
-            "enum": [
-              "Ethereum",
-              "Polygon",
-              "Solana",
-              "Fabric-Network"
-            ],
-            "default": "Fabric-Network"
-          },
-          "accessor_id": {
-            "type": "string",
-            "description": "Accessor ID which references the users table",
-            "example": "user456"
-          },
-          "validators": {
-            "maxItems": 3,
-            "description": "Array of validator IDs referencing the users table, maximum of 3 validators",
-            "example": [
-              "validator1",
-              "validator2"
-            ],
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "status": {
-            "type": "string",
-            "description": "Current status of the contract",
-            "example": "draft",
-            "enum": [
-              "draft",
-              "active",
-              "validated",
-              "released",
-              "revoked"
-            ],
-            "default": "draft"
-          },
-          "meta": {
-            "type": "object",
-            "additionalProperties": true,
-            "description": "Additional metadata in JSON format",
-            "example": {
-              "key": "value"
-            }
+            "maxLength": 280,
+            "description": "Short description visible to every participant: never put anything secret here",
+            "example": "Accès à mes réseaux sociaux"
           }
         }
       },
@@ -2016,19 +1247,6 @@
           "owner_id",
           "trusted_id",
           "created_at"
-        ]
-      },
-      "CreateChaincodeUserDto": {
-        "type": "object",
-        "properties": {
-          "status": {
-            "type": "string",
-            "description": "status",
-            "example": "active"
-          }
-        },
-        "required": [
-          "status"
         ]
       }
     }

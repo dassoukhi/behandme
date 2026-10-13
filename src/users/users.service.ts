@@ -230,6 +230,26 @@ export class UsersService {
     return data;
   }
 
+  /** IDs among `ids` of users that `me` trusts. */
+  async trustedAmong(me: string, ids: string[]): Promise<Set<string>> {
+    if (ids.length === 0) {
+      return new Set();
+    }
+
+    const { data, error } = await this.supabaseService
+      .getClient()
+      .from("trusted")
+      .select("trusted_id")
+      .eq("owner_id", me)
+      .in("trusted_id", ids);
+
+    if (error) {
+      this.logger.error(`Failed to fetch trust links: ${error.message}`);
+      throw error;
+    }
+    return new Set((data ?? []).map((row) => row.trusted_id as string));
+  }
+
   /** IDs among `ids` of users who trust `me`. */
   async whoTrusts(me: string, ids: string[]): Promise<Set<string>> {
     const others = ids.filter((id) => id !== me);

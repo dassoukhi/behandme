@@ -9,7 +9,6 @@ import { UpdateNotificationDto } from "../notifications/dto/update-notifications
 import { CreateUserDto } from "../users/dto/create-user.dto.js";
 import { UpdateUserDto } from "../users/dto/update-user.dto.js";
 import { AddTrustedDto } from "../users/dto/add-trusted.dto.js";
-import { CreateDocumentDto } from "../documents/dto/document.dto.js";
 
 // Same options as the global pipe in main.ts.
 const pipe = new ValidationPipe({
@@ -24,8 +23,6 @@ const validate = (metatype: ArgumentMetadata["metatype"], value: unknown) =>
 const contract = {
   name: "networks",
   description: "desc",
-  secret_hash: "hash",
-  blockchain_tx_id: "0xabc",
   accessor_id: "user_2qrstuvwxyz123456",
   validators: ["user_2aaaaaaaaaaaaaaa", "user_2bbbbbbbbbbbbbbb"],
 };
@@ -90,8 +87,8 @@ describe("contract DTOs", () => {
 
   it("accepts a partial update", async () => {
     await expect(
-      validate(UpdateContractDTO, { status: "active" }),
-    ).resolves.toMatchObject({ status: "active" });
+      validate(UpdateContractDTO, { description: "updated" }),
+    ).resolves.toMatchObject({ description: "updated" });
   });
 });
 
@@ -122,10 +119,41 @@ describe("user DTOs", () => {
   });
 });
 
-describe("contract update defaults", () => {
-  it("does not inject blockchain_network into a partial update", async () => {
-    const result = await validate(UpdateContractDTO, { status: "active" });
-    expect(result).not.toHaveProperty("blockchain_network");
+// Lifecycle and secret material are server-controlled: a client must never be
+// able to set them, on create or on update.
+describe("server-controlled contract fields are rejected", () => {
+  const cases: [string, ArgumentMetadata["metatype"], object][] = [
+    [
+      "status on create",
+      CreateContractDTO,
+      { ...contract, status: "released" },
+    ],
+    ["status on update", UpdateContractDTO, { status: "released" }],
+    [
+      "secret_hash on create",
+      CreateContractDTO,
+      { ...contract, secret_hash: "h" },
+    ],
+    [
+      "blockchain fields on create",
+      CreateContractDTO,
+      { ...contract, blockchain_tx_id: "0x" },
+    ],
+    ["meta on create", CreateContractDTO, { ...contract, meta: {} }],
+    ["participants on update", UpdateContractDTO, { validators: ["user_x"] }],
+    ["unknown category", CreateContractDTO, { ...contract, name: "bank" }],
+    ["no validator", CreateContractDTO, { ...contract, validators: [] }],
+    [
+      "duplicate validators",
+      CreateContractDTO,
+      { ...contract, validators: ["a", "a"] },
+    ],
+  ];
+
+  it.each(cases)("rejects %s", async (_name, metatype, body) => {
+    await expect(validate(metatype, body)).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
   });
 });
 
@@ -149,20 +177,6 @@ describe("identity fields are rejected in request bodies", () => {
       "push token user_id",
       RegisterTokenDto,
       { token: "ExponentPushToken[a]", user_id: "user_x" },
-    ],
-    [
-      "document owner",
-      CreateDocumentDto,
-      {
-        id: "d1",
-        title: "t",
-        type: "contract",
-        content: "c",
-        owner: "user_x",
-        docType: "document",
-        status: "active",
-        hash: "h",
-      },
     ],
   ];
 

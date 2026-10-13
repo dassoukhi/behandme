@@ -24,6 +24,26 @@ function parseOr(filter: string): Predicate {
   return (row) => clauses.some((matches) => matches(row));
 }
 
+/**
+ * Column list of a select: plain columns and embedded relations ("alias:table!fk(*)").
+ * Embedded relations are kept from the seeded row under their alias.
+ */
+function parseColumns(select: string): string[] | null {
+  const parts = select
+    .split(/,(?![^(]*\))/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+  if (parts.includes("*")) return null;
+  return parts.map((part) => part.split(":")[0].split("(")[0].trim());
+}
+
+function project(row: Row, columns: string[] | null): Row {
+  if (!columns) return row;
+  return Object.fromEntries(
+    columns.filter((c) => c in row).map((c) => [c, row[c]]),
+  );
+}
+
 class Query implements PromiseLike<{ data: any; error: null }> {
   private filters: Predicate[] = [];
   private action: "select" | "insert" | "update" | "delete" = "select";
@@ -31,14 +51,16 @@ class Query implements PromiseLike<{ data: any; error: null }> {
   private returning = false;
   private mode: "many" | "single" | "maybeSingle" = "many";
   private max = Infinity;
+  private columns: string[] | null = null; // null = every column
 
   constructor(
     private readonly tables: Tables,
     private readonly table: string,
   ) {}
 
-  select() {
+  select(columns = "*") {
     if (this.action !== "select") this.returning = true;
+    this.columns = parseColumns(columns);
     return this;
   }
   insert(rows: Row[]) {
@@ -113,7 +135,9 @@ class Query implements PromiseLike<{ data: any; error: null }> {
   ): PromiseLike<R1 | R2> {
     return Promise.resolve()
       .then(() => {
-        const rows = this.run().map((r) => structuredClone(r));
+        const rows = this.run().map((r) =>
+          project(structuredClone(r), this.columns),
+        );
         const data =
           this.mode === "many"
             ? this.action === "select" || this.returning
