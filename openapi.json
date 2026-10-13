@@ -1,0 +1,2079 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/api/v1": {
+      "get": {
+        "operationId": "AppController_getHealth",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Application is healthy"
+          }
+        },
+        "summary": "Get health status",
+        "tags": [
+          "app"
+        ]
+      }
+    },
+    "/api/v1/documents": {
+      "post": {
+        "operationId": "DocumentController_createDocument",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDocumentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Document créé avec succès"
+          },
+          "400": {
+            "description": "Données invalides"
+          },
+          "409": {
+            "description": "Document déjà existant"
+          }
+        },
+        "summary": "Créer un nouveau document",
+        "tags": [
+          "Documents"
+        ]
+      },
+      "get": {
+        "operationId": "DocumentController_getAllDocuments",
+        "parameters": [
+          {
+            "name": "type",
+            "required": false,
+            "in": "query",
+            "description": "Filtrer par type de document",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "owner",
+            "required": false,
+            "in": "query",
+            "description": "Filtrer par propriétaire",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Liste des documents"
+          }
+        },
+        "summary": "Obtenir tous les documents ou filtrer par critères",
+        "tags": [
+          "Documents"
+        ]
+      }
+    },
+    "/api/v1/documents/{id}": {
+      "get": {
+        "operationId": "DocumentController_getDocument",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "ID du document",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Document trouvé"
+          },
+          "404": {
+            "description": "Document non trouvé"
+          }
+        },
+        "summary": "Obtenir un document par ID",
+        "tags": [
+          "Documents"
+        ]
+      },
+      "put": {
+        "operationId": "DocumentController_updateDocument",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "ID du document",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDocumentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Document mis à jour avec succès"
+          },
+          "404": {
+            "description": "Document non trouvé"
+          }
+        },
+        "summary": "Mettre à jour un document",
+        "tags": [
+          "Documents"
+        ]
+      },
+      "delete": {
+        "operationId": "DocumentController_deleteDocument",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "ID du document",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Document supprimé avec succès"
+          },
+          "404": {
+            "description": "Document non trouvé"
+          }
+        },
+        "summary": "Supprimer un document",
+        "tags": [
+          "Documents"
+        ]
+      }
+    },
+    "/api/v1/documents/{id}/transfer": {
+      "post": {
+        "operationId": "DocumentController_transferDocument",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "ID du document",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransferDocumentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Document transféré avec succès"
+          },
+          "404": {
+            "description": "Document ou nouveau propriétaire non trouvé"
+          }
+        },
+        "summary": "Transférer un document à un nouveau propriétaire",
+        "tags": [
+          "Documents"
+        ]
+      }
+    },
+    "/api/v1/notifications/register-token": {
+      "post": {
+        "operationId": "NotificationsController_registerToken",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterTokenDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Token Registred successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterTokenDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Register new Token",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/notifications/send": {
+      "post": {
+        "operationId": "NotificationsController_sendNotification",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SenderNotificationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Notification sent successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterTokenDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Send Notification to a device by token i",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/notifications": {
+      "post": {
+        "operationId": "NotificationsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateNotificationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Notification created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a new Notification",
+        "tags": [
+          "notifications"
+        ]
+      },
+      "get": {
+        "operationId": "NotificationsController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Return all Notifications",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/NotificationDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get all Notifications",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/notifications/{id}": {
+      "get": {
+        "operationId": "NotificationsController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return the Notification",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Notification not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get a Notification by ID",
+        "tags": [
+          "notifications"
+        ]
+      },
+      "patch": {
+        "operationId": "NotificationsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateNotificationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Notification updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Notification not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update a Notification",
+        "tags": [
+          "notifications"
+        ]
+      },
+      "delete": {
+        "operationId": "NotificationsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Notification deleted successfully"
+          },
+          "404": {
+            "description": "Notification not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a Notification",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/contracts": {
+      "post": {
+        "operationId": "ContractsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateContractDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Contract created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractDTO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a new Contract",
+        "tags": [
+          "contracts"
+        ]
+      },
+      "get": {
+        "operationId": "ContractsController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Return all contracts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ContractDTO"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get all contracts",
+        "tags": [
+          "contracts"
+        ]
+      }
+    },
+    "/api/v1/contracts/{id}": {
+      "get": {
+        "operationId": "ContractsController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return the contract",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractValidatorsDTO"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Contract not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get a contract by ID",
+        "tags": [
+          "contracts"
+        ]
+      },
+      "patch": {
+        "operationId": "ContractsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateContractDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Contract updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractDTO"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Contract not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update a contract",
+        "tags": [
+          "contracts"
+        ]
+      },
+      "delete": {
+        "operationId": "ContractsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Contract deleted successfully"
+          },
+          "404": {
+            "description": "Contract not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a contract",
+        "tags": [
+          "contracts"
+        ]
+      }
+    },
+    "/api/v1/users": {
+      "post": {
+        "operationId": "UsersController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Profile created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfileDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a new user profile",
+        "tags": [
+          "users"
+        ]
+      },
+      "get": {
+        "operationId": "UsersController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Return all profiles",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserProfileDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get all user profiles",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/api/v1/users/search": {
+      "get": {
+        "operationId": "UsersController_searchUsers",
+        "parameters": [
+          {
+            "name": "q",
+            "required": true,
+            "in": "query",
+            "description": "Search query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "excludeId",
+            "required": false,
+            "in": "query",
+            "description": "ID of the current user to exclude from results",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return matching profiles",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserProfileDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Search users by first_name, last_name or email",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/api/v1/users/getTrusteds/{id}": {
+      "get": {
+        "operationId": "UsersController_getTrusteds",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return all Trusteds",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserProfileDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get Trusteds by owner_id",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/api/v1/users/{id}": {
+      "get": {
+        "operationId": "UsersController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Return the profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfileDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Profile not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get a user profile by ID",
+        "tags": [
+          "users"
+        ]
+      },
+      "patch": {
+        "operationId": "UsersController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Profile updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfileDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Profile not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update a user profile",
+        "tags": [
+          "users"
+        ]
+      },
+      "delete": {
+        "operationId": "UsersController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Profile deleted successfully"
+          },
+          "404": {
+            "description": "Profile not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a user profile",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/api/v1/users/addTrusted": {
+      "post": {
+        "operationId": "UsersController_addTrusted",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddTrustedDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Trusted added successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AddTrustedDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add a new trusted",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/api/v1/user-chaincode": {
+      "post": {
+        "operationId": "UserChaincodeController_createUser",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateChaincodeUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Utilisateur créé avec succès"
+          },
+          "400": {
+            "description": "Données invalides"
+          },
+          "409": {
+            "description": "Utilisateur déjà existant"
+          }
+        },
+        "summary": "Créer un nouvel utilisateur",
+        "tags": [
+          "User Chaincode"
+        ]
+      },
+      "get": {
+        "operationId": "UserChaincodeController_getAllUsers",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "Filtrer par statut (active, inactive)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Liste des utilisateurs"
+          }
+        },
+        "summary": "Obtenir tous les utilisateurs ou filtrer par statut",
+        "tags": [
+          "User Chaincode"
+        ]
+      }
+    },
+    "/api/v1/user-chaincode/{id}": {
+      "get": {
+        "operationId": "UserChaincodeController_getUser",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "ID de l'utilisateur",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Utilisateur trouvé"
+          },
+          "404": {
+            "description": "Utilisateur non trouvé"
+          }
+        },
+        "summary": "Obtenir un utilisateur par ID",
+        "tags": [
+          "User Chaincode"
+        ]
+      },
+      "put": {
+        "operationId": "UserChaincodeController_updateUser",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "ID de l'utilisateur",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateChaincodeUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Utilisateur mis à jour avec succès"
+          },
+          "404": {
+            "description": "Utilisateur non trouvé"
+          }
+        },
+        "summary": "Mettre à jour un utilisateur",
+        "tags": [
+          "User Chaincode"
+        ]
+      },
+      "delete": {
+        "operationId": "UserChaincodeController_deleteUser",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "ID de l'utilisateur",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Utilisateur supprimé avec succès"
+          },
+          "404": {
+            "description": "Utilisateur non trouvé"
+          },
+          "409": {
+            "description": "Impossible de supprimer: utilisateur possède des documents"
+          }
+        },
+        "summary": "Supprimer un utilisateur",
+        "tags": [
+          "User Chaincode"
+        ]
+      }
+    },
+    "/api/v1/user-chaincode/{id}/documents": {
+      "get": {
+        "operationId": "UserChaincodeController_getUserDocuments",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "ID de l'utilisateur",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Liste des documents de l'utilisateur"
+          }
+        },
+        "summary": "Obtenir tous les documents d'un utilisateur",
+        "tags": [
+          "User Chaincode"
+        ]
+      }
+    },
+    "/api/v1/user-chaincode/{id}/accessible-documents": {
+      "get": {
+        "operationId": "UserChaincodeController_getAccessibleDocuments",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "ID de l'utilisateur",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Liste des documents accessibles"
+          }
+        },
+        "summary": "Obtenir tous les documents accessibles par un utilisateur",
+        "tags": [
+          "User Chaincode"
+        ]
+      }
+    },
+    "/api/v1/user-chaincode/{id}/validation-documents": {
+      "get": {
+        "operationId": "UserChaincodeController_getValidationDocuments",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "ID de l'utilisateur validateur",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Liste des documents à valider"
+          }
+        },
+        "summary": "Obtenir tous les documents à valider par un utilisateur",
+        "tags": [
+          "User Chaincode"
+        ]
+      }
+    },
+    "/api/v1/user-chaincode/{id}/history": {
+      "get": {
+        "operationId": "UserChaincodeController_getUserHistory",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "ID de l'utilisateur",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Historique de l'utilisateur"
+          }
+        },
+        "summary": "Obtenir l'historique d'un utilisateur",
+        "tags": [
+          "User Chaincode"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "NestJS Supabase API",
+    "description": "The NestJS Supabase API documentation",
+    "version": "1.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http"
+      }
+    },
+    "schemas": {
+      "CreateDocumentDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Document ID (UUID)",
+            "example": "123e4567-e89b-12d3-a456-426614174000"
+          },
+          "title": {
+            "type": "string",
+            "description": "Title",
+            "example": "Contrat de Vente"
+          },
+          "type": {
+            "type": "string",
+            "description": "type",
+            "example": "contract"
+          },
+          "content": {
+            "type": "string",
+            "description": "Description du contrat",
+            "example": "Contenu du contrat de vente..."
+          },
+          "owner": {
+            "type": "string",
+            "description": "proprietaire",
+            "example": "user1"
+          },
+          "docType": {
+            "type": "string",
+            "description": "Type de document",
+            "example": "user2"
+          },
+          "status": {
+            "type": "string",
+            "description": "statut",
+            "example": "active"
+          },
+          "hash": {
+            "type": "string",
+            "description": "hash du doccument",
+            "example": "3445chgfgh666"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "type",
+          "content",
+          "owner",
+          "docType",
+          "status",
+          "hash"
+        ]
+      },
+      "UpdateDocumentDto": {
+        "type": "object",
+        "properties": {
+          "Id": {
+            "type": "string",
+            "description": "Document ID (UUID)",
+            "example": "123e4567-e89b-12d3-a456-426614174000"
+          },
+          "title": {
+            "type": "string",
+            "description": "Title",
+            "example": "Contrat de Vente"
+          },
+          "type": {
+            "type": "string",
+            "description": "type",
+            "example": "contract"
+          },
+          "content": {
+            "type": "string",
+            "description": "Description du contrat",
+            "example": "Contenu du contrat de vente..."
+          },
+          "owner": {
+            "type": "string",
+            "description": "proprietaire",
+            "example": "user1"
+          },
+          "hash": {
+            "type": "string",
+            "description": "hash du doccument",
+            "example": "3445chgfgh666"
+          },
+          "docType": {
+            "type": "string",
+            "description": "Type de document",
+            "example": "user2"
+          },
+          "status": {
+            "type": "string",
+            "description": "statut",
+            "example": "active"
+          }
+        },
+        "required": [
+          "Id",
+          "title",
+          "type",
+          "content",
+          "owner",
+          "hash",
+          "docType",
+          "status"
+        ]
+      },
+      "TransferDocumentDto": {
+        "type": "object",
+        "properties": {
+          "documentId": {
+            "type": "string",
+            "description": "Document ID (UUID)",
+            "example": "123e4567-e89b-12d3-a456-426614174000"
+          },
+          "oldOwner": {
+            "type": "string",
+            "description": "ancien proprietaire",
+            "example": "user1"
+          },
+          "newOwner": {
+            "type": "string",
+            "description": "nouveau proprietaire",
+            "example": "user1"
+          }
+        },
+        "required": [
+          "documentId",
+          "oldOwner",
+          "newOwner"
+        ]
+      },
+      "RegisterTokenDto": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "The unique token string used for device registration.",
+            "example": "abc123def456"
+          },
+          "user_id": {
+            "type": "string",
+            "description": "The unique identifier of the user who owns the token. Optional field.",
+            "example": "user-12345"
+          }
+        },
+        "required": [
+          "token"
+        ]
+      },
+      "CreateNotificationDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "description": "Identifier for the associated user",
+            "example": "user-1234"
+          },
+          "title": {
+            "type": "string",
+            "description": "Title of the notification",
+            "example": "Contract update"
+          },
+          "message": {
+            "type": "string",
+            "description": "Message content of the notification",
+            "example": "Your contract has been updated."
+          },
+          "type": {
+            "default": "system",
+            "enum": [
+              "contract_created",
+              "contract_updated",
+              "reminder",
+              "system"
+            ],
+            "type": "string",
+            "description": "Type of notification"
+          },
+          "scheduledAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Scheduled time for the notification",
+            "example": "2023-10-11T12:00:00Z"
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Additional metadata for the notification",
+            "example": {
+              "key": "value"
+            }
+          }
+        },
+        "required": [
+          "userId",
+          "title",
+          "message",
+          "type"
+        ]
+      },
+      "SenderNotificationDto": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "token",
+            "example": true
+          },
+          "notification": {
+            "description": "Notification",
+            "example": {
+              "title": "Welcome Notification",
+              "message": "Hello! Welcome to our service!",
+              "data": "{\"action\":\"welcome\"}"
+            },
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CreateNotificationDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "token",
+          "notification"
+        ]
+      },
+      "NotificationDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Unique identifier for the notification",
+            "example": "123e4567-e89b-12d3-a456-426614174000"
+          },
+          "userId": {
+            "type": "string",
+            "description": "Identifier for the associated user",
+            "example": "user-1234"
+          },
+          "title": {
+            "type": "string",
+            "description": "Title of the notification",
+            "example": "Contract updated"
+          },
+          "message": {
+            "type": "string",
+            "description": "Message content of the notification",
+            "example": "Your contract has been updated."
+          },
+          "type": {
+            "type": "string",
+            "description": "Type of notification",
+            "enum": [
+              "contract_created",
+              "contract_updated",
+              "reminder",
+              "system"
+            ],
+            "default": "system"
+          },
+          "isRead": {
+            "type": "boolean",
+            "description": "Indicates whether the notification has been read",
+            "default": false
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Timestamp when notification was created",
+            "example": "2023-10-10T12:34:56Z"
+          },
+          "scheduledAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Scheduled time for the notification",
+            "example": "2023-10-11T12:00:00Z"
+          },
+          "meta": {
+            "type": "object",
+            "description": "Additional metadata for the notification",
+            "additionalProperties": true,
+            "example": {
+              "key": "value"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "title",
+          "message",
+          "type",
+          "isRead",
+          "createdAt"
+        ]
+      },
+      "UpdateNotificationDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "description": "Identifier for the associated user",
+            "example": "user-1234"
+          },
+          "title": {
+            "type": "string",
+            "description": "Title of the notification",
+            "example": "Contract update"
+          },
+          "message": {
+            "type": "string",
+            "description": "Message content of the notification",
+            "example": "Your contract has been updated."
+          },
+          "type": {
+            "default": "system",
+            "enum": [
+              "contract_created",
+              "contract_updated",
+              "reminder",
+              "system"
+            ],
+            "type": "string",
+            "description": "Type of notification"
+          },
+          "scheduledAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Scheduled time for the notification",
+            "example": "2023-10-11T12:00:00Z"
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Additional metadata for the notification",
+            "example": {
+              "key": "value"
+            }
+          },
+          "isRead": {
+            "type": "boolean",
+            "description": "Indicates whether the notification has been read",
+            "example": true
+          }
+        }
+      },
+      "CreateContractDTO": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of Contracts",
+            "example": "networks"
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of Contracts",
+            "example": "My description"
+          },
+          "owner_id": {
+            "type": "string",
+            "description": "Owner ID which references the users table",
+            "example": "user123"
+          },
+          "secret_hash": {
+            "type": "string",
+            "description": "Unique hash of the secret",
+            "example": "abc123def456..."
+          },
+          "blockchain_tx_id": {
+            "type": "string",
+            "description": "Blockchain transaction ID for proof",
+            "example": "0xabc123..."
+          },
+          "blockchain_network": {
+            "type": "string",
+            "default": "Fabric-Network",
+            "description": "Network on which the contract is stored",
+            "example": "Ethereum",
+            "enum": [
+              "Ethereum",
+              "Polygon",
+              "Solana",
+              "Fabric-Network"
+            ]
+          },
+          "accessor_id": {
+            "type": "string",
+            "description": "Accessor ID which references the users table",
+            "example": "user456"
+          },
+          "validators": {
+            "type": "array",
+            "items": {
+              "required": true,
+              "description": "Array of validator IDs referencing the users table, maximum of 3 validators",
+              "example": [
+                "validator1",
+                "validator2"
+              ],
+              "type": "array",
+              "items": {
+                "type": "string",
+                "maxLength": 3
+              }
+            }
+          },
+          "status": {
+            "type": "string",
+            "description": "Current status of the contract",
+            "example": "draft",
+            "enum": [
+              "draft",
+              "active",
+              "validated",
+              "released",
+              "revoked"
+            ],
+            "default": "draft"
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Additional metadata in JSON format",
+            "example": {
+              "key": "value"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "description",
+          "owner_id",
+          "secret_hash",
+          "blockchain_tx_id",
+          "accessor_id",
+          "validators"
+        ]
+      },
+      "ContractDTO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for the contract",
+            "example": "4bce1a03-3fa5-4d39-8c7e-7f3b7e3468a5"
+          },
+          "name": {
+            "type": "string",
+            "description": "Current name of the contract",
+            "example": "networks",
+            "enum": [
+              "networks",
+              "devices",
+              "storage"
+            ],
+            "default": "networks"
+          },
+          "description": {
+            "type": "string",
+            "description": "Current Description of the contract",
+            "example": "Ce contrat contient des informations confidentielles transmises après validation.",
+            "default": "networks"
+          },
+          "owner_id": {
+            "type": "string",
+            "description": "Owner ID which references the users table",
+            "example": "user123"
+          },
+          "secret_hash": {
+            "type": "string",
+            "description": "Unique hash of the secret",
+            "example": "abc123def456..."
+          },
+          "blockchain_tx_id": {
+            "type": "string",
+            "description": "Blockchain transaction ID for proof",
+            "example": "0xabc123..."
+          },
+          "blockchain_network": {
+            "type": "string",
+            "description": "Network on which the contract is stored",
+            "example": "Ethereum",
+            "enum": [
+              "Ethereum",
+              "Polygon",
+              "Solana",
+              "Fabric-Network"
+            ],
+            "default": "Fabric-Network"
+          },
+          "accessor_id": {
+            "type": "string",
+            "description": "Accessor ID which references the users table",
+            "example": "user456"
+          },
+          "validators": {
+            "type": "array",
+            "items": {
+              "required": true,
+              "description": "Array of validator IDs referencing the users table, maximum of 3 validators",
+              "example": [
+                "validator1",
+                "validator2"
+              ],
+              "maxItems": 3,
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "status": {
+            "type": "string",
+            "description": "Current status of the contract",
+            "example": "draft",
+            "enum": [
+              "draft",
+              "active",
+              "validated",
+              "released",
+              "revoked"
+            ],
+            "default": "draft"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Timestamp when the contract was created",
+            "example": "2023-10-12T07:20:50.52Z"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Timestamp when the contract was last updated",
+            "example": "2023-10-15T09:30:50.52Z"
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Additional metadata in JSON format",
+            "example": {
+              "key": "value"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "owner_id",
+          "secret_hash",
+          "blockchain_tx_id",
+          "blockchain_network",
+          "validators",
+          "status",
+          "created_at",
+          "updated_at"
+        ]
+      },
+      "UserProfileDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "User ID (UUID)",
+            "example": "123e4567-e89b-12d3-a456-426614174000"
+          },
+          "first_name": {
+            "type": "string",
+            "description": "User first name",
+            "example": "John Doe"
+          },
+          "last_name": {
+            "type": "string",
+            "description": "User last name",
+            "example": "John Doe"
+          },
+          "avatar_url": {
+            "type": "string",
+            "description": "User avatar URL",
+            "example": "https://example.com/avatar.png"
+          },
+          "created_at": {
+            "type": "string",
+            "description": "Timestamp when the profile was created",
+            "example": "2023-01-01T00:00:00.000Z"
+          },
+          "updated_at": {
+            "type": "string",
+            "description": "Timestamp when the profile was last updated",
+            "example": "2023-01-01T00:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "first_name",
+          "last_name",
+          "created_at",
+          "updated_at"
+        ]
+      },
+      "ContractValidatorsDTO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for the contract",
+            "example": "4bce1a03-3fa5-4d39-8c7e-7f3b7e3468a5"
+          },
+          "name": {
+            "type": "string",
+            "description": "Current name of the contract",
+            "example": "networks",
+            "enum": [
+              "networks",
+              "devices",
+              "storage"
+            ],
+            "default": "networks"
+          },
+          "description": {
+            "type": "string",
+            "description": "Current Description of the contract",
+            "example": "Ce contrat contient des informations confidentielles transmises après validation.",
+            "default": "Ce contrat contient des informations confidentielles transmises après validation."
+          },
+          "owner_id": {
+            "type": "string",
+            "description": "Owner ID which references the users table",
+            "example": "user123"
+          },
+          "secret_hash": {
+            "type": "string",
+            "description": "Unique hash of the secret",
+            "example": "abc123def456..."
+          },
+          "blockchain_tx_id": {
+            "type": "string",
+            "description": "Blockchain transaction ID for proof",
+            "example": "0xabc123..."
+          },
+          "blockchain_network": {
+            "type": "string",
+            "description": "Network on which the contract is stored",
+            "example": "Ethereum",
+            "enum": [
+              "Ethereum",
+              "Polygon",
+              "Solana",
+              "Fabric-Network"
+            ],
+            "default": "Fabric-Network"
+          },
+          "accessor_id": {
+            "type": "string",
+            "description": "Accessor ID which references the users table",
+            "example": "user456"
+          },
+          "validators": {
+            "type": "array",
+            "items": {
+              "required": true,
+              "description": "Array of validator IDs referencing the users table, maximum of 3 validators",
+              "example": [
+                "validator1",
+                "validator2"
+              ],
+              "maxItems": 3,
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "validators_list": {
+            "type": "array",
+            "items": {
+              "required": true,
+              "description": "Array of validator IDs referencing the users table, maximum of 3 validators",
+              "example": [
+                "validator1",
+                "validator2"
+              ],
+              "maxItems": 3,
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/UserProfileDto"
+              }
+            }
+          },
+          "status": {
+            "type": "string",
+            "description": "Current status of the contract",
+            "example": "draft",
+            "enum": [
+              "draft",
+              "active",
+              "validated",
+              "released",
+              "revoked"
+            ],
+            "default": "draft"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Timestamp when the contract was created",
+            "example": "2023-10-12T07:20:50.52Z"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Timestamp when the contract was last updated",
+            "example": "2023-10-15T09:30:50.52Z"
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Additional metadata in JSON format",
+            "example": {
+              "key": "value"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "owner_id",
+          "secret_hash",
+          "blockchain_tx_id",
+          "blockchain_network",
+          "accessor_id",
+          "validators",
+          "validators_list",
+          "status",
+          "created_at",
+          "updated_at"
+        ]
+      },
+      "UpdateContractDTO": {
+        "type": "object",
+        "properties": {
+          "meta": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Additional metadata in JSON format",
+            "example": {
+              "key": "value"
+            }
+          }
+        }
+      },
+      "CreateUserDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "User ID (UUID)",
+            "example": "123e4567-e89b-12d3-a456-426614174000"
+          },
+          "full_name": {
+            "type": "string",
+            "description": "User full name",
+            "example": "John Doe"
+          },
+          "avatar_url": {
+            "type": "string",
+            "description": "User avatar URL",
+            "example": "https://example.com/avatar.png"
+          }
+        },
+        "required": [
+          "id",
+          "full_name"
+        ]
+      },
+      "UpdateUserDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "User ID (UUID)",
+            "example": "123e4567-e89b-12d3-a456-426614174000"
+          },
+          "full_name": {
+            "type": "string",
+            "description": "User full name",
+            "example": "John Doe"
+          },
+          "avatar_url": {
+            "type": "string",
+            "description": "User avatar URL",
+            "example": "https://example.com/avatar.png"
+          }
+        }
+      },
+      "AddTrustedDto": {
+        "type": "object",
+        "properties": {
+          "owner_id": {
+            "type": "string",
+            "description": "Unique identifier of the owner (UUID format).",
+            "example": "987e6543-b21c-45d1-b123-123456789abc"
+          },
+          "trusted_id": {
+            "type": "string",
+            "description": "Unique identifier of the trusted user (UUID format).",
+            "example": "111e2222-c33b-44c4-b555-666676165543"
+          }
+        },
+        "required": [
+          "owner_id",
+          "trusted_id"
+        ]
+      },
+      "CreateChaincodeUserDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "ID unique de l'utilisateur",
+            "example": "user4"
+          },
+          "status": {
+            "type": "string",
+            "description": "status",
+            "example": "active"
+          }
+        },
+        "required": [
+          "id",
+          "status"
+        ]
+      }
+    }
+  }
+}

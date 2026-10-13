@@ -1,9 +1,10 @@
 import { NestFactory } from "@nestjs/core";
 import { ValidationPipe } from "@nestjs/common";
-import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger";
+import { SwaggerModule } from "@nestjs/swagger";
 import { AppModule } from "./app.module.js";
 import { ConfigService } from "@nestjs/config";
 import { LoggingInterceptor } from "./common/interceptors/logging.interceptor.js";
+import { createOpenApiDocument } from "./swagger.js";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -28,13 +29,7 @@ async function bootstrap() {
   app.enableCors();
 
   // Setup Swagger documentation
-  const config = new DocumentBuilder()
-    .setTitle("NestJS Supabase API")
-    .setDescription("The NestJS Supabase API documentation")
-    .setVersion("1.0")
-    .addBearerAuth()
-    .build();
-  const document = SwaggerModule.createDocument(app, config);
+  const document = createOpenApiDocument(app);
   SwaggerModule.setup("api/docs", app, document);
 
   // Get port from environment variables or use default
