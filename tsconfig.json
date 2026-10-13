@@ -23,7 +23,12 @@
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
     "types": ["node"],
-    "paths": {}
+    "paths": {
+      "@lib/kernel": ["./libs/kernel/src/index.ts"],
+      "@lib/messaging": ["./libs/messaging/src/index.ts"],
+      "@lib/persistence": ["./libs/persistence/src/index.ts"],
+      "@lib/testing": ["./libs/testing/src/index.ts"]
+    }
   },
   "include": ["apps/*/src/**/*", "libs/*/src/**/*"],
   "exclude": ["node_modules", "dist", "fabric-network"]

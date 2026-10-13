@@ -34,7 +34,9 @@ delivery order are in `docs/architecture.md`.
   its own `tsconfig.app.json`. Today: `gateway` (the public API, the only service the mobile app calls).
   Planned: `handover`, `notifier`, `worker`. Build output: `dist/apps/<service>/apps/<service>/src/main.js`.
 - `libs/<name>/src` — shared code imported as `@lib/<name>` (aliases in the root `tsconfig.json` "paths",
-  rewritten to relative paths at build by the Nest CLI, resolved by Vitest through `resolve.tsconfigPaths`).
+  rewritten to relative paths at build by the Nest CLI, resolved by Vitest through `resolve.tsconfigPaths`):
+  `kernel` (Clock, ids, Logger), `messaging` (outbox, relay, consumer, pgmq), `persistence` (Kysely + pg),
+  `testing` (FakeClock, `startTestDatabase`). How messaging works: `docs/architecture.md`.
 - New feature code follows clean architecture inside each module: `domain/` (pure rules, imports only
   domain code and `@lib/kernel`), `application/` (use cases and ports), `infrastructure/` (adapters:
   database, Clerk, push…), `interface/` (controllers, message consumers). The `*.module.ts` file wires them.
@@ -96,6 +98,12 @@ If the contract changed, push this repo before the front.
 
 - Schema, RLS and grants: a new file in `supabase/migrations/` (`YYYYMMDDHHMMSS_name.sql`), wrapped in
   `begin; … commit;`. Deploy the API first if it depends on the change.
+- Test a migration before handing it over: `startTestDatabase()` (`@lib/testing`) applies it on PGlite with
+  the Supabase roles and pgmq, and specs check the rights of each role with `asRole` (example:
+  `libs/messaging/src/migration.spec.ts`). Migrations up to `20261013120000` alter tables created before the
+  schema was tracked; they join the test database once the baseline migration exists.
+- Service roles (`svc_gateway`, `svc_handover`, `svc_notifier`, `svc_worker`) are created without LOGIN; the
+  user sets their passwords in the SQL editor. Passwords and connection strings never go in git.
 - Row fixes or test-data changes: a versioned SQL script too, never ad-hoc. Save the rows it will touch
   (service-role read into the scratchpad) before it runs, and verify the result after.
 - `npx supabase db query --linked` hangs on this network (TLS-inspecting proxy): hand the SQL to the

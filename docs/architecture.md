@@ -31,20 +31,25 @@ per service), use a timeout with one retry, and every command carries an **idemp
 
 - **Transactional outbox.** A service writes its state change and the event into `<schema>.outbox` in the
   same transaction: no lost event, no phantom event.
-- **Relay** (`@lib/messaging`). Reads the outbox with `FOR UPDATE SKIP LOCKED`, sends each event to the
-  pgmq queue of every subscriber (routing declared in a `subscriptions` table, one queue per consumer),
-  then marks the row as sent.
-- **Consumers.** Read their queue with a visibility timeout, handle each message **idempotently**
-  (`processed_messages` table per service), then delete it. After N failed attempts the message is archived
-  (dead letter) and an alert is raised.
-- **Delayed messages.** `pgmq.send(..., delay)` for deadlines (end of the contest window, reminders).
+- **Relay** (`OutboxRelay`). Reads the outbox with `FOR UPDATE SKIP LOCKED`, sends each event to the
+  pgmq queue of every subscriber (routing in `messaging.subscriptions`, one queue per consuming service),
+  then marks the row as sent, in one transaction: each event is enqueued exactly once.
+- **Consumers** (`QueueConsumer`). Read their queue with a visibility timeout and handle each message
+  **idempotently**: the handler's writes and a row in the service's `processed_messages` commit together,
+  and the message is deleted after commit (a redelivery finds the row and does nothing). A message that is
+  malformed, has no handler, or failed N times is archived (dead letter) and logged as an error.
+- **Rights.** A service reads only its own queue; it sends to any queue through `messaging.send`
+  (`security definer`), so it never needs rights on another service's queue tables.
+- **Delayed messages.** An outbox row with `deliver_at` is sent with the matching pgmq delay, for deadlines
+  (end of the contest window, reminders).
 - **Batch.** `pg_cron` enqueues "tick" messages for the worker (every minute, hour, day).
 - **Envelope.** `{ id, type, version, occurredAt, correlationId, causationId, payload }`. Event schemas are
   versioned in a shared library and validated when publishing and when consuming. Examples: `trust.added`,
   `keys.rotated`, `contract.sealed`, `claim.filed`, `claim.decision_recorded`, `claim.quorum_reached`,
   `contract.released`, `contract.revoked`, `notification.requested`.
-- **`MessageBus` port.** Adapters: `PgmqBus` (production) and `InMemoryBus` (tests). A broker such as
-  RabbitMQ or NATS can replace pgmq later without touching domain code.
+- **`MessageBus` port.** Implemented by `PgmqBus`. A broker such as RabbitMQ or NATS can replace pgmq later
+  without touching domain code (consumers already acknowledge after commit, which any transport supports).
+  Tests run the real pgmq SQL on PGlite rather than an in-memory imitation.
 
 ## Inside a service: clean architecture
 
@@ -56,10 +61,10 @@ apps/<service>/src/<module>/
   interface/       HTTP controllers, message consumers, jobs
   <module>.module.ts   wires the layers (the only file allowed to see all of them)
 libs/
-  kernel/          Clock, ids, business errors, structured logger (correlationId)
-  messaging/       MessageBus port, envelope, outbox relay, idempotent consumer, retries
-  persistence/     Kysely + pg (Supabase pooler), unit of work (transaction + outbox)
-  testing/         InMemoryBus, fake clock, PGlite harness, fixtures
+  kernel/          Clock, ids, Logger port (business errors, correlation context: added when first used)
+  messaging/       envelope, MessageBus port + PgmqBus, transactional outbox, relay, idempotent consumer
+  persistence/     createDatabase: Kysely over a pg pool (Supabase pooler)
+  testing/         FakeClock, startTestDatabase: PGlite + Supabase roles + pgmq 1.5.1 + the migrations
 ```
 
 `npm run check:deps` (dependency-cruiser) enforces the direction of dependencies: domain ← application ←
