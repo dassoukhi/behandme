@@ -29,6 +29,7 @@ npm run start:dev      # gateway on http://localhost:3000/api/v1, Swagger UI at 
 | `npm test` | Vitest specs (`{apps,libs}/*/src/**/*.spec.ts`) |
 | `npm run check:deps` | Clean architecture and service boundaries (`.dependency-cruiser.cjs`) |
 | `npm run check:rls` | Prove the anon key reads no table and calls no RPC (run after every migration) |
+| `npm run check:schema` | Compare the migrations, replayed on PGlite, with the hosted schema in `supabase/introspection.json` |
 | `npm run lint` | ESLint with auto-fix |
 | `npm run format` | Prettier |
 
@@ -37,7 +38,10 @@ npm run start:dev      # gateway on http://localhost:3000/api/v1, Swagger UI at 
 - Schema changes are versioned SQL files in `supabase/migrations/` (`YYYYMMDDHHMMSS_name.sql`), applied in the
   Supabase SQL editor, then checked with `npm run check:rls`.
 - One-off data scripts live in `supabase/scripts/`; back up the affected rows before running them.
-- `supabase/introspect.sql` is a read-only snapshot of the hosted schema.
+- `supabase/introspect.sql` is a read-only snapshot of the hosted schema; its output is kept in
+  `supabase/introspection.json` and compared with the migrations by `npm run check:schema`.
+- `supabase/migrations/20261001000000_baseline_schema.sql` recreates the schema that existed before migrations
+  were tracked, for the test database only. Never run it on the hosted project.
 
 ## API
 

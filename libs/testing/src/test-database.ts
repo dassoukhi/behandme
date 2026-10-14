@@ -12,12 +12,6 @@ const MIGRATIONS_DIR = fileURLToPath(
   new URL("../../../supabase/migrations/", import.meta.url),
 );
 
-/**
- * Migrations up to this one alter tables that were created before the schema was tracked in the
- * repo. They join the test database once the baseline migration (from supabase/introspect.sql) exists.
- */
-const LAST_PRE_BASELINE_MIGRATION = "20261013120000";
-
 export interface TestDatabase {
   /** Connected as postgres (superuser, bypasses RLS), like the migrations. */
   db: Kysely<any>;
@@ -84,10 +78,9 @@ export async function startTestDatabase({
   };
 }
 
-/** Migration files the test database applies, in order. */
+/** Migration files, in the order they apply (the baseline first). */
 export function trackedMigrations(): string[] {
   return readdirSync(MIGRATIONS_DIR)
     .filter((file) => file.endsWith(".sql"))
-    .filter((file) => file.slice(0, 14) > LAST_PRE_BASELINE_MIGRATION)
     .sort();
 }

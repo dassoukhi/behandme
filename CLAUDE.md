@@ -26,6 +26,8 @@ delivery order are in `docs/architecture.md`.
 - `npm run check:deps` — dependency rules (`.dependency-cruiser.cjs`), see "Monorepo layout".
 - `npm run check:rls` — proves the anon key reads no table and calls no RPC (counts and status codes
   only). Run after every migration.
+- `npm run check:schema` — replays the migrations on PGlite and compares them with the hosted schema
+  captured in `supabase/introspection.json`. Run after the user applies a migration.
 - Node 24 (`.nvmrc`). Env: see `.env.example` (Supabase + Clerk required to serve requests).
 
 ## Monorepo layout
@@ -92,16 +94,20 @@ If the contract changed, push this repo before the front.
 | code in `apps/` or `libs/`   | `npm run start:dev` reloads by itself; redeploy any hosted instance      |
 | route, DTO or response shape | `npm run openapi`, then in `../behindMe`: `npm run api:sync`             |
 | `.env`                       | restart `start:dev` (env is read at boot)                                |
-| SQL migration                | the user applies it in the Supabase SQL editor, then `npm run check:rls` |
+| SQL migration                | the user applies it in the SQL editor, refreshes `supabase/introspection.json`, then `check:rls` and `check:schema` |
 
 ## Data changes (Supabase)
 
 - Schema, RLS and grants: a new file in `supabase/migrations/` (`YYYYMMDDHHMMSS_name.sql`), wrapped in
   `begin; … commit;`. Deploy the API first if it depends on the change.
-- Test a migration before handing it over: `startTestDatabase()` (`@lib/testing`) applies it on PGlite with
-  the Supabase roles and pgmq, and specs check the rights of each role with `asRole` (example:
-  `libs/messaging/src/migration.spec.ts`). Migrations up to `20261013120000` alter tables created before the
-  schema was tracked; they join the test database once the baseline migration exists.
+- Test a migration before handing it over: `startTestDatabase()` (`@lib/testing`) replays every migration on
+  PGlite with the Supabase roles and pgmq 1.4.4 (the hosted version), and specs check the rights of each role
+  with `asRole` (example: `libs/messaging/src/migration.spec.ts`). `20261001000000_baseline_schema.sql` is the
+  schema from before migrations were tracked: never run it on the hosted project.
+- After the user applies a migration: they run `supabase/introspect.sql` in the SQL editor and save the JSON
+  as `supabase/introspection.json`; then `npm run check:rls` and `npm run check:schema` (the replayed
+  migrations must give exactly the hosted schema; `check:schema` is not in `verify`, since a migration is
+  pushed before it is applied).
 - Service roles (`svc_gateway`, `svc_handover`, `svc_notifier`, `svc_worker`) are created without LOGIN; the
   user sets their passwords in the SQL editor. Passwords and connection strings never go in git.
 - Row fixes or test-data changes: a versioned SQL script too, never ad-hoc. Save the rows it will touch

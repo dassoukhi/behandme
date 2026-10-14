@@ -9,6 +9,7 @@
     "openapi": "nest build gateway && node dist/apps/gateway/apps/gateway/src/openapi.js openapi.json",
     "verify": "bash scripts/verify.sh",
     "check:rls": "node scripts/check-rls.mjs",
+    "check:schema": "CHECK_SCHEMA=1 vitest run libs/testing/src/schema-drift.spec.ts",
     "check:deps": "depcruise apps libs --config .dependency-cruiser.cjs",
     "format": "prettier --write \"{apps,libs}/**/*.ts\"",
     "start": "nest start gateway",
