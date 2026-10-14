@@ -1,13 +1,8 @@
-import {
-  type MiddlewareConsumer,
-  Module,
-  type NestModule,
-} from "@nestjs/common";
+import { Module } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { APP_FILTER, APP_GUARD } from "@nestjs/core";
 import { NOTIFIER_AUDIENCE } from "@lib/contracts";
 import {
-  correlationMiddleware,
   DatabaseModule,
   GlobalExceptionFilter,
   HealthController,
@@ -38,8 +33,4 @@ import { NotificationsModule } from "./notifications/notifications.module.js";
     { provide: APP_GUARD, useClass: InternalAuthGuard },
   ],
 })
-export class AppModule implements NestModule {
-  configure(consumer: MiddlewareConsumer): void {
-    consumer.apply(correlationMiddleware).forRoutes("*");
-  }
-}
+export class AppModule {}

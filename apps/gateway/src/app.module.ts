@@ -1,12 +1,7 @@
-import {
-  type MiddlewareConsumer,
-  Module,
-  type NestModule,
-} from "@nestjs/common";
+import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { APP_FILTER, APP_GUARD } from "@nestjs/core";
 import {
-  correlationMiddleware,
   DatabaseModule,
   GlobalExceptionFilter,
   HealthController,
@@ -50,8 +45,4 @@ import { MessagingModule } from "./messaging/messaging.module.js";
     },
   ],
 })
-export class AppModule implements NestModule {
-  configure(consumer: MiddlewareConsumer): void {
-    consumer.apply(correlationMiddleware).forRoutes("*");
-  }
-}
+export class AppModule {}

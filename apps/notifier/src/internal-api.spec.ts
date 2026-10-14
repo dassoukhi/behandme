@@ -65,6 +65,7 @@ async function call(
     ...rest,
     headers: {
       "content-type": "application/json",
+      ...(rest.headers as Record<string, string> | undefined),
       ...(token && { authorization: `Bearer ${token}` }),
     },
   });
@@ -86,9 +87,12 @@ describe("internal API", () => {
     expect(res.status).toBe(401);
   });
 
-  it("serves the user named by the token only", async () => {
-    const res = await call("/internal/v1/inbox");
+  it("serves the user named by the token only, under the caller's correlation id", async () => {
+    const res = await call("/internal/v1/inbox", {
+      headers: { "x-correlation-id": "corr-from-gateway" },
+    });
     expect(res.status).toBe(200);
+    expect(res.headers.get("x-correlation-id")).toBe("corr-from-gateway");
     const body = await res.json();
     expect(body.map((n: { id: string }) => n.id)).toEqual([
       "6f1c2b8e-4a7d-4e2b-9f3a-1d2c3b4a5e6f",

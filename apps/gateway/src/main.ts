@@ -2,7 +2,7 @@ import { NestFactory } from "@nestjs/core";
 import { ValidationPipe } from "@nestjs/common";
 import { SwaggerModule } from "@nestjs/swagger";
 import { ConfigService } from "@nestjs/config";
-import { ServiceLogger } from "@lib/platform";
+import { correlationMiddleware, ServiceLogger } from "@lib/platform";
 import { AppModule } from "./app.module.js";
 import { LoggingInterceptor } from "./common/interceptors/logging.interceptor.js";
 import { createOpenApiDocument } from "./swagger.js";
@@ -11,6 +11,9 @@ async function bootstrap() {
   const logger = new ServiceLogger("gateway");
   const app = await NestFactory.create(AppModule, { logger });
   const configService = app.get(ConfigService);
+
+  // Every request (and what it logs or publishes) carries a correlation id.
+  app.use(correlationMiddleware);
 
   // Every route under /api/v1, except the host's health check.
   app.setGlobalPrefix("api/v1", { exclude: ["health"] });
