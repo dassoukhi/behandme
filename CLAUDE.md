@@ -78,6 +78,12 @@ is the only gate and connects with the service-role key, which bypasses RLS. Eve
 - Tests: `apps/gateway/src/common/access-control.spec.ts` runs the real services against an in-memory Supabase
   (`apps/gateway/src/testing/in-memory-supabase.ts`) with a role × action matrix — extend it for every new route.
 
+## Known gaps (decided, do not fix piecemeal)
+
+- `DELETE /users/me` fails (500) when the caller is the accessor of someone's contract
+  (`contracts_accessor_id_fkey` has no ON DELETE rule). Left as is until the account-deletion saga
+  (phase 6, `docs/architecture.md`), by the user's choice (2026-10-14).
+
 ## Definition of done
 
 `npm run verify` must print `VERIFY PASSED`: typecheck, dependency rules, ESLint without auto-fix,
