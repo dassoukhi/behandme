@@ -49,11 +49,13 @@ for (const table of tables) {
   const [a, s] = await Promise.all([count(table, anon), count(table, service)]);
   const ok = a.rows === 0 || a.status === 401;
   if (!ok) leaks++;
-  // An empty table shows 0 rows to anyone, so it cannot prove RLS is on.
-  const mark = !ok ? "✗" : s.rows === 0 ? "?" : "✓";
-  const note = ok && s.rows === 0 ? "   (empty: inconclusive)" : "";
+  // An empty table shows 0 rows to anyone, so only a refusal proves anon has no access to it.
+  const denied = a.status === 401;
+  const mark = !ok ? "✗" : denied || s.rows > 0 ? "✓" : "?";
+  const note = ok && !denied && s.rows === 0 ? "   (empty: inconclusive)" : "";
+  const anonResult = denied ? "denied" : `${a.rows} rows`;
   console.log(
-    `${mark} table ${table.padEnd(16)} anon: ${a.rows} rows   service: ${s.rows} rows${note}`,
+    `${mark} table ${table.padEnd(16)} anon: ${anonResult}   service: ${s.rows} rows${note}`,
   );
 }
 for (const path of rpcs) {

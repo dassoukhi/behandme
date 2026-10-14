@@ -110,6 +110,9 @@ If the contract changed, push this repo before the front.
   pushed before it is applied).
 - Service roles (`svc_gateway`, `svc_handover`, `svc_notifier`, `svc_worker`) are created without LOGIN; the
   user sets their passwords in the SQL editor. Passwords and connection strings never go in git.
+- anon and authenticated have no right on anything (tables, functions, future objects in public), and new
+  functions are not executable by PUBLIC: a migration that adds a function grants EXECUTE explicitly to the
+  role that calls it (service_role or a `svc_*` role).
 - Row fixes or test-data changes: a versioned SQL script too, never ad-hoc. Save the rows it will touch
   (service-role read into the scratchpad) before it runs, and verify the result after.
 - `npx supabase db query --linked` hangs on this network (TLS-inspecting proxy): hand the SQL to the
