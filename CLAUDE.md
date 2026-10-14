@@ -53,9 +53,14 @@ delivery order are in `docs/architecture.md`.
 - Auth: global `ClerkAuthGuard` (passport-custom strategy, `apps/gateway/src/auth/`). Clients send
   `Authorization: Bearer <Clerk session JWT>`; opt out with `@Public()` (`apps/gateway/src/decorators/`).
   `req.user` is `{ id }` (Clerk user id = `users.id`), read with `@CurrentUserId()`.
-- Errors: `GlobalExceptionFilter` → `{ statusCode, timestamp, path, error, message }`.
-- Existing feature modules (`apps/gateway/src/<feature>/`: `*.controller.ts`, `*.service.ts`, `*.module.ts`,
-  `dto/*.dto.ts`) predate the layers and are moved into them feature by feature.
+- Errors: `GlobalExceptionFilter` → `{ statusCode, timestamp, path, error, message }`. Domain and
+  application code throw the `@lib/kernel` errors (`InvalidInputError` 400, `NotFoundError` 404,
+  `ConflictError` 409, `UnprocessableError` 422), which the filter answers like the matching Nest
+  exception. Any other error is a 500 whose message stays in the logs ("Internal server error" to the client).
+- `users/` is layered (domain: visibility and trust rules; application: `ProfileService`, `TrustService`
+  and their ports; infrastructure: Supabase repositories, Clerk; interface: controller and DTOs) and is
+  the model for new modules; its application specs run on in-memory ports (`users/testing/`).
+  `contracts/` and `notifications/` predate the layers and move to the handover and notifier services.
   Data: `SupabaseService` (`apps/gateway/src/supabase/`, service-role client only). Push: `apps/gateway/src/expo/`.
 - Updates use **PATCH** (users, contracts, notifications).
 
@@ -72,7 +77,7 @@ is the only gate and connects with the service-role key, which bypasses RLS. Eve
 - Rules: contracts readable by owner/accessor/validators, name/description writable by the owner only,
   `status` and participants never client-writable, no secret material ever returned
   (`apps/gateway/src/contracts/`); participants must be distinct and trusted by the owner; profiles expose
-  email/phone only to yourself and to users who trust you (`apps/gateway/src/users/profile-visibility.ts`);
+  email/phone only to yourself and to users who trust you (`apps/gateway/src/users/domain/profile.ts`);
   a profile's email comes from Clerk, never from the client; notifications are recipient-only and created
   server-side (no client create/send route).
 - Tests: `apps/gateway/src/common/access-control.spec.ts` runs the real services against an in-memory Supabase

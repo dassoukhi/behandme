@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { SupabaseService } from "../supabase/supabase.service.js";
-import { UsersService } from "../users/users.service.js";
+import { TrustService } from "../users/application/trust.service.js";
 import { CreateContractDTO } from "./dto/create-contract.dto.js";
 import { ContractDTO } from "./dto/contract.dto.js";
 import { UpdateContractDTO } from "./dto/update-contract.dto.js";
@@ -37,7 +37,7 @@ export class ContractService {
 
   constructor(
     private readonly supabaseService: SupabaseService,
-    private readonly usersService: UsersService,
+    private readonly trust: TrustService,
   ) {}
 
   async create(
@@ -83,7 +83,7 @@ export class ContractService {
 
     // PostgREST types embedded relations as arrays; the FK joins return one row.
     const contracts = (data ?? []) as unknown as ContractDTO[];
-    const trustingMe = await this.usersService.whoTrusts(
+    const trustingMe = await this.trust.whoTrusts(
       me,
       joinedProfileIds(contracts),
     );
@@ -121,7 +121,7 @@ export class ContractService {
         .filter(Boolean);
     }
 
-    const trustingMe = await this.usersService.whoTrusts(
+    const trustingMe = await this.trust.whoTrusts(
       me,
       joinedProfileIds([contract]),
     );
@@ -190,7 +190,7 @@ export class ContractService {
     if (validators.includes(accessor_id)) {
       throw new BadRequestException("The accessor cannot also be a validator");
     }
-    const trusted = await this.usersService.trustedAmong(me, participants);
+    const trusted = await this.trust.trustedAmong(me, participants);
     const untrusted = participants.filter((id) => !trusted.has(id));
     if (untrusted.length) {
       throw new BadRequestException(

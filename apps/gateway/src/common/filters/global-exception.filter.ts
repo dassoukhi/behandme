@@ -2,11 +2,35 @@ import {
   ExceptionFilter,
   Catch,
   ArgumentsHost,
+  BadRequestException,
+  ConflictException,
   HttpException,
   HttpStatus,
   Logger,
+  NotFoundException,
+  UnprocessableEntityException,
 } from "@nestjs/common";
 import type { Request, Response } from "express";
+import {
+  ConflictError,
+  DomainError,
+  InvalidInputError,
+  NotFoundError,
+  UnprocessableError,
+} from "@lib/kernel";
+
+/** The HTTP answer to a business rule refusal (same body as the matching Nest exception). */
+function toHttpException(error: DomainError): HttpException {
+  if (error instanceof NotFoundError)
+    return new NotFoundException(error.message);
+  if (error instanceof ConflictError)
+    return new ConflictException(error.message);
+  if (error instanceof InvalidInputError)
+    return new BadRequestException(error.message);
+  if (error instanceof UnprocessableError)
+    return new UnprocessableEntityException(error.message);
+  return new BadRequestException(error.message);
+}
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
@@ -21,9 +45,11 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     let message = "Internal server error";
     let error = "Internal Server Error";
 
-    if (exception instanceof HttpException) {
-      status = exception.getStatus();
-      const errorResponse = exception.getResponse();
+    const http =
+      exception instanceof DomainError ? toHttpException(exception) : exception;
+    if (http instanceof HttpException) {
+      status = http.getStatus();
+      const errorResponse = http.getResponse();
 
       if (typeof errorResponse === "object") {
         message = (errorResponse as any).message || message;
@@ -31,13 +57,12 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       } else {
         message = errorResponse as string;
       }
-    } else if (exception instanceof Error) {
-      message = exception.message;
     }
 
-    // Log the error
+    // Unexpected errors (database, network…) keep their details in the logs, not in the response.
+    const detail = exception instanceof Error ? exception.message : message;
     this.logger.error(
-      `${request.method} ${request.url} - ${status}: ${message}`,
+      `${request.method} ${request.url} - ${status}: ${http instanceof HttpException ? message : detail}`,
       exception instanceof Error ? exception.stack : "",
     );
 

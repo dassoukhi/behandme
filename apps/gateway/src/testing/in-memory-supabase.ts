@@ -1,7 +1,7 @@
 /**
  * Minimal in-memory stand-in for the supabase-js query builder, covering the
- * subset the services use (select/insert/update/delete with eq, in, or, order,
- * limit, single, maybeSingle). Lets access-control specs run the real service
+ * subset the services use (select/insert/update/delete with eq, in, ilike, or,
+ * order, limit, single, maybeSingle). Lets access-control specs run the real service
  * code without a database. Test-only.
  */
 type Row = Record<string, any>;
@@ -44,6 +44,20 @@ function project(row: Row, columns: string[] | null): Row {
   );
 }
 
+/** SQL ILIKE: % and _ are wildcards unless escaped with a backslash; case is ignored. */
+function likeToRegExp(pattern: string): RegExp {
+  let source = "";
+  for (let i = 0; i < pattern.length; i++) {
+    const char = pattern[i];
+    if (char === "\\" && i + 1 < pattern.length) {
+      source += pattern[++i].replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    } else if (char === "%") source += ".*";
+    else if (char === "_") source += ".";
+    else source += char.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  }
+  return new RegExp(`^${source}$`, "is");
+}
+
 class Query implements PromiseLike<{ data: any; error: null }> {
   private filters: Predicate[] = [];
   private action: "select" | "insert" | "update" | "delete" = "select";
@@ -83,6 +97,13 @@ class Query implements PromiseLike<{ data: any; error: null }> {
   }
   in(column: string, values: unknown[]) {
     this.filters.push((row) => values.includes(row[column]));
+    return this;
+  }
+  ilike(column: string, pattern: string) {
+    const regexp = likeToRegExp(pattern);
+    this.filters.push(
+      (row) => typeof row[column] === "string" && regexp.test(row[column]),
+    );
     return this;
   }
   or(filter: string) {

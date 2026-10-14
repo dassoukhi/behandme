@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { UserProfileDto } from "../../users/dto/user-profile.dto.js";
+import { UserProfileDto } from "../../users/interface/dto/user-profile.dto.js";
 import {
   CONTRACT_CATEGORIES,
   type ContractCategory,

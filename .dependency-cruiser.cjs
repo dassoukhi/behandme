@@ -5,6 +5,7 @@
  *   domain  <-  application  <-  infrastructure / interface
  * The module file that wires a feature (e.g. users.module.ts) sits outside the layers and may
  * import any of them. Services never import each other: they talk through messages or HTTP.
+ * Specs inside a layer are exempt: they bring in the test runner and test doubles.
  */
 /** @type {import('dependency-cruiser').IConfiguration} */
 module.exports = {
@@ -46,7 +47,7 @@ module.exports = {
       comment:
         "Domain code holds the business rules: no framework, no database, no Node API. " +
         "It may only use other domain code and libs/kernel.",
-      from: { path: "/domain/" },
+      from: { path: "/domain/", pathNot: "\\.spec\\.ts$" },
       to: { pathNot: ["/domain/", "^libs/kernel/"] },
     },
     {
@@ -55,7 +56,7 @@ module.exports = {
       comment:
         "Use cases see the domain, the shared libs and their own ports; adapters are injected. " +
         "@nestjs/common is allowed for @Injectable/@Inject only.",
-      from: { path: "/application/" },
+      from: { path: "/application/", pathNot: "\\.spec\\.ts$" },
       to: {
         pathNot: [
           "/application/",
@@ -70,7 +71,7 @@ module.exports = {
       severity: "error",
       comment:
         "Adapters implement ports; they never call controllers or consumers.",
-      from: { path: "/infrastructure/" },
+      from: { path: "/infrastructure/", pathNot: "\\.spec\\.ts$" },
       to: { path: "/interface/" },
     },
     {
@@ -78,7 +79,7 @@ module.exports = {
       severity: "error",
       comment:
         "Controllers and consumers go through use cases, not straight to adapters.",
-      from: { path: "/interface/" },
+      from: { path: "/interface/", pathNot: "\\.spec\\.ts$" },
       to: { path: "/infrastructure/" },
     },
     {
@@ -86,9 +87,7 @@ module.exports = {
       severity: "error",
       comment: "Specs and test doubles stay out of the deployed code.",
       from: { pathNot: ["\\.spec\\.ts$", "/testing/"] },
-      to: {
-        path: ["\\.spec\\.ts$", "^libs/testing/", "^apps/[^/]+/src/testing/"],
-      },
+      to: { path: ["\\.spec\\.ts$", "/testing/"] },
     },
     {
       name: "no-dev-dependency-in-production",

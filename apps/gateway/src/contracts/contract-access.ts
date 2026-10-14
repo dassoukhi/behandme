@@ -1,5 +1,4 @@
-import type { UserProfileDto } from "../users/dto/user-profile.dto.js";
-import { projectProfile } from "../users/profile-visibility.js";
+import { type Profile, visibleTo } from "../users/domain/profile.js";
 
 export type ContractRole = "owner" | "accessor" | "validator";
 
@@ -26,9 +25,9 @@ export function participantFilter(me: string): string {
 }
 
 type ContractView = ContractParticipants & {
-  owner?: UserProfileDto | null;
-  accessor?: UserProfileDto | null;
-  validators_list?: UserProfileDto[];
+  owner?: Profile | null;
+  accessor?: Profile | null;
+  validators_list?: Profile[];
 };
 
 /** Shapes a contract for the caller: joined profiles follow the profile visibility rule. */
@@ -38,8 +37,8 @@ export function projectContract<T extends ContractView>(
   trustingMe: Set<string>,
 ): T {
   const view = { ...contract };
-  const profile = (user: UserProfileDto) =>
-    projectProfile(user, me, trustingMe.has(user.id));
+  const profile = (user: Profile) =>
+    visibleTo(user, me, trustingMe.has(user.id));
   if (view.owner) view.owner = profile(view.owner);
   if (view.accessor) view.accessor = profile(view.accessor);
   if (view.validators_list)

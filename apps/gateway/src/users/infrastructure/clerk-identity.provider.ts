@@ -1,22 +1,11 @@
 import { Inject, Injectable } from "@nestjs/common";
 import type { ClerkClient } from "@clerk/backend";
+import type {
+  IdentityProfile,
+  IdentityProvider,
+} from "../application/ports.js";
 
-/** Identity data owned by the authentication provider (never by the client). */
-export interface IdentityProfile {
-  email: string | null;
-  first_name: string | null;
-  last_name: string | null;
-  avatar_url: string | null;
-}
-
-/** Port: where the verified identity of a user comes from. */
-export interface IdentityProvider {
-  getProfile(userId: string): Promise<IdentityProfile>;
-}
-
-export const IDENTITY_PROVIDER = Symbol("IdentityProvider");
-
-/** Adapter: reads the user from Clerk with the backend secret key. */
+/** Reads the user from Clerk with the backend secret key. */
 @Injectable()
 export class ClerkIdentityProvider implements IdentityProvider {
   constructor(@Inject("ClerkClient") private readonly clerk: ClerkClient) {}

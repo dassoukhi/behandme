@@ -1,13 +1,13 @@
-import {
-  BadRequestException,
-  NotFoundException,
-  UnprocessableEntityException,
-} from "@nestjs/common";
+import { BadRequestException, NotFoundException } from "@nestjs/common";
+import { UnprocessableError } from "@lib/kernel";
 import { beforeEach, describe, expect, it } from "vitest";
 import { ContractService } from "../contracts/contract.service.js";
 import { NotificationsService } from "../notifications/notifications.service.js";
-import { UsersService } from "../users/users.service.js";
-import type { IdentityProfile } from "../users/identity-provider.js";
+import type { IdentityProfile } from "../users/application/ports.js";
+import { ProfileService } from "../users/application/profile.service.js";
+import { TrustService } from "../users/application/trust.service.js";
+import { SupabaseProfileRepository } from "../users/infrastructure/supabase-profile.repository.js";
+import { SupabaseTrustRepository } from "../users/infrastructure/supabase-trust.repository.js";
 import { fakeSupabaseService } from "../testing/in-memory-supabase.js";
 
 const OWNER = "user_owner";
@@ -77,7 +77,8 @@ function seed() {
 let db: ReturnType<typeof seed>;
 let contracts: ContractService;
 let notifications: NotificationsService;
-let users: UsersService;
+let users: ProfileService;
+let trust: TrustService;
 // What Clerk would return for each user id (the only trusted source of emails).
 let identities: Record<string, IdentityProfile>;
 
@@ -85,13 +86,23 @@ beforeEach(() => {
   db = seed();
   identities = {};
   const supabase = fakeSupabaseService(db);
-  users = new UsersService(supabase, {
-    getProfile: async (id) => {
-      if (!identities[id]) throw new Error(`unknown identity ${id}`);
-      return identities[id];
+  // The real services and Supabase repositories, on the in-memory client.
+  const profileRepository = new SupabaseProfileRepository(supabase);
+  trust = new TrustService(
+    profileRepository,
+    new SupabaseTrustRepository(supabase),
+  );
+  users = new ProfileService(
+    profileRepository,
+    {
+      getProfile: async (id: string) => {
+        if (!identities[id]) throw new Error(`unknown identity ${id}`);
+        return identities[id];
+      },
     },
-  });
-  contracts = new ContractService(supabase, users);
+    trust,
+  );
+  contracts = new ContractService(supabase, trust);
   notifications = new NotificationsService(supabase);
 });
 
@@ -318,14 +329,14 @@ describe("users: profile visibility", () => {
     it("refuses an account without a verified email", async () => {
       identities[NEW_USER] = identity(null);
       await expect(users.ensureMe(NEW_USER)).rejects.toBeInstanceOf(
-        UnprocessableEntityException,
+        UnprocessableError,
       );
       expect(db.users.find((u) => u.id === NEW_USER)).toBeUndefined();
     });
   });
 
   it("only trusts on behalf of the caller", async () => {
-    const link = await users.addTrusted(STRANGER, { trusted_id: OWNER });
+    const link = await trust.add(STRANGER, OWNER);
     expect(link.owner_id).toBe(STRANGER);
   });
 });

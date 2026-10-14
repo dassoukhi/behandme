@@ -6,9 +6,9 @@ import { UpdateContractDTO } from "../contracts/dto/update-contract.dto.js";
 import { CreateNotificationDto } from "../notifications/dto/create-notifications.dto.js";
 import { RegisterTokenDto } from "../notifications/dto/register-token.dto.js";
 import { UpdateNotificationDto } from "../notifications/dto/update-notifications.dto.js";
-import { EnsureProfileDto } from "../users/dto/create-user.dto.js";
-import { UpdateUserDto } from "../users/dto/update-user.dto.js";
-import { AddTrustedDto } from "../users/dto/add-trusted.dto.js";
+import { EnsureProfileDto } from "../users/interface/dto/create-user.dto.js";
+import { UpdateUserDto } from "../users/interface/dto/update-user.dto.js";
+import { AddTrustedDto } from "../users/interface/dto/add-trusted.dto.js";
 
 // Same options as the global pipe in main.ts.
 const pipe = new ValidationPipe({

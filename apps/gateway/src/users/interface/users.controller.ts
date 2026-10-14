@@ -17,18 +17,22 @@ import {
   ApiBearerAuth,
   ApiQuery,
 } from "@nestjs/swagger";
-import { UsersService } from "./users.service.js";
+import { ProfileService } from "../application/profile.service.js";
+import { TrustService } from "../application/trust.service.js";
 import { EnsureProfileDto } from "./dto/create-user.dto.js";
 import { UpdateUserDto } from "./dto/update-user.dto.js";
 import { UserProfileDto } from "./dto/user-profile.dto.js";
 import { AddTrustedDto, TrustedLinkDto } from "./dto/add-trusted.dto.js";
-import { CurrentUserId } from "../auth/current-user.decorator.js";
+import { CurrentUserId } from "../../auth/current-user.decorator.js";
 
 @ApiTags("users")
 @ApiBearerAuth()
 @Controller("users")
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly profiles: ProfileService,
+    private readonly trust: TrustService,
+  ) {}
 
   // Static routes (me, search) must be declared before ":id".
 
@@ -56,7 +60,7 @@ export class UsersController {
     @Body() ensureProfileDto: EnsureProfileDto,
     @Res({ passthrough: true }) res: Response,
   ): Promise<UserProfileDto> {
-    const { profile, created } = await this.usersService.ensureMe(
+    const { profile, created } = await this.profiles.ensureMe(
       me,
       ensureProfileDto,
     );
@@ -69,7 +73,7 @@ export class UsersController {
   @ApiResponse({ status: 200, type: UserProfileDto })
   @ApiResponse({ status: 404, description: "Profile not found" })
   findMe(@CurrentUserId() me: string): Promise<UserProfileDto> {
-    return this.usersService.findMe(me);
+    return this.profiles.findMe(me);
   }
 
   @Patch("me")
@@ -80,22 +84,23 @@ export class UsersController {
     @CurrentUserId() me: string,
     @Body() updateUserDto: UpdateUserDto,
   ): Promise<UserProfileDto> {
-    return this.usersService.updateMe(me, updateUserDto);
+    return this.profiles.updateMe(me, updateUserDto);
   }
 
   @Delete("me")
   @ApiOperation({ summary: "Delete the caller's profile" })
   @ApiResponse({ status: 200, description: "Profile deleted successfully" })
   @ApiResponse({ status: 404, description: "Profile not found" })
-  removeMe(@CurrentUserId() me: string): Promise<{ message: string }> {
-    return this.usersService.removeMe(me);
+  async removeMe(@CurrentUserId() me: string): Promise<{ message: string }> {
+    await this.profiles.removeMe(me);
+    return { message: "Profile deleted successfully" };
   }
 
   @Get("me/trusteds")
   @ApiOperation({ summary: "List the users the caller trusts" })
   @ApiResponse({ status: 200, type: [UserProfileDto] })
   getMyTrusteds(@CurrentUserId() me: string): Promise<UserProfileDto[]> {
-    return this.usersService.getMyTrusteds(me);
+    return this.trust.listTrusted(me);
   }
 
   @Post("me/trusteds")
@@ -107,7 +112,7 @@ export class UsersController {
     @CurrentUserId() me: string,
     @Body() addTrustedDto: AddTrustedDto,
   ): Promise<TrustedLinkDto> {
-    return this.usersService.addTrusted(me, addTrustedDto);
+    return this.trust.add(me, addTrustedDto.trusted_id);
   }
 
   @Get("search")
@@ -121,7 +126,7 @@ export class UsersController {
     @CurrentUserId() me: string,
     @Query("q") query: string,
   ): Promise<UserProfileDto[]> {
-    return this.usersService.searchUsers(me, query);
+    return this.profiles.search(me, query);
   }
 
   @Get(":id")
@@ -134,6 +139,6 @@ export class UsersController {
     @CurrentUserId() me: string,
     @Param("id") id: string,
   ): Promise<UserProfileDto> {
-    return this.usersService.findOne(me, id);
+    return this.profiles.findOne(me, id);
   }
 }
