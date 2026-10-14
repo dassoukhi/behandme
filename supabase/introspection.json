@@ -268,6 +268,246 @@
         },
         {
           "table_schema": "notify",
+          "table_name": "deliveries",
+          "column_name": "id",
+          "ordinal_position": 1,
+          "data_type": "uuid",
+          "udt_name": "uuid",
+          "is_nullable": "NO",
+          "column_default": "gen_random_uuid()",
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "notify",
+          "table_name": "deliveries",
+          "column_name": "notification_id",
+          "ordinal_position": 2,
+          "data_type": "uuid",
+          "udt_name": "uuid",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "notify",
+          "table_name": "deliveries",
+          "column_name": "token",
+          "ordinal_position": 3,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "notify",
+          "table_name": "deliveries",
+          "column_name": "message",
+          "ordinal_position": 4,
+          "data_type": "jsonb",
+          "udt_name": "jsonb",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "notify",
+          "table_name": "deliveries",
+          "column_name": "status",
+          "ordinal_position": 5,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "NO",
+          "column_default": "'pending'::text",
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "notify",
+          "table_name": "deliveries",
+          "column_name": "attempts",
+          "ordinal_position": 6,
+          "data_type": "integer",
+          "udt_name": "int4",
+          "is_nullable": "NO",
+          "column_default": "0",
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "notify",
+          "table_name": "deliveries",
+          "column_name": "next_attempt_at",
+          "ordinal_position": 7,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "is_nullable": "NO",
+          "column_default": "now()",
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "notify",
+          "table_name": "deliveries",
+          "column_name": "ticket_id",
+          "ordinal_position": 8,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "notify",
+          "table_name": "deliveries",
+          "column_name": "error",
+          "ordinal_position": 9,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "notify",
+          "table_name": "deliveries",
+          "column_name": "created_at",
+          "ordinal_position": 10,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "is_nullable": "NO",
+          "column_default": "now()",
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "notify",
+          "table_name": "deliveries",
+          "column_name": "sent_at",
+          "ordinal_position": 11,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "notify",
+          "table_name": "deliveries",
+          "column_name": "checked_at",
+          "ordinal_position": 12,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "notify",
+          "table_name": "notifications",
+          "column_name": "id",
+          "ordinal_position": 1,
+          "data_type": "uuid",
+          "udt_name": "uuid",
+          "is_nullable": "NO",
+          "column_default": "gen_random_uuid()",
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "notify",
+          "table_name": "notifications",
+          "column_name": "user_id",
+          "ordinal_position": 2,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "notify",
+          "table_name": "notifications",
+          "column_name": "type",
+          "ordinal_position": 3,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "notify",
+          "table_name": "notifications",
+          "column_name": "title",
+          "ordinal_position": 4,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "notify",
+          "table_name": "notifications",
+          "column_name": "body",
+          "ordinal_position": 5,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "notify",
+          "table_name": "notifications",
+          "column_name": "data",
+          "ordinal_position": 6,
+          "data_type": "jsonb",
+          "udt_name": "jsonb",
+          "is_nullable": "NO",
+          "column_default": "'{}'::jsonb",
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "notify",
+          "table_name": "notifications",
+          "column_name": "read_at",
+          "ordinal_position": 7,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "notify",
+          "table_name": "notifications",
+          "column_name": "created_at",
+          "ordinal_position": 8,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "is_nullable": "NO",
+          "column_default": "now()",
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "notify",
           "table_name": "outbox",
           "column_name": "id",
           "ordinal_position": 1,
@@ -352,6 +592,42 @@
         },
         {
           "table_schema": "notify",
+          "table_name": "preferences",
+          "column_name": "user_id",
+          "ordinal_position": 1,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "notify",
+          "table_name": "preferences",
+          "column_name": "push_enabled",
+          "ordinal_position": 2,
+          "data_type": "boolean",
+          "udt_name": "bool",
+          "is_nullable": "NO",
+          "column_default": "true",
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "notify",
+          "table_name": "preferences",
+          "column_name": "updated_at",
+          "ordinal_position": 3,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "is_nullable": "NO",
+          "column_default": "now()",
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "notify",
           "table_name": "processed_messages",
           "column_name": "consumer",
           "ordinal_position": 1,
@@ -378,6 +654,78 @@
           "table_schema": "notify",
           "table_name": "processed_messages",
           "column_name": "processed_at",
+          "ordinal_position": 3,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "is_nullable": "NO",
+          "column_default": "now()",
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "notify",
+          "table_name": "push_tokens",
+          "column_name": "token",
+          "ordinal_position": 1,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "notify",
+          "table_name": "push_tokens",
+          "column_name": "user_id",
+          "ordinal_position": 2,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "notify",
+          "table_name": "push_tokens",
+          "column_name": "created_at",
+          "ordinal_position": 3,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "is_nullable": "NO",
+          "column_default": "now()",
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "ops",
+          "table_name": "job_runs",
+          "column_name": "job",
+          "ordinal_position": 1,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "ops",
+          "table_name": "job_runs",
+          "column_name": "period_start",
+          "ordinal_position": 2,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "ops",
+          "table_name": "job_runs",
+          "column_name": "dispatched_at",
           "ordinal_position": 3,
           "data_type": "timestamp with time zone",
           "udt_name": "timestamptz",
@@ -1039,6 +1387,34 @@
         },
         {
           "schema": "notify",
+          "table_name": "notify.deliveries",
+          "conname": "deliveries_notification_id_fkey",
+          "contype": "f",
+          "definition": "FOREIGN KEY (notification_id) REFERENCES notify.notifications(id) ON DELETE CASCADE"
+        },
+        {
+          "schema": "notify",
+          "table_name": "notify.deliveries",
+          "conname": "deliveries_pkey",
+          "contype": "p",
+          "definition": "PRIMARY KEY (id)"
+        },
+        {
+          "schema": "notify",
+          "table_name": "notify.deliveries",
+          "conname": "deliveries_status_check",
+          "contype": "c",
+          "definition": "CHECK ((status = ANY (ARRAY['pending'::text, 'sent'::text, 'delivered'::text, 'failed'::text])))"
+        },
+        {
+          "schema": "notify",
+          "table_name": "notify.notifications",
+          "conname": "notifications_pkey",
+          "contype": "p",
+          "definition": "PRIMARY KEY (id)"
+        },
+        {
+          "schema": "notify",
           "table_name": "notify.outbox",
           "conname": "outbox_event_id_key",
           "contype": "u",
@@ -1053,10 +1429,31 @@
         },
         {
           "schema": "notify",
+          "table_name": "notify.preferences",
+          "conname": "preferences_pkey",
+          "contype": "p",
+          "definition": "PRIMARY KEY (user_id)"
+        },
+        {
+          "schema": "notify",
           "table_name": "notify.processed_messages",
           "conname": "processed_messages_pkey",
           "contype": "p",
           "definition": "PRIMARY KEY (consumer, event_id)"
+        },
+        {
+          "schema": "notify",
+          "table_name": "notify.push_tokens",
+          "conname": "push_tokens_pkey",
+          "contype": "p",
+          "definition": "PRIMARY KEY (token)"
+        },
+        {
+          "schema": "ops",
+          "table_name": "ops.job_runs",
+          "conname": "job_runs_pkey",
+          "contype": "p",
+          "definition": "PRIMARY KEY (job, period_start)"
         },
         {
           "schema": "ops",
@@ -1249,6 +1646,48 @@
         },
         {
           "schemaname": "notify",
+          "tablename": "deliveries",
+          "indexname": "deliveries_notification_idx",
+          "indexdef": "CREATE INDEX deliveries_notification_idx ON notify.deliveries USING btree (notification_id)"
+        },
+        {
+          "schemaname": "notify",
+          "tablename": "deliveries",
+          "indexname": "deliveries_pending_idx",
+          "indexdef": "CREATE INDEX deliveries_pending_idx ON notify.deliveries USING btree (next_attempt_at) WHERE (status = 'pending'::text)"
+        },
+        {
+          "schemaname": "notify",
+          "tablename": "deliveries",
+          "indexname": "deliveries_pkey",
+          "indexdef": "CREATE UNIQUE INDEX deliveries_pkey ON notify.deliveries USING btree (id)"
+        },
+        {
+          "schemaname": "notify",
+          "tablename": "deliveries",
+          "indexname": "deliveries_sent_idx",
+          "indexdef": "CREATE INDEX deliveries_sent_idx ON notify.deliveries USING btree (sent_at) WHERE (status = 'sent'::text)"
+        },
+        {
+          "schemaname": "notify",
+          "tablename": "notifications",
+          "indexname": "notifications_inbox_idx",
+          "indexdef": "CREATE INDEX notifications_inbox_idx ON notify.notifications USING btree (user_id, created_at DESC)"
+        },
+        {
+          "schemaname": "notify",
+          "tablename": "notifications",
+          "indexname": "notifications_pkey",
+          "indexdef": "CREATE UNIQUE INDEX notifications_pkey ON notify.notifications USING btree (id)"
+        },
+        {
+          "schemaname": "notify",
+          "tablename": "notifications",
+          "indexname": "notifications_unread_idx",
+          "indexdef": "CREATE INDEX notifications_unread_idx ON notify.notifications USING btree (user_id) WHERE (read_at IS NULL)"
+        },
+        {
+          "schemaname": "notify",
           "tablename": "outbox",
           "indexname": "outbox_event_id_key",
           "indexdef": "CREATE UNIQUE INDEX outbox_event_id_key ON notify.outbox USING btree (event_id)"
@@ -1267,9 +1706,33 @@
         },
         {
           "schemaname": "notify",
+          "tablename": "preferences",
+          "indexname": "preferences_pkey",
+          "indexdef": "CREATE UNIQUE INDEX preferences_pkey ON notify.preferences USING btree (user_id)"
+        },
+        {
+          "schemaname": "notify",
           "tablename": "processed_messages",
           "indexname": "processed_messages_pkey",
           "indexdef": "CREATE UNIQUE INDEX processed_messages_pkey ON notify.processed_messages USING btree (consumer, event_id)"
+        },
+        {
+          "schemaname": "notify",
+          "tablename": "push_tokens",
+          "indexname": "push_tokens_pkey",
+          "indexdef": "CREATE UNIQUE INDEX push_tokens_pkey ON notify.push_tokens USING btree (token)"
+        },
+        {
+          "schemaname": "notify",
+          "tablename": "push_tokens",
+          "indexname": "push_tokens_user_idx",
+          "indexdef": "CREATE INDEX push_tokens_user_idx ON notify.push_tokens USING btree (user_id)"
+        },
+        {
+          "schemaname": "ops",
+          "tablename": "job_runs",
+          "indexname": "job_runs_pkey",
+          "indexdef": "CREATE UNIQUE INDEX job_runs_pkey ON ops.job_runs USING btree (job, period_start)"
         },
         {
           "schemaname": "ops",
@@ -1348,6 +1811,13 @@
           "definition": "CREATE OR REPLACE FUNCTION messaging.send(queue_name text, message jsonb, delay_seconds integer DEFAULT 0)\n RETURNS bigint\n LANGUAGE sql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\n  select pgmq.send(queue_name, message, delay_seconds);\n$function$\n"
         },
         {
+          "schema": "ops",
+          "proname": "send_tick",
+          "args": "",
+          "security_definer": false,
+          "definition": "CREATE OR REPLACE FUNCTION ops.send_tick()\n RETURNS bigint\n LANGUAGE sql\n SET search_path TO ''\nAS $function$\n  select messaging.send('worker', jsonb_build_object(\n    'id', t.id,\n    'type', 'scheduler.tick',\n    'version', 1,\n    'occurredAt', to_char(now() at time zone 'utc', 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"'),\n    'correlationId', t.id,\n    'causationId', null,\n    'payload', '{}'::jsonb))\n  from (select gen_random_uuid()::text as id) t;\n$function$\n"
+        },
+        {
           "schema": "public",
           "proname": "get_trusted_users",
           "args": "owner_uuid text",
@@ -1389,13 +1859,43 @@
         },
         {
           "schema": "notify",
+          "table_name": "deliveries",
+          "rls_enabled": true,
+          "rls_forced": false
+        },
+        {
+          "schema": "notify",
+          "table_name": "notifications",
+          "rls_enabled": true,
+          "rls_forced": false
+        },
+        {
+          "schema": "notify",
           "table_name": "outbox",
           "rls_enabled": true,
           "rls_forced": false
         },
         {
           "schema": "notify",
+          "table_name": "preferences",
+          "rls_enabled": true,
+          "rls_forced": false
+        },
+        {
+          "schema": "notify",
           "table_name": "processed_messages",
+          "rls_enabled": true,
+          "rls_forced": false
+        },
+        {
+          "schema": "notify",
+          "table_name": "push_tokens",
+          "rls_enabled": true,
+          "rls_forced": false
+        },
+        {
+          "schema": "ops",
+          "table_name": "job_runs",
           "rls_enabled": true,
           "rls_forced": false
         },
@@ -1557,7 +2057,40 @@
         },
         {
           "schemaname": "notify",
+          "tablename": "deliveries",
+          "policyname": "service_access",
+          "roles": [
+            "svc_notifier"
+          ],
+          "cmd": "ALL",
+          "qual": "true",
+          "with_check": "true"
+        },
+        {
+          "schemaname": "notify",
+          "tablename": "notifications",
+          "policyname": "service_access",
+          "roles": [
+            "svc_notifier"
+          ],
+          "cmd": "ALL",
+          "qual": "true",
+          "with_check": "true"
+        },
+        {
+          "schemaname": "notify",
           "tablename": "outbox",
+          "policyname": "service_access",
+          "roles": [
+            "svc_notifier"
+          ],
+          "cmd": "ALL",
+          "qual": "true",
+          "with_check": "true"
+        },
+        {
+          "schemaname": "notify",
+          "tablename": "preferences",
           "policyname": "service_access",
           "roles": [
             "svc_notifier"
@@ -1572,6 +2105,28 @@
           "policyname": "service_access",
           "roles": [
             "svc_notifier"
+          ],
+          "cmd": "ALL",
+          "qual": "true",
+          "with_check": "true"
+        },
+        {
+          "schemaname": "notify",
+          "tablename": "push_tokens",
+          "policyname": "service_access",
+          "roles": [
+            "svc_notifier"
+          ],
+          "cmd": "ALL",
+          "qual": "true",
+          "with_check": "true"
+        },
+        {
+          "schemaname": "ops",
+          "tablename": "job_runs",
+          "policyname": "service_access",
+          "roles": [
+            "svc_worker"
           ],
           "cmd": "ALL",
           "qual": "true",
@@ -1686,6 +2241,28 @@
           "cmd": "ALL",
           "qual": "true",
           "with_check": "true"
+        },
+        {
+          "schemaname": "public",
+          "tablename": "trusted",
+          "policyname": "gateway_access",
+          "roles": [
+            "svc_gateway"
+          ],
+          "cmd": "ALL",
+          "qual": "true",
+          "with_check": "true"
+        },
+        {
+          "schemaname": "public",
+          "tablename": "users",
+          "policyname": "gateway_access",
+          "roles": [
+            "svc_gateway"
+          ],
+          "cmd": "ALL",
+          "qual": "true",
+          "with_check": "true"
         }
       ],
       "grants": [
@@ -1769,6 +2346,30 @@
         },
         {
           "table_schema": "notify",
+          "table_name": "deliveries",
+          "grantee": "postgres",
+          "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
+        },
+        {
+          "table_schema": "notify",
+          "table_name": "deliveries",
+          "grantee": "svc_notifier",
+          "privileges": "DELETE,INSERT,SELECT,UPDATE"
+        },
+        {
+          "table_schema": "notify",
+          "table_name": "notifications",
+          "grantee": "postgres",
+          "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
+        },
+        {
+          "table_schema": "notify",
+          "table_name": "notifications",
+          "grantee": "svc_notifier",
+          "privileges": "DELETE,INSERT,SELECT,UPDATE"
+        },
+        {
+          "table_schema": "notify",
           "table_name": "outbox",
           "grantee": "postgres",
           "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
@@ -1776,6 +2377,18 @@
         {
           "table_schema": "notify",
           "table_name": "outbox",
+          "grantee": "svc_notifier",
+          "privileges": "DELETE,INSERT,SELECT,UPDATE"
+        },
+        {
+          "table_schema": "notify",
+          "table_name": "preferences",
+          "grantee": "postgres",
+          "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
+        },
+        {
+          "table_schema": "notify",
+          "table_name": "preferences",
           "grantee": "svc_notifier",
           "privileges": "DELETE,INSERT,SELECT,UPDATE"
         },
@@ -1789,6 +2402,30 @@
           "table_schema": "notify",
           "table_name": "processed_messages",
           "grantee": "svc_notifier",
+          "privileges": "DELETE,INSERT,SELECT,UPDATE"
+        },
+        {
+          "table_schema": "notify",
+          "table_name": "push_tokens",
+          "grantee": "postgres",
+          "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
+        },
+        {
+          "table_schema": "notify",
+          "table_name": "push_tokens",
+          "grantee": "svc_notifier",
+          "privileges": "DELETE,INSERT,SELECT,UPDATE"
+        },
+        {
+          "table_schema": "ops",
+          "table_name": "job_runs",
+          "grantee": "postgres",
+          "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
+        },
+        {
+          "table_schema": "ops",
+          "table_name": "job_runs",
+          "grantee": "svc_worker",
           "privileges": "DELETE,INSERT,SELECT,UPDATE"
         },
         {
@@ -2021,6 +2658,12 @@
         },
         {
           "table_schema": "public",
+          "table_name": "trusted",
+          "grantee": "svc_gateway",
+          "privileges": "DELETE,INSERT,SELECT,UPDATE"
+        },
+        {
+          "table_schema": "public",
           "table_name": "users",
           "grantee": "postgres",
           "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
@@ -2030,6 +2673,12 @@
           "table_name": "users",
           "grantee": "service_role",
           "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
+        },
+        {
+          "table_schema": "public",
+          "table_name": "users",
+          "grantee": "svc_gateway",
+          "privileges": "DELETE,INSERT,SELECT,UPDATE"
         }
       ],
       "routine_grants": [
@@ -2061,6 +2710,12 @@
           "routine_schema": "messaging",
           "routine_name": "send",
           "grantee": "svc_worker",
+          "privileges": "EXECUTE"
+        },
+        {
+          "routine_schema": "ops",
+          "routine_name": "send_tick",
+          "grantee": "postgres",
           "privileges": "EXECUTE"
         },
         {
