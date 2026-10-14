@@ -163,4 +163,54 @@ begin
   end if;
 end $$;
 
+-- On Supabase some pgmq objects belong to supabase_admin, and a GRANT without the grant option only
+-- warns. Check the rights each service really has; a missing one aborts and rolls everything back.
+do $$
+declare
+  c record;
+  granted boolean;
+  missing text[] := '{}';
+begin
+  for c in
+    with services(role_name, schema_name, queue_name) as (
+      values
+        ('svc_gateway', 'core', 'gateway'),
+        ('svc_handover', 'handover', 'handover'),
+        ('svc_notifier', 'notify', 'notifier'),
+        ('svc_worker', 'ops', 'worker')
+    )
+    select role_name, 'schema' as kind, s as object, 'USAGE' as privilege
+      from services, unnest(array[schema_name, 'messaging', 'pgmq']) s
+    union all
+    select role_name, 'table', format('%I.%I', schema_name, t), p
+      from services, unnest(array['outbox', 'processed_messages']) t,
+           unnest(array['SELECT', 'INSERT', 'UPDATE', 'DELETE']) p
+    union all
+    select role_name, 'table', 'messaging.subscriptions', 'SELECT' from services
+    union all
+    select role_name, 'table', format('pgmq.%I', 'q_' || queue_name), p
+      from services, unnest(array['SELECT', 'UPDATE', 'DELETE']) p
+    union all
+    select role_name, 'table', format('pgmq.%I', 'a_' || queue_name), 'INSERT' from services
+    union all
+    select role_name, 'function', f, 'EXECUTE'
+      from services, unnest(array[
+        'pgmq.read(text, integer, integer)', 'pgmq.delete(text, bigint)',
+        'pgmq.archive(text, bigint)', 'messaging.send(text, jsonb, integer)']) f
+  loop
+    granted := case c.kind
+      when 'schema' then has_schema_privilege(c.role_name, c.object, c.privilege)
+      when 'table' then has_table_privilege(c.role_name, c.object, c.privilege)
+      else has_function_privilege(c.role_name, c.object, c.privilege)
+    end;
+    if not granted then
+      missing := missing || format('%s lacks %s on %s', c.role_name, c.privilege, c.object);
+    end if;
+  end loop;
+  if cardinality(missing) > 0 then
+    raise exception 'Rights could not be granted, nothing was applied: %', array_to_string(missing, '; ')
+      using hint = 'The role running this migration needs the grant option on the pgmq schema and functions.';
+  end if;
+end $$;
+
 commit;

@@ -131,21 +131,45 @@ describe("public API keys", () => {
 });
 
 describe("prerequisites", () => {
+  const migration = readFileSync(
+    new URL(
+      `../../../supabase/migrations/${trackedMigrations().find((file) =>
+        file.endsWith("_service_schemas_and_messaging.sql"),
+      )}`,
+      import.meta.url,
+    ),
+    "utf8",
+  );
+
   it("stops with a clear message when pgmq is not installed", async () => {
     const bare = await PGlite.create();
-    const migration = trackedMigrations().find((file) =>
-      file.endsWith("_service_schemas_and_messaging.sql"),
-    );
-    const file = new URL(
-      `../../../supabase/migrations/${migration}`,
-      import.meta.url,
-    );
     try {
-      await expect(bare.exec(readFileSync(file, "utf8"))).rejects.toThrow(
-        /pgmq is missing/,
-      );
+      await expect(bare.exec(migration)).rejects.toThrow(/pgmq is missing/);
     } finally {
       await bare.close();
+    }
+  });
+
+  // On Supabase a GRANT the migration role may not give only warns: the migration must notice.
+  it("applies nothing when a right was not actually granted", async () => {
+    const withoutPgmqUsage = migration.replace(
+      "grant usage on schema pgmq to svc_gateway, svc_handover, svc_notifier, svc_worker;",
+      "",
+    );
+    expect(withoutPgmqUsage).not.toBe(migration);
+    const fresh = await startTestDatabase({ migrations: false });
+    try {
+      await expect(sql.raw(withoutPgmqUsage).execute(fresh.db)).rejects.toThrow(
+        /nothing was applied: svc_gateway lacks USAGE on pgmq/,
+      );
+      await sql`rollback`.execute(fresh.db);
+      const { rows } = await sql`
+        select nspname from pg_namespace where nspname in ('messaging', 'core')`.execute(
+        fresh.db,
+      );
+      expect(rows).toEqual([]);
+    } finally {
+      await fresh.close();
     }
   });
 });

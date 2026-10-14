@@ -30,14 +30,25 @@ export interface TestDatabase {
 }
 
 /**
- * In-process Postgres (PGlite) with the Supabase roles, pgmq and the repo's migrations, reached
- * through the real pg driver and `createDatabase`, as the services are in production.
+ * In-process Postgres (PGlite) with the Supabase roles, pgmq and the repo's migrations (unless
+ * `migrations: false`), reached through the real pg driver and `createDatabase`, as the services
+ * are in production.
  */
-export async function startTestDatabase(): Promise<TestDatabase> {
+export async function startTestDatabase({
+  migrations = true,
+}: { migrations?: boolean } = {}): Promise<TestDatabase> {
   const pglite = await PGlite.create();
   await pglite.exec(readFileSync(join(SQL_DIR, "supabase-roles.sql"), "utf8"));
-  await pglite.exec(readFileSync(join(SQL_DIR, "pgmq-1.5.1.sql"), "utf8"));
-  for (const file of trackedMigrations()) {
+  // Same pgmq version as the hosted project. Installed as an extension, it gets its schema from
+  // the control file; the SQL-only install needs it created first.
+  await pglite.exec("create schema pgmq;");
+  await pglite.exec(readFileSync(join(SQL_DIR, "pgmq-1.4.4.sql"), "utf8"));
+  // pgmq.create registers each queue table with the extension unless this says it already is;
+  // there is no extension to register with here. Queue behaviour is unaffected.
+  await pglite.exec(
+    "create or replace function pgmq._belongs_to_pgmq(table_name text) returns boolean language sql as 'select true';",
+  );
+  for (const file of migrations ? trackedMigrations() : []) {
     await pglite.exec(readFileSync(join(MIGRATIONS_DIR, file), "utf8"));
   }
 

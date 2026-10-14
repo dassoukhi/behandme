@@ -1,5 +1,5 @@
--- pgmq 1.5.1, SQL-only install, used by the test database only (PGlite has no pgmq extension).
--- Source: https://raw.githubusercontent.com/pgmq/pgmq/v1.5.1/pgmq-extension/sql/pgmq.sql (unmodified below).
+-- pgmq 1.4.4, SQL-only install, used by the test database only (PGlite has no pgmq extension).
+-- Source: https://raw.githubusercontent.com/pgmq/pgmq/v1.4.4/pgmq-extension/sql/pgmq.sql (unmodified below).
 --
 -- The PostgreSQL License
 -- Copyright (c) 2023, Tembo
@@ -15,19 +15,11 @@
 -- MODIFICATIONS.
 
 ------------------------------------------------------------
+------------------------------------------------------------
 -- Schema, tables, records, privileges, indexes, etc
 ------------------------------------------------------------
--- When installed as an extension, we don't need to create the `pgmq` schema
--- because it is automatically created by postgres due to being declared in
--- the extension control file
-DO
-$$
-BEGIN
-    IF (SELECT NOT EXISTS( SELECT 1 FROM pg_extension WHERE extname = 'pgmq')) THEN
-      CREATE SCHEMA IF NOT EXISTS pgmq;
-    END IF;
-END
-$$;
+-- We don't need to create the `pgmq` schema because it is automatically
+-- created by postgres due to being declared in extension control file
 
 -- Table where queues and metadata about them is stored
 CREATE TABLE pgmq.meta (
@@ -51,8 +43,7 @@ CREATE TYPE pgmq.message_record AS (
     read_ct INTEGER,
     enqueued_at TIMESTAMP WITH TIME ZONE,
     vt TIMESTAMP WITH TIME ZONE,
-    message JSONB,
-    headers JSONB
+    message JSONB
 );
 
 CREATE TYPE pgmq.queue_record AS (
@@ -83,8 +74,7 @@ $$ LANGUAGE plpgsql;
 CREATE FUNCTION pgmq.read(
     queue_name TEXT,
     vt INTEGER,
-    qty INTEGER,
-    conditional JSONB DEFAULT '{}'
+    qty INTEGER
 )
 RETURNS SETOF pgmq.message_record AS $$
 DECLARE
@@ -97,10 +87,7 @@ BEGIN
         (
             SELECT msg_id
             FROM pgmq.%I
-            WHERE vt <= clock_timestamp() AND CASE
-                WHEN %L != '{}'::jsonb THEN (message @> %2$L)::integer
-                ELSE 1
-            END = 1
+            WHERE vt <= clock_timestamp()
             ORDER BY msg_id ASC
             LIMIT $1
             FOR UPDATE SKIP LOCKED
@@ -111,9 +98,9 @@ BEGIN
             read_ct = read_ct + 1
         FROM cte
         WHERE m.msg_id = cte.msg_id
-        RETURNING m.msg_id, m.read_ct, m.enqueued_at, m.vt, m.message, m.headers;
+        RETURNING m.msg_id, m.read_ct, m.enqueued_at, m.vt, m.message;
         $QUERY$,
-        qtable, conditional, qtable, make_interval(secs => vt)
+        qtable, qtable, make_interval(secs => vt)
     );
     RETURN QUERY EXECUTE sql USING qty;
 END;
@@ -126,8 +113,7 @@ CREATE FUNCTION pgmq.read_with_poll(
     vt INTEGER,
     qty INTEGER,
     max_poll_seconds INTEGER DEFAULT 5,
-    poll_interval_ms INTEGER DEFAULT 100,
-    conditional JSONB DEFAULT '{}'
+    poll_interval_ms INTEGER DEFAULT 100
 )
 RETURNS SETOF pgmq.message_record AS $$
 DECLARE
@@ -148,10 +134,7 @@ BEGIN
           (
               SELECT msg_id
               FROM pgmq.%I
-              WHERE vt <= clock_timestamp() AND CASE
-                  WHEN %L != '{}'::jsonb THEN (message @> %2$L)::integer
-                  ELSE 1
-              END = 1
+              WHERE vt <= clock_timestamp()
               ORDER BY msg_id ASC
               LIMIT $1
               FOR UPDATE SKIP LOCKED
@@ -162,9 +145,9 @@ BEGIN
               read_ct = read_ct + 1
           FROM cte
           WHERE m.msg_id = cte.msg_id
-          RETURNING m.msg_id, m.read_ct, m.enqueued_at, m.vt, m.message, m.headers;
+          RETURNING m.msg_id, m.read_ct, m.enqueued_at, m.vt, m.message;
           $QUERY$,
-          qtable, conditional, qtable, make_interval(secs => vt)
+          qtable, qtable, make_interval(secs => vt)
       );
 
       FOR r IN
@@ -175,7 +158,7 @@ BEGIN
       IF FOUND THEN
         RETURN;
       ELSE
-        PERFORM pg_sleep(poll_interval_ms::numeric / 1000);
+        PERFORM pg_sleep(poll_interval_ms / 1000);
       END IF;
     END LOOP;
 END;
@@ -200,10 +183,10 @@ BEGIN
         WITH archived AS (
             DELETE FROM pgmq.%I
             WHERE msg_id = $1
-            RETURNING msg_id, vt, read_ct, enqueued_at, message, headers
+            RETURNING msg_id, vt, read_ct, enqueued_at, message
         )
-        INSERT INTO pgmq.%I (msg_id, vt, read_ct, enqueued_at, message, headers)
-        SELECT msg_id, vt, read_ct, enqueued_at, message, headers
+        INSERT INTO pgmq.%I (msg_id, vt, read_ct, enqueued_at, message)
+        SELECT msg_id, vt, read_ct, enqueued_at, message
         FROM archived
         RETURNING msg_id;
         $QUERY$,
@@ -232,10 +215,10 @@ BEGIN
         WITH archived AS (
             DELETE FROM pgmq.%I
             WHERE msg_id = ANY($1)
-            RETURNING msg_id, vt, read_ct, enqueued_at, message, headers
+            RETURNING msg_id, vt, read_ct, enqueued_at, message
         )
-        INSERT INTO pgmq.%I (msg_id, vt, read_ct, enqueued_at, message, headers)
-        SELECT msg_id, vt, read_ct, enqueued_at, message, headers
+        INSERT INTO pgmq.%I (msg_id, vt, read_ct, enqueued_at, message)
+        SELECT msg_id, vt, read_ct, enqueued_at, message
         FROM archived
         RETURNING msg_id;
         $QUERY$,
@@ -293,141 +276,51 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- send: actual implementation
+-- send
+-- sends a message to a queue, optionally with a delay
 CREATE FUNCTION pgmq.send(
     queue_name TEXT,
     msg JSONB,
-    headers JSONB,
-    delay TIMESTAMP WITH TIME ZONE
+    delay INTEGER DEFAULT 0
 ) RETURNS SETOF BIGINT AS $$
 DECLARE
     sql TEXT;
     qtable TEXT := pgmq.format_table_name(queue_name, 'q');
 BEGIN
     sql := FORMAT(
-            $QUERY$
-        INSERT INTO pgmq.%I (vt, message, headers)
-        VALUES ($2, $1, $3)
+        $QUERY$
+        INSERT INTO pgmq.%I (vt, message)
+        VALUES ((clock_timestamp() + %L), $1)
         RETURNING msg_id;
         $QUERY$,
-            qtable
-           );
-    RETURN QUERY EXECUTE sql USING msg, delay, headers;
+        qtable, make_interval(secs => delay)
+    );
+    RETURN QUERY EXECUTE sql USING msg;
 END;
 $$ LANGUAGE plpgsql;
 
--- send: 2 args, no delay or headers
-CREATE FUNCTION pgmq.send(
-    queue_name TEXT,
-    msg JSONB
-) RETURNS SETOF BIGINT AS $$
-    SELECT * FROM pgmq.send(queue_name, msg, NULL, clock_timestamp());
-$$ LANGUAGE sql;
-
--- send: 3 args with headers
-CREATE FUNCTION pgmq.send(
-    queue_name TEXT,
-    msg JSONB,
-    headers JSONB
-) RETURNS SETOF BIGINT AS $$
-    SELECT * FROM pgmq.send(queue_name, msg, headers, clock_timestamp());
-$$ LANGUAGE sql;
-
--- send: 3 args with integer delay
-CREATE FUNCTION pgmq.send(
-    queue_name TEXT,
-    msg JSONB,
-    delay INTEGER
-) RETURNS SETOF BIGINT AS $$
-    SELECT * FROM pgmq.send(queue_name, msg, NULL, clock_timestamp() + make_interval(secs => delay));
-$$ LANGUAGE sql;
-
--- send: 3 args with timestamp
-CREATE FUNCTION pgmq.send(
-    queue_name TEXT,
-    msg JSONB,
-    delay TIMESTAMP WITH TIME ZONE
-) RETURNS SETOF BIGINT AS $$
-    SELECT * FROM pgmq.send(queue_name, msg, NULL, delay);
-$$ LANGUAGE sql;
-
--- send: 4 args with integer delay
-CREATE FUNCTION pgmq.send(
-    queue_name TEXT,
-    msg JSONB,
-    headers JSONB,
-    delay INTEGER
-) RETURNS SETOF BIGINT AS $$
-    SELECT * FROM pgmq.send(queue_name, msg, headers, clock_timestamp() + make_interval(secs => delay));
-$$ LANGUAGE sql;
-
--- send_batch: actual implementation
+-- send_batch
+-- sends an array of list of messages to a queue, optionally with a delay
 CREATE FUNCTION pgmq.send_batch(
     queue_name TEXT,
     msgs JSONB[],
-    headers JSONB[],
-    delay TIMESTAMP WITH TIME ZONE
+    delay INTEGER DEFAULT 0
 ) RETURNS SETOF BIGINT AS $$
 DECLARE
     sql TEXT;
     qtable TEXT := pgmq.format_table_name(queue_name, 'q');
 BEGIN
     sql := FORMAT(
-            $QUERY$
-        INSERT INTO pgmq.%I (vt, message, headers)
-        SELECT $2, unnest($1), unnest(coalesce($3, ARRAY[]::jsonb[]))
+        $QUERY$
+        INSERT INTO pgmq.%I (vt, message)
+        SELECT clock_timestamp() + %L, unnest($1)
         RETURNING msg_id;
         $QUERY$,
-            qtable
-           );
-    RETURN QUERY EXECUTE sql USING msgs, delay, headers;
+        qtable, make_interval(secs => delay)
+    );
+    RETURN QUERY EXECUTE sql USING msgs;
 END;
 $$ LANGUAGE plpgsql;
-
--- send batch: 2 args
-CREATE FUNCTION pgmq.send_batch(
-    queue_name TEXT,
-    msgs JSONB[]
-) RETURNS SETOF BIGINT AS $$
-    SELECT * FROM pgmq.send_batch(queue_name, msgs, NULL, clock_timestamp());
-$$ LANGUAGE sql;
-
--- send batch: 3 args with headers
-CREATE FUNCTION pgmq.send_batch(
-    queue_name TEXT,
-    msgs JSONB[],
-    headers JSONB[]
-) RETURNS SETOF BIGINT AS $$
-    SELECT * FROM pgmq.send_batch(queue_name, msgs, headers, clock_timestamp());
-$$ LANGUAGE sql;
-
--- send batch: 3 args with integer delay
-CREATE FUNCTION pgmq.send_batch(
-    queue_name TEXT,
-    msgs JSONB[],
-    delay INTEGER
-) RETURNS SETOF BIGINT AS $$
-    SELECT * FROM pgmq.send_batch(queue_name, msgs, NULL, clock_timestamp() + make_interval(secs => delay));
-$$ LANGUAGE sql;
-
--- send batch: 3 args with timestamp
-CREATE FUNCTION pgmq.send_batch(
-    queue_name TEXT,
-    msgs JSONB[],
-    delay TIMESTAMP WITH TIME ZONE
-) RETURNS SETOF BIGINT AS $$
-    SELECT * FROM pgmq.send_batch(queue_name, msgs, NULL, delay);
-$$ LANGUAGE sql;
-
--- send_batch: 4 args with integer delay
-CREATE FUNCTION pgmq.send_batch(
-    queue_name TEXT,
-    msgs JSONB[],
-    headers JSONB[],
-    delay INTEGER
-) RETURNS SETOF BIGINT AS $$
-    SELECT * FROM pgmq.send_batch(queue_name, msgs, headers, clock_timestamp() + make_interval(secs => delay));
-$$ LANGUAGE sql;
 
 -- returned by pgmq.metrics() and pgmq.metrics_all
 CREATE TYPE pgmq.metrics_result AS (
@@ -436,8 +329,7 @@ CREATE TYPE pgmq.metrics_result AS (
     newest_msg_age_sec int,
     oldest_msg_age_sec int,
     total_messages bigint,
-    scrape_time timestamp with time zone,
-    queue_visible_length bigint
+    scrape_time timestamp with time zone
 );
 
 -- get metrics for a single queue
@@ -453,7 +345,6 @@ BEGIN
         WITH q_summary AS (
             SELECT
                 count(*) as queue_length,
-                count(CASE WHEN vt <= NOW() THEN 1 END) as queue_visible_length,
                 EXTRACT(epoch FROM (NOW() - max(enqueued_at)))::int as newest_msg_age_sec,
                 EXTRACT(epoch FROM (NOW() - min(enqueued_at)))::int as oldest_msg_age_sec,
                 NOW() as scrape_time
@@ -471,8 +362,7 @@ BEGIN
             q_summary.newest_msg_age_sec,
             q_summary.oldest_msg_age_sec,
             all_metrics.total_messages,
-            q_summary.scrape_time,
-            q_summary.queue_visible_length
+            q_summary.scrape_time
         FROM q_summary, all_metrics
         $QUERY$,
         qtable, qtable || '_msg_id_seq', queue_name
@@ -505,23 +395,17 @@ END
 $$ LANGUAGE plpgsql;
 
 -- purge queue, deleting all entries in it.
-CREATE OR REPLACE FUNCTION pgmq."purge_queue"(queue_name TEXT)
+CREATE FUNCTION pgmq."purge_queue"(queue_name TEXT)
 RETURNS BIGINT AS $$
 DECLARE
   deleted_count INTEGER;
   qtable TEXT := pgmq.format_table_name(queue_name, 'q');
 BEGIN
-  -- Get the row count before truncating
-  EXECUTE format('SELECT count(*) FROM pgmq.%I', qtable) INTO deleted_count;
-
-  -- Use TRUNCATE for better performance on large tables
-  EXECUTE format('TRUNCATE TABLE pgmq.%I', qtable);
-
-  -- Return the number of purged rows
+  EXECUTE format('DELETE FROM pgmq.%I', qtable);
+  GET DIAGNOSTICS deleted_count = ROW_COUNT;
   RETURN deleted_count;
 END
 $$ LANGUAGE plpgsql;
-
 
 -- unassign archive, so it can be kept when a queue is deleted
 CREATE FUNCTION pgmq."detach_archive"(queue_name TEXT)
@@ -529,9 +413,7 @@ RETURNS VOID AS $$
 DECLARE
   atable TEXT := pgmq.format_table_name(queue_name, 'a');
 BEGIN
-  IF pgmq._extension_exists('pgmq') THEN
-    EXECUTE format('ALTER EXTENSION pgmq DROP TABLE pgmq.%I', atable);
-  END IF;
+  EXECUTE format('ALTER EXTENSION pgmq DROP TABLE pgmq.%I', atable);
 END
 $$ LANGUAGE plpgsql;
 
@@ -549,7 +431,7 @@ BEGIN
             (
                 SELECT msg_id
                 FROM pgmq.%I
-                WHERE vt <= clock_timestamp()
+                WHERE vt <= now()
                 ORDER BY msg_id ASC
                 LIMIT 1
                 FOR UPDATE SKIP LOCKED
@@ -575,7 +457,7 @@ BEGIN
     sql := FORMAT(
         $QUERY$
         UPDATE pgmq.%I
-        SET vt = (clock_timestamp() + %L)
+        SET vt = (now() + %L)
         WHERE msg_id = %L
         RETURNING *;
         $QUERY$,
@@ -595,61 +477,27 @@ RETURNS TEXT AS $$
     extname = 'pg_partman';
 $$ LANGUAGE SQL;
 
-CREATE FUNCTION pgmq.drop_queue(queue_name TEXT, partitioned BOOLEAN)
+CREATE FUNCTION pgmq.drop_queue(queue_name TEXT, partitioned BOOLEAN DEFAULT FALSE)
 RETURNS BOOLEAN AS $$
 DECLARE
     qtable TEXT := pgmq.format_table_name(queue_name, 'q');
     fq_qtable TEXT := 'pgmq.' || qtable;
     atable TEXT := pgmq.format_table_name(queue_name, 'a');
     fq_atable TEXT := 'pgmq.' || atable;
-BEGIN
-    RAISE WARNING 'drop_queue(queue_name, partitioned) is deprecated and will be removed in PGMQ v2.0. Use drop_queue(queue_name) instead';
-
-    PERFORM pgmq.drop_queue(queue_name);
-
-    RETURN TRUE;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE FUNCTION pgmq.drop_queue(queue_name TEXT)
-RETURNS BOOLEAN AS $$
-DECLARE
-    qtable TEXT := pgmq.format_table_name(queue_name, 'q');
-    qtable_seq TEXT := qtable || '_msg_id_seq';
-    fq_qtable TEXT := 'pgmq.' || qtable;
-    atable TEXT := pgmq.format_table_name(queue_name, 'a');
-    fq_atable TEXT := 'pgmq.' || atable;
-    partitioned BOOLEAN;
 BEGIN
     EXECUTE FORMAT(
         $QUERY$
-        SELECT is_partitioned FROM pgmq.meta WHERE queue_name = %L
+        ALTER EXTENSION pgmq DROP TABLE pgmq.%I
         $QUERY$,
-        queue_name
-    ) INTO partitioned;
+        qtable
+    );
 
-    IF pgmq._extension_exists('pgmq') THEN
-        EXECUTE FORMAT(
-            $QUERY$
-            ALTER EXTENSION pgmq DROP TABLE pgmq.%I
-            $QUERY$,
-            qtable
-        );
-
-        EXECUTE FORMAT(
-            $QUERY$
-            ALTER EXTENSION pgmq DROP SEQUENCE pgmq.%I
-            $QUERY$,
-            qtable_seq
-        );
-
-        EXECUTE FORMAT(
-            $QUERY$
-            ALTER EXTENSION pgmq DROP TABLE pgmq.%I
-            $QUERY$,
-            atable
-        );
-    END IF;
+    EXECUTE FORMAT(
+        $QUERY$
+        ALTER EXTENSION pgmq DROP TABLE pgmq.%I
+        $QUERY$,
+        atable
+    );
 
     EXECUTE FORMAT(
         $QUERY$
@@ -724,7 +572,6 @@ CREATE FUNCTION pgmq.create_non_partitioned(queue_name TEXT)
 RETURNS void AS $$
 DECLARE
   qtable TEXT := pgmq.format_table_name(queue_name, 'q');
-  qtable_seq TEXT := qtable || '_msg_id_seq';
   atable TEXT := pgmq.format_table_name(queue_name, 'a');
 BEGIN
   PERFORM pgmq.validate_queue_name(queue_name);
@@ -736,8 +583,7 @@ BEGIN
         read_ct INT DEFAULT 0 NOT NULL,
         enqueued_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
         vt TIMESTAMP WITH TIME ZONE NOT NULL,
-        message JSONB,
-        headers JSONB
+        message JSONB
     )
     $QUERY$,
     qtable
@@ -751,22 +597,18 @@ BEGIN
       enqueued_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
       archived_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
       vt TIMESTAMP WITH TIME ZONE NOT NULL,
-      message JSONB,
-      headers JSONB
+      message JSONB
     );
     $QUERY$,
     atable
   );
 
-  IF pgmq._extension_exists('pgmq') THEN
-      IF NOT pgmq._belongs_to_pgmq(qtable) THEN
-          EXECUTE FORMAT('ALTER EXTENSION pgmq ADD TABLE pgmq.%I', qtable);
-          EXECUTE FORMAT('ALTER EXTENSION pgmq ADD SEQUENCE pgmq.%I', qtable_seq);
-      END IF;
+  IF NOT pgmq._belongs_to_pgmq(qtable) THEN
+      EXECUTE FORMAT('ALTER EXTENSION pgmq ADD TABLE pgmq.%I', qtable);
+  END IF;
 
-      IF NOT pgmq._belongs_to_pgmq(atable) THEN
-          EXECUTE FORMAT('ALTER EXTENSION pgmq ADD TABLE pgmq.%I', atable);
-      END IF;
+  IF NOT pgmq._belongs_to_pgmq(atable) THEN
+      EXECUTE FORMAT('ALTER EXTENSION pgmq ADD TABLE pgmq.%I', atable);
   END IF;
 
   EXECUTE FORMAT(
@@ -799,7 +641,6 @@ CREATE FUNCTION pgmq.create_unlogged(queue_name TEXT)
 RETURNS void AS $$
 DECLARE
   qtable TEXT := pgmq.format_table_name(queue_name, 'q');
-  qtable_seq TEXT := qtable || '_msg_id_seq';
   atable TEXT := pgmq.format_table_name(queue_name, 'a');
 BEGIN
   PERFORM pgmq.validate_queue_name(queue_name);
@@ -810,8 +651,7 @@ BEGIN
         read_ct INT DEFAULT 0 NOT NULL,
         enqueued_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
         vt TIMESTAMP WITH TIME ZONE NOT NULL,
-        message JSONB,
-        headers JSONB
+        message JSONB
     )
     $QUERY$,
     qtable
@@ -825,22 +665,18 @@ BEGIN
       enqueued_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
       archived_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
       vt TIMESTAMP WITH TIME ZONE NOT NULL,
-      message JSONB,
-      headers JSONB
+      message JSONB
     );
     $QUERY$,
     atable
   );
 
-  IF pgmq._extension_exists('pgmq') THEN
-      IF NOT pgmq._belongs_to_pgmq(qtable) THEN
-          EXECUTE FORMAT('ALTER EXTENSION pgmq ADD TABLE pgmq.%I', qtable);
-          EXECUTE FORMAT('ALTER EXTENSION pgmq ADD SEQUENCE pgmq.%I', qtable_seq);
-      END IF;
+  IF NOT pgmq._belongs_to_pgmq(qtable) THEN
+      EXECUTE FORMAT('ALTER EXTENSION pgmq ADD TABLE pgmq.%I', qtable);
+  END IF;
 
-      IF NOT pgmq._belongs_to_pgmq(atable) THEN
-          EXECUTE FORMAT('ALTER EXTENSION pgmq ADD TABLE pgmq.%I', atable);
-      END IF;
+  IF NOT pgmq._belongs_to_pgmq(atable) THEN
+      EXECUTE FORMAT('ALTER EXTENSION pgmq ADD TABLE pgmq.%I', atable);
   END IF;
 
   EXECUTE FORMAT(
@@ -884,21 +720,18 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE FUNCTION pgmq._extension_exists(extension_name TEXT)
-    RETURNS BOOLEAN
-    LANGUAGE SQL
-AS $$
-SELECT EXISTS (
-    SELECT 1
-    FROM pg_extension
-    WHERE extname = extension_name
-)
-$$;
-
 CREATE FUNCTION pgmq._ensure_pg_partman_installed()
 RETURNS void AS $$
+DECLARE
+  extension_exists BOOLEAN;
 BEGIN
-  IF NOT pgmq._extension_exists('pg_partman') THEN
+  SELECT EXISTS (
+    SELECT 1
+    FROM pg_extension
+    WHERE extname = 'pg_partman'
+  ) INTO extension_exists;
+
+  IF NOT extension_exists THEN
     RAISE EXCEPTION 'pg_partman is required for partitioned queues';
   END IF;
 END;
@@ -923,7 +756,6 @@ DECLARE
   partition_col TEXT;
   a_partition_col TEXT;
   qtable TEXT := pgmq.format_table_name(queue_name, 'q');
-  qtable_seq TEXT := qtable || '_msg_id_seq';
   atable TEXT := pgmq.format_table_name(queue_name, 'a');
   fq_qtable TEXT := 'pgmq.' || qtable;
   fq_atable TEXT := 'pgmq.' || atable;
@@ -939,18 +771,14 @@ BEGIN
         read_ct INT DEFAULT 0 NOT NULL,
         enqueued_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
         vt TIMESTAMP WITH TIME ZONE NOT NULL,
-        message JSONB,
-        headers JSONB
+        message JSONB
     ) PARTITION BY RANGE (%I)
     $QUERY$,
     qtable, partition_col
   );
 
-  IF pgmq._extension_exists('pgmq') THEN
-      IF NOT pgmq._belongs_to_pgmq(qtable) THEN
-          EXECUTE FORMAT('ALTER EXTENSION pgmq ADD TABLE pgmq.%I', qtable);
-          EXECUTE FORMAT('ALTER EXTENSION pgmq ADD SEQUENCE pgmq.%I', qtable_seq);
-      END IF;
+  IF NOT pgmq._belongs_to_pgmq(qtable) THEN
+      EXECUTE FORMAT('ALTER EXTENSION pgmq ADD TABLE pgmq.%I', qtable);
   END IF;
 
   -- https://github.com/pgpartman/pg_partman/blob/master/doc/pg_partman.md
@@ -1019,17 +847,14 @@ BEGIN
       enqueued_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
       archived_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
       vt TIMESTAMP WITH TIME ZONE NOT NULL,
-      message JSONB,
-      headers JSONB
+      message JSONB
     ) PARTITION BY RANGE (%I);
     $QUERY$,
     atable, a_partition_col
   );
 
-  IF pgmq._extension_exists('pgmq') THEN
-      IF NOT pgmq._belongs_to_pgmq(atable) THEN
-          EXECUTE FORMAT('ALTER EXTENSION pgmq ADD TABLE pgmq.%I', atable);
-      END IF;
+  IF NOT pgmq._belongs_to_pgmq(atable) THEN
+      EXECUTE FORMAT('ALTER EXTENSION pgmq ADD TABLE pgmq.%I', atable);
   END IF;
 
   -- https://github.com/pgpartman/pg_partman/blob/master/doc/pg_partman.md
@@ -1161,5 +986,6 @@ BEGIN
     retention_interval,
     qualified_a_table_name
   );
+
 END;
 $$ LANGUAGE plpgsql;

@@ -64,7 +64,7 @@ libs/
   kernel/          Clock, ids, Logger port (business errors, correlation context: added when first used)
   messaging/       envelope, MessageBus port + PgmqBus, transactional outbox, relay, idempotent consumer
   persistence/     createDatabase: Kysely over a pg pool (Supabase pooler)
-  testing/         FakeClock, startTestDatabase: PGlite + Supabase roles + pgmq 1.5.1 + the migrations
+  testing/         FakeClock, startTestDatabase: PGlite + Supabase roles + pgmq 1.4.4 (the hosted version) + the migrations
 ```
 
 `npm run check:deps` (dependency-cruiser) enforces the direction of dependencies: domain ← application ←
