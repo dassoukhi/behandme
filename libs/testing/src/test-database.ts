@@ -36,6 +36,10 @@ export async function startTestDatabase({
   // Same pgmq version as the hosted project. Installed as an extension, it gets its schema from
   // the control file; the SQL-only install needs it created first.
   await pglite.exec("create schema pgmq;");
+  // Supabase gives service_role every right on the queue tables postgres creates (hosted snapshot).
+  await pglite.exec(
+    "alter default privileges for role postgres in schema pgmq grant all on tables to service_role;",
+  );
   await pglite.exec(readFileSync(join(SQL_DIR, "pgmq-1.4.4.sql"), "utf8"));
   // pgmq.create registers each queue table with the extension unless this says it already is;
   // there is no extension to register with here. Queue behaviour is unaffected.

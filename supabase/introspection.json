@@ -3,6 +3,510 @@
     "schema_snapshot": {
       "columns": [
         {
+          "table_schema": "core",
+          "table_name": "outbox",
+          "column_name": "id",
+          "ordinal_position": 1,
+          "data_type": "bigint",
+          "udt_name": "int8",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "YES"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "outbox",
+          "column_name": "event_id",
+          "ordinal_position": 2,
+          "data_type": "uuid",
+          "udt_name": "uuid",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "outbox",
+          "column_name": "type",
+          "ordinal_position": 3,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "outbox",
+          "column_name": "envelope",
+          "ordinal_position": 4,
+          "data_type": "jsonb",
+          "udt_name": "jsonb",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "outbox",
+          "column_name": "deliver_at",
+          "ordinal_position": 5,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "outbox",
+          "column_name": "created_at",
+          "ordinal_position": 6,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "is_nullable": "NO",
+          "column_default": "now()",
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "outbox",
+          "column_name": "sent_at",
+          "ordinal_position": 7,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "processed_messages",
+          "column_name": "consumer",
+          "ordinal_position": 1,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "processed_messages",
+          "column_name": "event_id",
+          "ordinal_position": 2,
+          "data_type": "uuid",
+          "udt_name": "uuid",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "processed_messages",
+          "column_name": "processed_at",
+          "ordinal_position": 3,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "is_nullable": "NO",
+          "column_default": "now()",
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "outbox",
+          "column_name": "id",
+          "ordinal_position": 1,
+          "data_type": "bigint",
+          "udt_name": "int8",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "YES"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "outbox",
+          "column_name": "event_id",
+          "ordinal_position": 2,
+          "data_type": "uuid",
+          "udt_name": "uuid",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "outbox",
+          "column_name": "type",
+          "ordinal_position": 3,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "outbox",
+          "column_name": "envelope",
+          "ordinal_position": 4,
+          "data_type": "jsonb",
+          "udt_name": "jsonb",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "outbox",
+          "column_name": "deliver_at",
+          "ordinal_position": 5,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "outbox",
+          "column_name": "created_at",
+          "ordinal_position": 6,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "is_nullable": "NO",
+          "column_default": "now()",
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "outbox",
+          "column_name": "sent_at",
+          "ordinal_position": 7,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "processed_messages",
+          "column_name": "consumer",
+          "ordinal_position": 1,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "processed_messages",
+          "column_name": "event_id",
+          "ordinal_position": 2,
+          "data_type": "uuid",
+          "udt_name": "uuid",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "processed_messages",
+          "column_name": "processed_at",
+          "ordinal_position": 3,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "is_nullable": "NO",
+          "column_default": "now()",
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "messaging",
+          "table_name": "subscriptions",
+          "column_name": "event_type",
+          "ordinal_position": 1,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "messaging",
+          "table_name": "subscriptions",
+          "column_name": "queue",
+          "ordinal_position": 2,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "notify",
+          "table_name": "outbox",
+          "column_name": "id",
+          "ordinal_position": 1,
+          "data_type": "bigint",
+          "udt_name": "int8",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "YES"
+        },
+        {
+          "table_schema": "notify",
+          "table_name": "outbox",
+          "column_name": "event_id",
+          "ordinal_position": 2,
+          "data_type": "uuid",
+          "udt_name": "uuid",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "notify",
+          "table_name": "outbox",
+          "column_name": "type",
+          "ordinal_position": 3,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "notify",
+          "table_name": "outbox",
+          "column_name": "envelope",
+          "ordinal_position": 4,
+          "data_type": "jsonb",
+          "udt_name": "jsonb",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "notify",
+          "table_name": "outbox",
+          "column_name": "deliver_at",
+          "ordinal_position": 5,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "notify",
+          "table_name": "outbox",
+          "column_name": "created_at",
+          "ordinal_position": 6,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "is_nullable": "NO",
+          "column_default": "now()",
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "notify",
+          "table_name": "outbox",
+          "column_name": "sent_at",
+          "ordinal_position": 7,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "notify",
+          "table_name": "processed_messages",
+          "column_name": "consumer",
+          "ordinal_position": 1,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "notify",
+          "table_name": "processed_messages",
+          "column_name": "event_id",
+          "ordinal_position": 2,
+          "data_type": "uuid",
+          "udt_name": "uuid",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "notify",
+          "table_name": "processed_messages",
+          "column_name": "processed_at",
+          "ordinal_position": 3,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "is_nullable": "NO",
+          "column_default": "now()",
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "ops",
+          "table_name": "outbox",
+          "column_name": "id",
+          "ordinal_position": 1,
+          "data_type": "bigint",
+          "udt_name": "int8",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "YES"
+        },
+        {
+          "table_schema": "ops",
+          "table_name": "outbox",
+          "column_name": "event_id",
+          "ordinal_position": 2,
+          "data_type": "uuid",
+          "udt_name": "uuid",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "ops",
+          "table_name": "outbox",
+          "column_name": "type",
+          "ordinal_position": 3,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "ops",
+          "table_name": "outbox",
+          "column_name": "envelope",
+          "ordinal_position": 4,
+          "data_type": "jsonb",
+          "udt_name": "jsonb",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "ops",
+          "table_name": "outbox",
+          "column_name": "deliver_at",
+          "ordinal_position": 5,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "ops",
+          "table_name": "outbox",
+          "column_name": "created_at",
+          "ordinal_position": 6,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "is_nullable": "NO",
+          "column_default": "now()",
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "ops",
+          "table_name": "outbox",
+          "column_name": "sent_at",
+          "ordinal_position": 7,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "ops",
+          "table_name": "processed_messages",
+          "column_name": "consumer",
+          "ordinal_position": 1,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "ops",
+          "table_name": "processed_messages",
+          "column_name": "event_id",
+          "ordinal_position": 2,
+          "data_type": "uuid",
+          "udt_name": "uuid",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "ops",
+          "table_name": "processed_messages",
+          "column_name": "processed_at",
+          "ordinal_position": 3,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "is_nullable": "NO",
+          "column_default": "now()",
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
           "table_schema": "public",
           "table_name": "contracts",
           "column_name": "id",
@@ -485,6 +989,97 @@
       ],
       "constraints": [
         {
+          "schema": "core",
+          "table_name": "core.outbox",
+          "conname": "outbox_event_id_key",
+          "contype": "u",
+          "definition": "UNIQUE (event_id)"
+        },
+        {
+          "schema": "core",
+          "table_name": "core.outbox",
+          "conname": "outbox_pkey",
+          "contype": "p",
+          "definition": "PRIMARY KEY (id)"
+        },
+        {
+          "schema": "core",
+          "table_name": "core.processed_messages",
+          "conname": "processed_messages_pkey",
+          "contype": "p",
+          "definition": "PRIMARY KEY (consumer, event_id)"
+        },
+        {
+          "schema": "handover",
+          "table_name": "handover.outbox",
+          "conname": "outbox_event_id_key",
+          "contype": "u",
+          "definition": "UNIQUE (event_id)"
+        },
+        {
+          "schema": "handover",
+          "table_name": "handover.outbox",
+          "conname": "outbox_pkey",
+          "contype": "p",
+          "definition": "PRIMARY KEY (id)"
+        },
+        {
+          "schema": "handover",
+          "table_name": "handover.processed_messages",
+          "conname": "processed_messages_pkey",
+          "contype": "p",
+          "definition": "PRIMARY KEY (consumer, event_id)"
+        },
+        {
+          "schema": "messaging",
+          "table_name": "messaging.subscriptions",
+          "conname": "subscriptions_pkey",
+          "contype": "p",
+          "definition": "PRIMARY KEY (event_type, queue)"
+        },
+        {
+          "schema": "notify",
+          "table_name": "notify.outbox",
+          "conname": "outbox_event_id_key",
+          "contype": "u",
+          "definition": "UNIQUE (event_id)"
+        },
+        {
+          "schema": "notify",
+          "table_name": "notify.outbox",
+          "conname": "outbox_pkey",
+          "contype": "p",
+          "definition": "PRIMARY KEY (id)"
+        },
+        {
+          "schema": "notify",
+          "table_name": "notify.processed_messages",
+          "conname": "processed_messages_pkey",
+          "contype": "p",
+          "definition": "PRIMARY KEY (consumer, event_id)"
+        },
+        {
+          "schema": "ops",
+          "table_name": "ops.outbox",
+          "conname": "outbox_event_id_key",
+          "contype": "u",
+          "definition": "UNIQUE (event_id)"
+        },
+        {
+          "schema": "ops",
+          "table_name": "ops.outbox",
+          "conname": "outbox_pkey",
+          "contype": "p",
+          "definition": "PRIMARY KEY (id)"
+        },
+        {
+          "schema": "ops",
+          "table_name": "ops.processed_messages",
+          "conname": "processed_messages_pkey",
+          "contype": "p",
+          "definition": "PRIMARY KEY (consumer, event_id)"
+        },
+        {
           "schema": "public",
           "table_name": "contracts",
           "conname": "contracts_accessor_id_fkey",
@@ -591,13 +1186,6 @@
         },
         {
           "schema": "public",
-          "table_name": "trusted",
-          "conname": "trusted_trusted_id_fkey1",
-          "contype": "f",
-          "definition": "FOREIGN KEY (trusted_id) REFERENCES users(id)"
-        },
-        {
-          "schema": "public",
           "table_name": "users",
           "conname": "users_pkey",
           "contype": "p",
@@ -605,6 +1193,108 @@
         }
       ],
       "indexes": [
+        {
+          "schemaname": "core",
+          "tablename": "outbox",
+          "indexname": "outbox_event_id_key",
+          "indexdef": "CREATE UNIQUE INDEX outbox_event_id_key ON core.outbox USING btree (event_id)"
+        },
+        {
+          "schemaname": "core",
+          "tablename": "outbox",
+          "indexname": "outbox_pending_idx",
+          "indexdef": "CREATE INDEX outbox_pending_idx ON core.outbox USING btree (id) WHERE (sent_at IS NULL)"
+        },
+        {
+          "schemaname": "core",
+          "tablename": "outbox",
+          "indexname": "outbox_pkey",
+          "indexdef": "CREATE UNIQUE INDEX outbox_pkey ON core.outbox USING btree (id)"
+        },
+        {
+          "schemaname": "core",
+          "tablename": "processed_messages",
+          "indexname": "processed_messages_pkey",
+          "indexdef": "CREATE UNIQUE INDEX processed_messages_pkey ON core.processed_messages USING btree (consumer, event_id)"
+        },
+        {
+          "schemaname": "handover",
+          "tablename": "outbox",
+          "indexname": "outbox_event_id_key",
+          "indexdef": "CREATE UNIQUE INDEX outbox_event_id_key ON handover.outbox USING btree (event_id)"
+        },
+        {
+          "schemaname": "handover",
+          "tablename": "outbox",
+          "indexname": "outbox_pending_idx",
+          "indexdef": "CREATE INDEX outbox_pending_idx ON handover.outbox USING btree (id) WHERE (sent_at IS NULL)"
+        },
+        {
+          "schemaname": "handover",
+          "tablename": "outbox",
+          "indexname": "outbox_pkey",
+          "indexdef": "CREATE UNIQUE INDEX outbox_pkey ON handover.outbox USING btree (id)"
+        },
+        {
+          "schemaname": "handover",
+          "tablename": "processed_messages",
+          "indexname": "processed_messages_pkey",
+          "indexdef": "CREATE UNIQUE INDEX processed_messages_pkey ON handover.processed_messages USING btree (consumer, event_id)"
+        },
+        {
+          "schemaname": "messaging",
+          "tablename": "subscriptions",
+          "indexname": "subscriptions_pkey",
+          "indexdef": "CREATE UNIQUE INDEX subscriptions_pkey ON messaging.subscriptions USING btree (event_type, queue)"
+        },
+        {
+          "schemaname": "notify",
+          "tablename": "outbox",
+          "indexname": "outbox_event_id_key",
+          "indexdef": "CREATE UNIQUE INDEX outbox_event_id_key ON notify.outbox USING btree (event_id)"
+        },
+        {
+          "schemaname": "notify",
+          "tablename": "outbox",
+          "indexname": "outbox_pending_idx",
+          "indexdef": "CREATE INDEX outbox_pending_idx ON notify.outbox USING btree (id) WHERE (sent_at IS NULL)"
+        },
+        {
+          "schemaname": "notify",
+          "tablename": "outbox",
+          "indexname": "outbox_pkey",
+          "indexdef": "CREATE UNIQUE INDEX outbox_pkey ON notify.outbox USING btree (id)"
+        },
+        {
+          "schemaname": "notify",
+          "tablename": "processed_messages",
+          "indexname": "processed_messages_pkey",
+          "indexdef": "CREATE UNIQUE INDEX processed_messages_pkey ON notify.processed_messages USING btree (consumer, event_id)"
+        },
+        {
+          "schemaname": "ops",
+          "tablename": "outbox",
+          "indexname": "outbox_event_id_key",
+          "indexdef": "CREATE UNIQUE INDEX outbox_event_id_key ON ops.outbox USING btree (event_id)"
+        },
+        {
+          "schemaname": "ops",
+          "tablename": "outbox",
+          "indexname": "outbox_pending_idx",
+          "indexdef": "CREATE INDEX outbox_pending_idx ON ops.outbox USING btree (id) WHERE (sent_at IS NULL)"
+        },
+        {
+          "schemaname": "ops",
+          "tablename": "outbox",
+          "indexname": "outbox_pkey",
+          "indexdef": "CREATE UNIQUE INDEX outbox_pkey ON ops.outbox USING btree (id)"
+        },
+        {
+          "schemaname": "ops",
+          "tablename": "processed_messages",
+          "indexname": "processed_messages_pkey",
+          "indexdef": "CREATE UNIQUE INDEX processed_messages_pkey ON ops.processed_messages USING btree (consumer, event_id)"
+        },
         {
           "schemaname": "public",
           "tablename": "contracts",
@@ -651,12 +1341,14 @@
       "enums": null,
       "functions": [
         {
-          "proname": "get_contract_with_validators",
-          "args": "contract_id uuid",
-          "security_definer": false,
-          "definition": "CREATE OR REPLACE FUNCTION public.get_contract_with_validators(contract_id uuid)\n RETURNS json\n LANGUAGE plpgsql\nAS $function$\nDECLARE\n  result json;\nBEGIN\n  SELECT json_build_object(\n    'id', c.id,\n    'name', c.name,\n    'description', c.description,\n    'owner_id', c.owner_id,\n    'secret_hash', c.secret_hash,\n    'blockchain_tx_id', c.blockchain_tx_id,\n    'blockchain_network', c.blockchain_network,\n    'accessor_id', c.accessor_id,\n    'validators', c.validators,\n    'status', c.status,\n    'created_at', c.created_at,\n    'updated_at', c.updated_at,\n    'meta', c.meta,\n    'owner', row_to_json(owner.*),\n    'accessor', row_to_json(accessor.*),\n    'validators_list', (\n      SELECT json_agg(u.*)\n      FROM users u\n      WHERE u.id = ANY(c.validators)\n      ORDER BY array_position(c.validators, u.id)\n    )\n  ) INTO result\n  FROM contracts c\n  LEFT JOIN users owner ON owner.id = c.owner_id\n  LEFT JOIN users accessor ON accessor.id = c.accessor_id\n  WHERE c.id = contract_id;\n  \n  RETURN result;\nEND;\n$function$\n"
+          "schema": "messaging",
+          "proname": "send",
+          "args": "queue_name text, message jsonb, delay_seconds integer",
+          "security_definer": true,
+          "definition": "CREATE OR REPLACE FUNCTION messaging.send(queue_name text, message jsonb, delay_seconds integer DEFAULT 0)\n RETURNS bigint\n LANGUAGE sql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\n  select pgmq.send(queue_name, message, delay_seconds);\n$function$\n"
         },
         {
+          "schema": "public",
           "proname": "get_trusted_users",
           "args": "owner_uuid text",
           "security_definer": false,
@@ -666,157 +1358,722 @@
       "triggers": null,
       "rls": [
         {
+          "schema": "core",
+          "table_name": "outbox",
+          "rls_enabled": true,
+          "rls_forced": false
+        },
+        {
+          "schema": "core",
+          "table_name": "processed_messages",
+          "rls_enabled": true,
+          "rls_forced": false
+        },
+        {
+          "schema": "handover",
+          "table_name": "outbox",
+          "rls_enabled": true,
+          "rls_forced": false
+        },
+        {
+          "schema": "handover",
+          "table_name": "processed_messages",
+          "rls_enabled": true,
+          "rls_forced": false
+        },
+        {
+          "schema": "messaging",
+          "table_name": "subscriptions",
+          "rls_enabled": true,
+          "rls_forced": false
+        },
+        {
+          "schema": "notify",
+          "table_name": "outbox",
+          "rls_enabled": true,
+          "rls_forced": false
+        },
+        {
+          "schema": "notify",
+          "table_name": "processed_messages",
+          "rls_enabled": true,
+          "rls_forced": false
+        },
+        {
+          "schema": "ops",
+          "table_name": "outbox",
+          "rls_enabled": true,
+          "rls_forced": false
+        },
+        {
+          "schema": "ops",
+          "table_name": "processed_messages",
+          "rls_enabled": true,
+          "rls_forced": false
+        },
+        {
+          "schema": "pgmq",
+          "table_name": "a_gateway",
+          "rls_enabled": true,
+          "rls_forced": false
+        },
+        {
+          "schema": "pgmq",
+          "table_name": "a_handover",
+          "rls_enabled": true,
+          "rls_forced": false
+        },
+        {
+          "schema": "pgmq",
+          "table_name": "a_notifier",
+          "rls_enabled": true,
+          "rls_forced": false
+        },
+        {
+          "schema": "pgmq",
+          "table_name": "a_worker",
+          "rls_enabled": true,
+          "rls_forced": false
+        },
+        {
+          "schema": "pgmq",
+          "table_name": "q_gateway",
+          "rls_enabled": true,
+          "rls_forced": false
+        },
+        {
+          "schema": "pgmq",
+          "table_name": "q_handover",
+          "rls_enabled": true,
+          "rls_forced": false
+        },
+        {
+          "schema": "pgmq",
+          "table_name": "q_notifier",
+          "rls_enabled": true,
+          "rls_forced": false
+        },
+        {
+          "schema": "pgmq",
+          "table_name": "q_worker",
+          "rls_enabled": true,
+          "rls_forced": false
+        },
+        {
+          "schema": "public",
           "table_name": "contracts",
           "rls_enabled": true,
           "rls_forced": false
         },
         {
+          "schema": "public",
           "table_name": "notifications",
           "rls_enabled": true,
           "rls_forced": false
         },
         {
+          "schema": "public",
           "table_name": "orphan_tokens",
           "rls_enabled": true,
           "rls_forced": false
         },
         {
+          "schema": "public",
           "table_name": "push_tokens",
           "rls_enabled": true,
           "rls_forced": false
         },
         {
+          "schema": "public",
           "table_name": "trusted",
           "rls_enabled": true,
           "rls_forced": false
         },
         {
+          "schema": "public",
           "table_name": "users",
           "rls_enabled": true,
           "rls_forced": false
         }
       ],
-      "policies": null,
+      "policies": [
+        {
+          "schemaname": "core",
+          "tablename": "outbox",
+          "policyname": "service_access",
+          "roles": [
+            "svc_gateway"
+          ],
+          "cmd": "ALL",
+          "qual": "true",
+          "with_check": "true"
+        },
+        {
+          "schemaname": "core",
+          "tablename": "processed_messages",
+          "policyname": "service_access",
+          "roles": [
+            "svc_gateway"
+          ],
+          "cmd": "ALL",
+          "qual": "true",
+          "with_check": "true"
+        },
+        {
+          "schemaname": "handover",
+          "tablename": "outbox",
+          "policyname": "service_access",
+          "roles": [
+            "svc_handover"
+          ],
+          "cmd": "ALL",
+          "qual": "true",
+          "with_check": "true"
+        },
+        {
+          "schemaname": "handover",
+          "tablename": "processed_messages",
+          "policyname": "service_access",
+          "roles": [
+            "svc_handover"
+          ],
+          "cmd": "ALL",
+          "qual": "true",
+          "with_check": "true"
+        },
+        {
+          "schemaname": "messaging",
+          "tablename": "subscriptions",
+          "policyname": "services_read",
+          "roles": [
+            "svc_gateway",
+            "svc_handover",
+            "svc_notifier",
+            "svc_worker"
+          ],
+          "cmd": "SELECT",
+          "qual": "true",
+          "with_check": null
+        },
+        {
+          "schemaname": "notify",
+          "tablename": "outbox",
+          "policyname": "service_access",
+          "roles": [
+            "svc_notifier"
+          ],
+          "cmd": "ALL",
+          "qual": "true",
+          "with_check": "true"
+        },
+        {
+          "schemaname": "notify",
+          "tablename": "processed_messages",
+          "policyname": "service_access",
+          "roles": [
+            "svc_notifier"
+          ],
+          "cmd": "ALL",
+          "qual": "true",
+          "with_check": "true"
+        },
+        {
+          "schemaname": "ops",
+          "tablename": "outbox",
+          "policyname": "service_access",
+          "roles": [
+            "svc_worker"
+          ],
+          "cmd": "ALL",
+          "qual": "true",
+          "with_check": "true"
+        },
+        {
+          "schemaname": "ops",
+          "tablename": "processed_messages",
+          "policyname": "service_access",
+          "roles": [
+            "svc_worker"
+          ],
+          "cmd": "ALL",
+          "qual": "true",
+          "with_check": "true"
+        },
+        {
+          "schemaname": "pgmq",
+          "tablename": "a_gateway",
+          "policyname": "owner_access",
+          "roles": [
+            "svc_gateway"
+          ],
+          "cmd": "ALL",
+          "qual": "true",
+          "with_check": "true"
+        },
+        {
+          "schemaname": "pgmq",
+          "tablename": "a_handover",
+          "policyname": "owner_access",
+          "roles": [
+            "svc_handover"
+          ],
+          "cmd": "ALL",
+          "qual": "true",
+          "with_check": "true"
+        },
+        {
+          "schemaname": "pgmq",
+          "tablename": "a_notifier",
+          "policyname": "owner_access",
+          "roles": [
+            "svc_notifier"
+          ],
+          "cmd": "ALL",
+          "qual": "true",
+          "with_check": "true"
+        },
+        {
+          "schemaname": "pgmq",
+          "tablename": "a_worker",
+          "policyname": "owner_access",
+          "roles": [
+            "svc_worker"
+          ],
+          "cmd": "ALL",
+          "qual": "true",
+          "with_check": "true"
+        },
+        {
+          "schemaname": "pgmq",
+          "tablename": "q_gateway",
+          "policyname": "owner_access",
+          "roles": [
+            "svc_gateway"
+          ],
+          "cmd": "ALL",
+          "qual": "true",
+          "with_check": "true"
+        },
+        {
+          "schemaname": "pgmq",
+          "tablename": "q_handover",
+          "policyname": "owner_access",
+          "roles": [
+            "svc_handover"
+          ],
+          "cmd": "ALL",
+          "qual": "true",
+          "with_check": "true"
+        },
+        {
+          "schemaname": "pgmq",
+          "tablename": "q_notifier",
+          "policyname": "owner_access",
+          "roles": [
+            "svc_notifier"
+          ],
+          "cmd": "ALL",
+          "qual": "true",
+          "with_check": "true"
+        },
+        {
+          "schemaname": "pgmq",
+          "tablename": "q_worker",
+          "policyname": "owner_access",
+          "roles": [
+            "svc_worker"
+          ],
+          "cmd": "ALL",
+          "qual": "true",
+          "with_check": "true"
+        }
+      ],
       "grants": [
         {
+          "table_schema": "core",
+          "table_name": "outbox",
+          "grantee": "postgres",
+          "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "outbox",
+          "grantee": "svc_gateway",
+          "privileges": "DELETE,INSERT,SELECT,UPDATE"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "processed_messages",
+          "grantee": "postgres",
+          "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "processed_messages",
+          "grantee": "svc_gateway",
+          "privileges": "DELETE,INSERT,SELECT,UPDATE"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "outbox",
+          "grantee": "postgres",
+          "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "outbox",
+          "grantee": "svc_handover",
+          "privileges": "DELETE,INSERT,SELECT,UPDATE"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "processed_messages",
+          "grantee": "postgres",
+          "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "processed_messages",
+          "grantee": "svc_handover",
+          "privileges": "DELETE,INSERT,SELECT,UPDATE"
+        },
+        {
+          "table_schema": "messaging",
+          "table_name": "subscriptions",
+          "grantee": "postgres",
+          "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
+        },
+        {
+          "table_schema": "messaging",
+          "table_name": "subscriptions",
+          "grantee": "svc_gateway",
+          "privileges": "SELECT"
+        },
+        {
+          "table_schema": "messaging",
+          "table_name": "subscriptions",
+          "grantee": "svc_handover",
+          "privileges": "SELECT"
+        },
+        {
+          "table_schema": "messaging",
+          "table_name": "subscriptions",
+          "grantee": "svc_notifier",
+          "privileges": "SELECT"
+        },
+        {
+          "table_schema": "messaging",
+          "table_name": "subscriptions",
+          "grantee": "svc_worker",
+          "privileges": "SELECT"
+        },
+        {
+          "table_schema": "notify",
+          "table_name": "outbox",
+          "grantee": "postgres",
+          "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
+        },
+        {
+          "table_schema": "notify",
+          "table_name": "outbox",
+          "grantee": "svc_notifier",
+          "privileges": "DELETE,INSERT,SELECT,UPDATE"
+        },
+        {
+          "table_schema": "notify",
+          "table_name": "processed_messages",
+          "grantee": "postgres",
+          "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
+        },
+        {
+          "table_schema": "notify",
+          "table_name": "processed_messages",
+          "grantee": "svc_notifier",
+          "privileges": "DELETE,INSERT,SELECT,UPDATE"
+        },
+        {
+          "table_schema": "ops",
+          "table_name": "outbox",
+          "grantee": "postgres",
+          "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
+        },
+        {
+          "table_schema": "ops",
+          "table_name": "outbox",
+          "grantee": "svc_worker",
+          "privileges": "DELETE,INSERT,SELECT,UPDATE"
+        },
+        {
+          "table_schema": "ops",
+          "table_name": "processed_messages",
+          "grantee": "postgres",
+          "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
+        },
+        {
+          "table_schema": "ops",
+          "table_name": "processed_messages",
+          "grantee": "svc_worker",
+          "privileges": "DELETE,INSERT,SELECT,UPDATE"
+        },
+        {
+          "table_schema": "pgmq",
+          "table_name": "a_gateway",
+          "grantee": "postgres",
+          "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
+        },
+        {
+          "table_schema": "pgmq",
+          "table_name": "a_gateway",
+          "grantee": "service_role",
+          "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
+        },
+        {
+          "table_schema": "pgmq",
+          "table_name": "a_gateway",
+          "grantee": "svc_gateway",
+          "privileges": "INSERT,SELECT"
+        },
+        {
+          "table_schema": "pgmq",
+          "table_name": "a_handover",
+          "grantee": "postgres",
+          "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
+        },
+        {
+          "table_schema": "pgmq",
+          "table_name": "a_handover",
+          "grantee": "service_role",
+          "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
+        },
+        {
+          "table_schema": "pgmq",
+          "table_name": "a_handover",
+          "grantee": "svc_handover",
+          "privileges": "INSERT,SELECT"
+        },
+        {
+          "table_schema": "pgmq",
+          "table_name": "a_notifier",
+          "grantee": "postgres",
+          "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
+        },
+        {
+          "table_schema": "pgmq",
+          "table_name": "a_notifier",
+          "grantee": "service_role",
+          "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
+        },
+        {
+          "table_schema": "pgmq",
+          "table_name": "a_notifier",
+          "grantee": "svc_notifier",
+          "privileges": "INSERT,SELECT"
+        },
+        {
+          "table_schema": "pgmq",
+          "table_name": "a_worker",
+          "grantee": "postgres",
+          "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
+        },
+        {
+          "table_schema": "pgmq",
+          "table_name": "a_worker",
+          "grantee": "service_role",
+          "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
+        },
+        {
+          "table_schema": "pgmq",
+          "table_name": "a_worker",
+          "grantee": "svc_worker",
+          "privileges": "INSERT,SELECT"
+        },
+        {
+          "table_schema": "pgmq",
+          "table_name": "q_gateway",
+          "grantee": "postgres",
+          "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
+        },
+        {
+          "table_schema": "pgmq",
+          "table_name": "q_gateway",
+          "grantee": "service_role",
+          "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
+        },
+        {
+          "table_schema": "pgmq",
+          "table_name": "q_gateway",
+          "grantee": "svc_gateway",
+          "privileges": "DELETE,SELECT,UPDATE"
+        },
+        {
+          "table_schema": "pgmq",
+          "table_name": "q_handover",
+          "grantee": "postgres",
+          "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
+        },
+        {
+          "table_schema": "pgmq",
+          "table_name": "q_handover",
+          "grantee": "service_role",
+          "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
+        },
+        {
+          "table_schema": "pgmq",
+          "table_name": "q_handover",
+          "grantee": "svc_handover",
+          "privileges": "DELETE,SELECT,UPDATE"
+        },
+        {
+          "table_schema": "pgmq",
+          "table_name": "q_notifier",
+          "grantee": "postgres",
+          "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
+        },
+        {
+          "table_schema": "pgmq",
+          "table_name": "q_notifier",
+          "grantee": "service_role",
+          "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
+        },
+        {
+          "table_schema": "pgmq",
+          "table_name": "q_notifier",
+          "grantee": "svc_notifier",
+          "privileges": "DELETE,SELECT,UPDATE"
+        },
+        {
+          "table_schema": "pgmq",
+          "table_name": "q_worker",
+          "grantee": "postgres",
+          "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
+        },
+        {
+          "table_schema": "pgmq",
+          "table_name": "q_worker",
+          "grantee": "service_role",
+          "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
+        },
+        {
+          "table_schema": "pgmq",
+          "table_name": "q_worker",
+          "grantee": "svc_worker",
+          "privileges": "DELETE,SELECT,UPDATE"
+        },
+        {
+          "table_schema": "public",
           "table_name": "contracts",
-          "grantee": "anon",
-          "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
-        },
-        {
-          "table_name": "contracts",
-          "grantee": "authenticated",
-          "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
-        },
-        {
-          "table_name": "contracts",
           "grantee": "postgres",
           "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
         },
         {
+          "table_schema": "public",
           "table_name": "contracts",
           "grantee": "service_role",
           "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
         },
         {
-          "table_name": "notifications",
-          "grantee": "anon",
-          "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
-        },
-        {
-          "table_name": "notifications",
-          "grantee": "authenticated",
-          "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
-        },
-        {
+          "table_schema": "public",
           "table_name": "notifications",
           "grantee": "postgres",
           "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
         },
         {
+          "table_schema": "public",
           "table_name": "notifications",
           "grantee": "service_role",
           "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
         },
         {
-          "table_name": "orphan_tokens",
-          "grantee": "anon",
-          "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
-        },
-        {
-          "table_name": "orphan_tokens",
-          "grantee": "authenticated",
-          "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
-        },
-        {
+          "table_schema": "public",
           "table_name": "orphan_tokens",
           "grantee": "postgres",
           "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
         },
         {
+          "table_schema": "public",
           "table_name": "orphan_tokens",
           "grantee": "service_role",
           "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
         },
         {
-          "table_name": "push_tokens",
-          "grantee": "anon",
-          "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
-        },
-        {
-          "table_name": "push_tokens",
-          "grantee": "authenticated",
-          "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
-        },
-        {
+          "table_schema": "public",
           "table_name": "push_tokens",
           "grantee": "postgres",
           "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
         },
         {
+          "table_schema": "public",
           "table_name": "push_tokens",
           "grantee": "service_role",
           "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
         },
         {
-          "table_name": "trusted",
-          "grantee": "anon",
-          "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
-        },
-        {
-          "table_name": "trusted",
-          "grantee": "authenticated",
-          "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
-        },
-        {
+          "table_schema": "public",
           "table_name": "trusted",
           "grantee": "postgres",
           "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
         },
         {
+          "table_schema": "public",
           "table_name": "trusted",
           "grantee": "service_role",
           "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
         },
         {
-          "table_name": "users",
-          "grantee": "anon",
-          "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
-        },
-        {
-          "table_name": "users",
-          "grantee": "authenticated",
-          "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
-        },
-        {
+          "table_schema": "public",
           "table_name": "users",
           "grantee": "postgres",
           "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
         },
         {
+          "table_schema": "public",
           "table_name": "users",
           "grantee": "service_role",
           "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
+        }
+      ],
+      "routine_grants": [
+        {
+          "routine_schema": "messaging",
+          "routine_name": "send",
+          "grantee": "postgres",
+          "privileges": "EXECUTE"
+        },
+        {
+          "routine_schema": "messaging",
+          "routine_name": "send",
+          "grantee": "svc_gateway",
+          "privileges": "EXECUTE"
+        },
+        {
+          "routine_schema": "messaging",
+          "routine_name": "send",
+          "grantee": "svc_handover",
+          "privileges": "EXECUTE"
+        },
+        {
+          "routine_schema": "messaging",
+          "routine_name": "send",
+          "grantee": "svc_notifier",
+          "privileges": "EXECUTE"
+        },
+        {
+          "routine_schema": "messaging",
+          "routine_name": "send",
+          "grantee": "svc_worker",
+          "privileges": "EXECUTE"
+        },
+        {
+          "routine_schema": "public",
+          "routine_name": "get_trusted_users",
+          "grantee": "postgres",
+          "privileges": "EXECUTE"
+        },
+        {
+          "routine_schema": "public",
+          "routine_name": "get_trusted_users",
+          "grantee": "service_role",
+          "privileges": "EXECUTE"
         }
       ],
       "extensions": [
