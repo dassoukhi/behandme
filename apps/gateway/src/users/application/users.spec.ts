@@ -16,7 +16,7 @@ let trust: TrustService;
 beforeEach(() => {
   store = new InMemoryUsers();
   trust = new TrustService(store, store);
-  profiles = new ProfileService(store, store, trust, store);
+  profiles = new ProfileService(store, store, trust, store, store);
 });
 
 describe("TrustService", () => {
@@ -148,6 +148,14 @@ describe("ProfileService", () => {
     await expect(profiles.findOne("me", "ghost")).rejects.toThrow(
       new NotFoundError("User with ID ghost not found"),
     );
+  });
+
+  it("refuses to delete someone who takes part in another's contract", async () => {
+    store.person("me");
+    store.participants.add("me");
+    await expect(profiles.removeMe("me")).rejects.toThrow(ConflictError);
+    expect(store.profiles.has("me")).toBe(true);
+    expect(store.published).toEqual([]);
   });
 
   it("deletes the caller's profile and tells the other services", async () => {

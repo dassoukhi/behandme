@@ -1,8 +1,4 @@
-import {
-  Inject,
-  Injectable,
-  ServiceUnavailableException,
-} from "@nestjs/common";
+import { Inject, Injectable } from "@nestjs/common";
 import {
   type InboxNotification,
   type MarkedRead,
@@ -10,14 +6,7 @@ import {
   type NotificationPreferences,
   type UnreadCount,
 } from "@lib/contracts";
-import {
-  ConflictError,
-  currentCorrelationId,
-  InvalidInputError,
-  NotFoundError,
-  UnprocessableError,
-} from "@lib/kernel";
-import { CORRELATION_HEADER, signInternalToken } from "@lib/platform";
+import { InternalHttpClient } from "@lib/platform";
 import type { NotifierClient } from "../application/ports.js";
 
 export interface NotifierHttpOptions {
@@ -30,146 +19,84 @@ export interface NotifierHttpOptions {
 }
 export const NOTIFIER_HTTP_OPTIONS = Symbol("NotifierHttpOptions");
 
-const RETRYABLE = new Set([502, 503, 504]);
-
 /**
- * Calls the notifier's internal API with a token that names the user. Every call but deleting a
- * notification is idempotent, so it is retried once when the notifier is unreachable or restarting.
+ * The notifier's internal API, for the authenticated caller. Every call but deleting a notification
+ * is idempotent, so it is retried once when the notifier is unreachable or restarting.
  */
 @Injectable()
 export class HttpNotifierClient implements NotifierClient {
-  constructor(
-    @Inject(NOTIFIER_HTTP_OPTIONS)
-    private readonly options: NotifierHttpOptions,
-  ) {}
+  private readonly http: InternalHttpClient;
+
+  constructor(@Inject(NOTIFIER_HTTP_OPTIONS) options: NotifierHttpOptions) {
+    this.http = new InternalHttpClient({
+      ...options,
+      issuer: "gateway",
+      audience: NOTIFIER_AUDIENCE,
+    });
+  }
 
   inbox(userId: string) {
-    return this.call<InboxNotification[]>(userId, "GET", "/inbox");
+    return this.http.call<InboxNotification[]>(userId, "GET", "/inbox", {
+      idempotent: true,
+    });
   }
 
   unreadCount(userId: string) {
-    return this.call<UnreadCount>(userId, "GET", "/inbox/unread-count");
+    return this.http.call<UnreadCount>(userId, "GET", "/inbox/unread-count", {
+      idempotent: true,
+    });
   }
 
   markRead(userId: string, id: string, read: boolean) {
-    return this.call<InboxNotification>(
+    return this.http.call<InboxNotification>(
       userId,
       "PATCH",
       `/inbox/${encodeURIComponent(id)}`,
-      { read },
+      { body: { read }, idempotent: true },
     );
   }
 
   markAllRead(userId: string) {
-    return this.call<MarkedRead>(userId, "POST", "/inbox/read-all");
+    return this.http.call<MarkedRead>(userId, "POST", "/inbox/read-all", {
+      idempotent: true,
+    });
   }
 
   async remove(userId: string, id: string) {
-    await this.call(
-      userId,
-      "DELETE",
-      `/inbox/${encodeURIComponent(id)}`,
-      undefined,
-      {
-        retry: false,
-      },
-    );
+    await this.http.call(userId, "DELETE", `/inbox/${encodeURIComponent(id)}`, {
+      idempotent: false,
+    });
   }
 
   async registerPushToken(userId: string, token: string) {
-    await this.call(userId, "POST", "/push-tokens", { token });
+    await this.http.call(userId, "POST", "/push-tokens", {
+      body: { token },
+      idempotent: true,
+    });
   }
 
   async unregisterPushToken(userId: string, token: string) {
-    await this.call(userId, "POST", "/push-tokens/unregister", { token });
+    await this.http.call(userId, "POST", "/push-tokens/unregister", {
+      body: { token },
+      idempotent: true,
+    });
   }
 
   preferences(userId: string) {
-    return this.call<NotificationPreferences>(userId, "GET", "/preferences");
-  }
-
-  updatePreferences(userId: string, changes: Partial<NotificationPreferences>) {
-    return this.call<NotificationPreferences>(
+    return this.http.call<NotificationPreferences>(
       userId,
-      "PATCH",
+      "GET",
       "/preferences",
-      changes,
+      { idempotent: true },
     );
   }
 
-  private async call<T>(
-    userId: string,
-    method: string,
-    path: string,
-    body?: unknown,
-    { retry = true } = {},
-  ): Promise<T> {
-    const { baseUrl, secret, timeoutMs = 5000 } = this.options;
-    const fetchFn = this.options.fetch ?? fetch;
-    const attempt = async () =>
-      fetchFn(`${baseUrl.replace(/\/$/, "")}/internal/v1${path}`, {
-        method,
-        headers: {
-          authorization: `Bearer ${await signInternalToken(secret, {
-            issuer: "gateway",
-            audience: NOTIFIER_AUDIENCE,
-            userId,
-          })}`,
-          ...(body !== undefined && { "content-type": "application/json" }),
-          ...(currentCorrelationId() && {
-            [CORRELATION_HEADER]: currentCorrelationId(),
-          }),
-        },
-        body: body === undefined ? undefined : JSON.stringify(body),
-        signal: AbortSignal.timeout(timeoutMs),
-      });
-
-    let response: Response;
-    try {
-      response = await attempt();
-      if (retry && RETRYABLE.has(response.status)) response = await attempt();
-    } catch (error) {
-      if (!retry) throw unavailable(error);
-      try {
-        response = await attempt();
-      } catch (again) {
-        throw unavailable(again);
-      }
-    }
-
-    if (response.ok) {
-      return (response.status === 204 ? undefined : await response.json()) as T;
-    }
-    const message = await errorMessage(response);
-    switch (response.status) {
-      case 400:
-        throw new InvalidInputError(message);
-      case 404:
-        throw new NotFoundError(message);
-      case 409:
-        throw new ConflictError(message);
-      case 422:
-        throw new UnprocessableError(message);
-      default:
-        if (response.status >= 500) throw unavailable(message);
-        throw new Error(`Notifier answered ${response.status}: ${message}`);
-    }
-  }
-}
-
-function unavailable(cause: unknown): ServiceUnavailableException {
-  return new ServiceUnavailableException("Notifications are unavailable", {
-    cause,
-  });
-}
-
-async function errorMessage(response: Response): Promise<string> {
-  try {
-    const body = (await response.json()) as { message?: unknown };
-    return Array.isArray(body.message)
-      ? body.message.join(", ")
-      : String(body.message ?? response.statusText);
-  } catch {
-    return response.statusText;
+  updatePreferences(userId: string, changes: Partial<NotificationPreferences>) {
+    return this.http.call<NotificationPreferences>(
+      userId,
+      "PATCH",
+      "/preferences",
+      { body: changes, idempotent: true },
+    );
   }
 }

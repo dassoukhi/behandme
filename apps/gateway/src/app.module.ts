@@ -8,12 +8,11 @@ import {
 } from "@lib/platform";
 import { UsersModule } from "./users/users.module.js";
 import { AuthModule } from "./auth/auth.module.js";
-import { SupabaseModule } from "./supabase/supabase.module.js";
 import { validate } from "./common/validators/env.validator.js";
 import { ClerkClientProvider } from "./providers/clerk-client.provider.js";
 import { ClerkAuthGuard } from "./auth/clerk-auth.guard.js";
 import { NotificationsModule } from "./notifications/notifications.module.js";
-import { ContractModule } from "./contracts/contract.module.js";
+import { ContractsModule } from "./contracts/contracts.module.js";
 import { MessagingModule } from "./messaging/messaging.module.js";
 
 @Module({
@@ -26,8 +25,7 @@ import { MessagingModule } from "./messaging/messaging.module.js";
     }),
     DatabaseModule.forRoot({ applicationName: "gateway" }),
     NotificationsModule,
-    SupabaseModule,
-    ContractModule,
+    ContractsModule,
     UsersModule,
     AuthModule,
     MessagingModule,

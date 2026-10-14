@@ -48,6 +48,15 @@
       "compilerOptions": {
         "tsConfigPath": "apps/worker/tsconfig.app.json"
       }
+    },
+    "handover": {
+      "type": "application",
+      "root": "apps/handover",
+      "entryFile": "main",
+      "sourceRoot": "apps/handover/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/handover/tsconfig.app.json"
+      }
     }
   }
 }

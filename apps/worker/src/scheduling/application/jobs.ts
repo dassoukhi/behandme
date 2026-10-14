@@ -1,4 +1,4 @@
-import { PushReceiptsDue, RetentionDue } from "@lib/contracts";
+import { AuditVerifyDue, PushReceiptsDue, RetentionDue } from "@lib/contracts";
 import type { NewEvent } from "@lib/messaging";
 import { DAY, MINUTE } from "../domain/schedule.js";
 
@@ -15,6 +15,12 @@ export const JOBS: ScheduledJob[] = [
     name: "push-receipts",
     everyMs: 15 * MINUTE,
     event: () => PushReceiptsDue.create({}),
+  },
+  // Handover checks the hash chain of every contract's audit log.
+  {
+    name: "audit-verify",
+    everyMs: DAY,
+    event: () => AuditVerifyDue.create({}),
   },
   // Each service deletes what it no longer needs.
   { name: "retention", everyMs: DAY, event: () => RetentionDue.create({}) },

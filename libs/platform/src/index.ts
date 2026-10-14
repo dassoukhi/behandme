@@ -14,6 +14,10 @@ export {
   type InternalAuthOptions,
 } from "./internal-auth.guard.js";
 export {
+  InternalHttpClient,
+  type InternalHttpOptions,
+} from "./internal-http.client.js";
+export {
   MIN_SECRET_LENGTH,
   signInternalToken,
   verifyInternalToken,

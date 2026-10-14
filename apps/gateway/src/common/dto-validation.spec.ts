@@ -1,8 +1,10 @@
 import { BadRequestException, ValidationPipe } from "@nestjs/common";
 import type { ArgumentMetadata } from "@nestjs/common";
 import { describe, expect, it } from "vitest";
-import { CreateContractDTO } from "../contracts/dto/create-contract.dto.js";
-import { UpdateContractDTO } from "../contracts/dto/update-contract.dto.js";
+import {
+  CreateContractDTO,
+  UpdateContractDTO,
+} from "../contracts/interface/dto/contract-inputs.dto.js";
 import {
   PushTokenDto,
   UpdateNotificationDto,
@@ -23,10 +25,10 @@ const validate = (metatype: ArgumentMetadata["metatype"], value: unknown) =>
   pipe.transform(value, { type: "body", metatype });
 
 const contract = {
-  name: "networks",
+  category: "networks",
   description: "desc",
   accessor_id: "user_2qrstuvwxyz123456",
-  validators: ["user_2aaaaaaaaaaaaaaa", "user_2bbbbbbbbbbbbbbb"],
+  validator_ids: ["user_2aaaaaaaaaaaaaaa", "user_2bbbbbbbbbbbbbbb"],
 };
 
 describe("notification DTOs", () => {
@@ -81,7 +83,7 @@ describe("notification DTOs", () => {
 describe("contract DTOs", () => {
   it("accepts validator ids longer than 3 characters", async () => {
     await expect(validate(CreateContractDTO, contract)).resolves.toMatchObject({
-      validators: contract.validators,
+      validator_ids: contract.validator_ids,
     });
   });
 
@@ -89,7 +91,7 @@ describe("contract DTOs", () => {
     await expect(
       validate(CreateContractDTO, {
         ...contract,
-        validators: ["a", "b", "c", "d"],
+        validator_ids: ["a", "b", "c", "d"],
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
@@ -151,13 +153,28 @@ describe("server-controlled contract fields are rejected", () => {
       { ...contract, blockchain_tx_id: "0x" },
     ],
     ["meta on create", CreateContractDTO, { ...contract, meta: {} }],
-    ["participants on update", UpdateContractDTO, { validators: ["user_x"] }],
-    ["unknown category", CreateContractDTO, { ...contract, name: "bank" }],
-    ["no validator", CreateContractDTO, { ...contract, validators: [] }],
+    [
+      "participants on update",
+      UpdateContractDTO,
+      { validator_ids: ["user_x"] },
+    ],
+    ["the accessor on update", UpdateContractDTO, { accessor_id: "user_x" }],
+    [
+      "status on update (actions only)",
+      UpdateContractDTO,
+      { status: "active" },
+    ],
+    ["unknown category", CreateContractDTO, { ...contract, category: "bank" }],
+    [
+      "the legacy name field",
+      CreateContractDTO,
+      { ...contract, name: "networks" },
+    ],
+    ["no validator", CreateContractDTO, { ...contract, validator_ids: [] }],
     [
       "duplicate validators",
       CreateContractDTO,
-      { ...contract, validators: ["a", "a"] },
+      { ...contract, validator_ids: ["a", "a"] },
     ],
   ];
 

@@ -91,6 +91,11 @@ export class UsersController {
   @ApiOperation({ summary: "Delete the caller's profile" })
   @ApiResponse({ status: 200, description: "Profile deleted successfully" })
   @ApiResponse({ status: 404, description: "Profile not found" })
+  @ApiResponse({
+    status: 409,
+    description:
+      "The caller is the accessor or a validator of someone else's contract",
+  })
   async removeMe(@CurrentUserId() me: string): Promise<{ message: string }> {
     await this.profiles.removeMe(me);
     return { message: "Profile deleted successfully" };

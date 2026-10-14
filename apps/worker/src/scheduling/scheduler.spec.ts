@@ -49,10 +49,15 @@ describe("period", () => {
 
 describe("scheduler", () => {
   it("fires every job once on the first tick, caused by the tick", async () => {
-    expect(await tick()).toEqual(["push-receipts", "retention"]);
+    expect(await tick()).toEqual([
+      "push-receipts",
+      "audit-verify",
+      "retention",
+    ]);
     const events = await published();
     expect(events.map((e) => e.type)).toEqual([
       "maintenance.push_receipts_due",
+      "maintenance.audit_verify_due",
       "maintenance.retention_due",
     ]);
     expect(events[0].envelope).toMatchObject({
@@ -74,7 +79,11 @@ describe("scheduler", () => {
   it("fires a missed job at the next tick after the worker comes back", async () => {
     await tick();
     clock.advance(3 * 86_400_000);
-    expect(await tick()).toEqual(["push-receipts", "retention"]);
+    expect(await tick()).toEqual([
+      "push-receipts",
+      "audit-verify",
+      "retention",
+    ]);
   });
 
   it("publishes nothing if the tick's transaction fails", async () => {
@@ -87,7 +96,11 @@ describe("scheduler", () => {
       ),
     ).rejects.toThrow("commit failed");
     expect(await published()).toEqual([]);
-    expect(await tick()).toEqual(["push-receipts", "retention"]);
+    expect(await tick()).toEqual([
+      "push-receipts",
+      "audit-verify",
+      "retention",
+    ]);
   });
 
   it("forgets runs older than 30 days", async () => {
@@ -96,6 +109,6 @@ describe("scheduler", () => {
     const purged = await t.asRole("svc_worker", (d) =>
       scheduler.purge(stores.bind(d, cause)),
     );
-    expect(purged).toBe(2);
+    expect(purged).toBe(3);
   });
 });

@@ -343,17 +343,20 @@
         },
         "responses": {
           "201": {
-            "description": "Contract created successfully",
+            "description": "",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ContractDTO"
+                  "$ref": "#/components/schemas/ContractDetailDTO"
                 }
               }
             }
           },
           "400": {
-            "description": "Bad request"
+            "description": "Invalid or untrusted participants"
+          },
+          "503": {
+            "description": "The handover service is unavailable"
           }
         },
         "security": [
@@ -361,7 +364,7 @@
             "bearer": []
           }
         ],
-        "summary": "Create a new Contract",
+        "summary": "Create a draft contract owned by the caller",
         "tags": [
           "contracts"
         ]
@@ -371,7 +374,7 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "Return all contracts",
+            "description": "",
             "content": {
               "application/json": {
                 "schema": {
@@ -382,6 +385,9 @@
                 }
               }
             }
+          },
+          "503": {
+            "description": "The handover service is unavailable"
           }
         },
         "security": [
@@ -389,7 +395,7 @@
             "bearer": []
           }
         ],
-        "summary": "List the contracts the caller owns, accesses or validates",
+        "summary": "List the contracts the caller owns, accesses or validates, newest first",
         "tags": [
           "contracts"
         ]
@@ -410,17 +416,20 @@
         ],
         "responses": {
           "200": {
-            "description": "Return the contract",
+            "description": "",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ContractValidatorsDTO"
+                  "$ref": "#/components/schemas/ContractDetailDTO"
                 }
               }
             }
           },
           "404": {
             "description": "Contract not found"
+          },
+          "503": {
+            "description": "The handover service is unavailable"
           }
         },
         "security": [
@@ -428,7 +437,7 @@
             "bearer": []
           }
         ],
-        "summary": "Get a contract by ID",
+        "summary": "Get a contract with its participants",
         "tags": [
           "contracts"
         ]
@@ -457,17 +466,23 @@
         },
         "responses": {
           "200": {
-            "description": "Contract updated successfully",
+            "description": "",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ContractDTO"
+                  "$ref": "#/components/schemas/ContractDetailDTO"
                 }
               }
             }
           },
           "404": {
             "description": "Contract not found"
+          },
+          "409": {
+            "description": "Not possible in this status"
+          },
+          "503": {
+            "description": "The handover service is unavailable"
           }
         },
         "security": [
@@ -475,7 +490,7 @@
             "bearer": []
           }
         ],
-        "summary": "Update a contract (owner only)",
+        "summary": "Change the category or description (owner)",
         "tags": [
           "contracts"
         ]
@@ -494,10 +509,16 @@
         ],
         "responses": {
           "200": {
-            "description": "Contract deleted successfully"
+            "description": "Contract deleted"
           },
           "404": {
             "description": "Contract not found"
+          },
+          "409": {
+            "description": "Only a draft can be deleted"
+          },
+          "503": {
+            "description": "The handover service is unavailable"
           }
         },
         "security": [
@@ -505,7 +526,94 @@
             "bearer": []
           }
         ],
-        "summary": "Delete a contract (owner only)",
+        "summary": "Delete a draft (owner); its audit log stays",
+        "tags": [
+          "contracts"
+        ]
+      }
+    },
+    "/api/v1/contracts/{id}/events": {
+      "get": {
+        "operationId": "ContractsController_events",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ContractEventDTO"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Contract not found"
+          },
+          "503": {
+            "description": "The handover service is unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The contract's audit log, oldest first (hash chain the app can verify)",
+        "tags": [
+          "contracts"
+        ]
+      }
+    },
+    "/api/v1/contracts/{id}/events/verify": {
+      "get": {
+        "operationId": "ContractsController_verify",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChainVerificationDTO"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Contract not found"
+          },
+          "503": {
+            "description": "The handover service is unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Check the contract's audit log on the server",
         "tags": [
           "contracts"
         ]
@@ -635,6 +743,9 @@
           },
           "404": {
             "description": "Profile not found"
+          },
+          "409": {
+            "description": "The caller is the accessor or a validator of someone else's contract"
           }
         },
         "security": [
@@ -1005,18 +1116,18 @@
       "CreateContractDTO": {
         "type": "object",
         "properties": {
-          "name": {
+          "category": {
             "enum": [
               "networks",
               "devices",
               "storage"
             ],
             "type": "string",
-            "description": "Contract category",
             "example": "networks"
           },
           "description": {
             "type": "string",
+            "nullable": true,
             "maxLength": 280,
             "description": "Short description visible to every participant: never put anything secret here",
             "example": "Accès à mes réseaux sociaux"
@@ -1026,11 +1137,11 @@
             "description": "Clerk ID of the accessor (must be someone the caller trusts)",
             "example": "user_2qrstuvwxyz123456"
           },
-          "validators": {
+          "validator_ids": {
             "uniqueItems": true,
             "minItems": 1,
             "maxItems": 3,
-            "description": "Clerk IDs of 1 to 3 distinct validators (people the caller trusts)",
+            "description": "Clerk IDs of 1 to 3 distinct validators (people the caller trusts), in order",
             "example": [
               "user_2aaaaaaaaaaaaaaa",
               "user_2bbbbbbbbbbbbbbb"
@@ -1042,9 +1153,9 @@
           }
         },
         "required": [
-          "name",
+          "category",
           "accessor_id",
-          "validators"
+          "validator_ids"
         ]
       },
       "UserProfileDto": {
@@ -1101,14 +1212,14 @@
           "updated_at"
         ]
       },
-      "ContractDTO": {
+      "ContractDetailDTO": {
         "type": "object",
         "properties": {
           "id": {
             "type": "string",
             "example": "4bce1a03-3fa5-4d39-8c7e-7f3b7e3468a5"
           },
-          "name": {
+          "category": {
             "enum": [
               "networks",
               "devices",
@@ -1123,16 +1234,32 @@
             "description": "Short description visible to every participant",
             "example": "Accès à mes réseaux sociaux"
           },
+          "status": {
+            "enum": [
+              "draft",
+              "active",
+              "claimed",
+              "released",
+              "revoked"
+            ],
+            "type": "string",
+            "description": "draft (not sealed yet) → active → claimed → released; revoked. Changed only by actions."
+          },
+          "version": {
+            "type": "number",
+            "description": "Bumped by every change",
+            "example": 1
+          },
           "owner_id": {
             "type": "string",
             "example": "user_2abcdefghijklmnop"
           },
           "accessor_id": {
             "type": "string",
-            "nullable": true,
             "example": "user_2qrstuvwxyz123456"
           },
-          "validators": {
+          "validator_ids": {
+            "description": "Validator ids, in order",
             "example": [
               "user_2aaaaaaaaaaaaaaa"
             ],
@@ -1141,31 +1268,37 @@
               "type": "string"
             }
           },
-          "status": {
-            "nullable": true,
-            "enum": [
-              "draft",
-              "active",
-              "validated",
-              "released",
-              "revoked"
-            ],
-            "type": "string",
-            "description": "Lifecycle status, changed only by dedicated actions"
-          },
           "created_at": {
             "type": "string",
-            "nullable": true,
-            "example": "2026-10-12T07:20:50.52Z"
+            "example": "2026-10-12T07:20:50.520Z"
           },
           "updated_at": {
             "type": "string",
-            "nullable": true,
-            "example": "2026-10-15T09:30:50.52Z"
+            "example": "2026-10-15T09:30:50.520Z"
+          },
+          "my_role": {
+            "enum": [
+              "owner",
+              "accessor",
+              "validator"
+            ],
+            "type": "string",
+            "description": "The caller's role"
+          },
+          "allowed_actions": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "update",
+                "delete"
+              ]
+            },
+            "description": "What the caller may do now; the app shows only these actions (rules live in the backend)"
           },
           "owner": {
             "nullable": true,
-            "description": "Owner profile (joined on list and detail endpoints)",
+            "description": "Owner profile; null if it no longer exists",
             "type": "object",
             "allOf": [
               {
@@ -1175,102 +1308,7 @@
           },
           "accessor": {
             "nullable": true,
-            "description": "Accessor profile (joined on list and detail endpoints)",
-            "type": "object",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/UserProfileDto"
-              }
-            ]
-          }
-        },
-        "required": [
-          "id",
-          "name",
-          "description",
-          "owner_id",
-          "accessor_id",
-          "validators",
-          "status",
-          "created_at",
-          "updated_at"
-        ]
-      },
-      "ContractValidatorsDTO": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "example": "4bce1a03-3fa5-4d39-8c7e-7f3b7e3468a5"
-          },
-          "name": {
-            "enum": [
-              "networks",
-              "devices",
-              "storage"
-            ],
-            "type": "string",
-            "example": "networks"
-          },
-          "description": {
-            "type": "string",
-            "nullable": true,
-            "description": "Short description visible to every participant",
-            "example": "Accès à mes réseaux sociaux"
-          },
-          "owner_id": {
-            "type": "string",
-            "example": "user_2abcdefghijklmnop"
-          },
-          "accessor_id": {
-            "type": "string",
-            "nullable": true,
-            "example": "user_2qrstuvwxyz123456"
-          },
-          "validators": {
-            "example": [
-              "user_2aaaaaaaaaaaaaaa"
-            ],
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "status": {
-            "nullable": true,
-            "enum": [
-              "draft",
-              "active",
-              "validated",
-              "released",
-              "revoked"
-            ],
-            "type": "string",
-            "description": "Lifecycle status, changed only by dedicated actions"
-          },
-          "created_at": {
-            "type": "string",
-            "nullable": true,
-            "example": "2026-10-12T07:20:50.52Z"
-          },
-          "updated_at": {
-            "type": "string",
-            "nullable": true,
-            "example": "2026-10-15T09:30:50.52Z"
-          },
-          "owner": {
-            "nullable": true,
-            "description": "Owner profile (joined on list and detail endpoints)",
-            "type": "object",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/UserProfileDto"
-              }
-            ]
-          },
-          "accessor": {
-            "nullable": true,
-            "description": "Accessor profile (joined on list and detail endpoints)",
+            "description": "Accessor profile; null if it no longer exists",
             "type": "object",
             "allOf": [
               {
@@ -1279,7 +1317,7 @@
             ]
           },
           "validators_list": {
-            "description": "Validator profiles, in the order of `validators`",
+            "description": "Validator profiles, in the order of `validator_ids`",
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/UserProfileDto"
@@ -1288,37 +1326,238 @@
         },
         "required": [
           "id",
-          "name",
+          "category",
           "description",
+          "status",
+          "version",
           "owner_id",
           "accessor_id",
-          "validators",
-          "status",
+          "validator_ids",
           "created_at",
           "updated_at",
+          "my_role",
+          "allowed_actions",
+          "owner",
+          "accessor",
           "validators_list"
         ]
       },
-      "UpdateContractDTO": {
+      "ContractDTO": {
         "type": "object",
         "properties": {
-          "name": {
+          "id": {
+            "type": "string",
+            "example": "4bce1a03-3fa5-4d39-8c7e-7f3b7e3468a5"
+          },
+          "category": {
             "enum": [
               "networks",
               "devices",
               "storage"
             ],
             "type": "string",
-            "description": "Contract category",
             "example": "networks"
           },
           "description": {
             "type": "string",
-            "maxLength": 280,
-            "description": "Short description visible to every participant: never put anything secret here",
+            "nullable": true,
+            "description": "Short description visible to every participant",
             "example": "Accès à mes réseaux sociaux"
+          },
+          "status": {
+            "enum": [
+              "draft",
+              "active",
+              "claimed",
+              "released",
+              "revoked"
+            ],
+            "type": "string",
+            "description": "draft (not sealed yet) → active → claimed → released; revoked. Changed only by actions."
+          },
+          "version": {
+            "type": "number",
+            "description": "Bumped by every change",
+            "example": 1
+          },
+          "owner_id": {
+            "type": "string",
+            "example": "user_2abcdefghijklmnop"
+          },
+          "accessor_id": {
+            "type": "string",
+            "example": "user_2qrstuvwxyz123456"
+          },
+          "validator_ids": {
+            "description": "Validator ids, in order",
+            "example": [
+              "user_2aaaaaaaaaaaaaaa"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "created_at": {
+            "type": "string",
+            "example": "2026-10-12T07:20:50.520Z"
+          },
+          "updated_at": {
+            "type": "string",
+            "example": "2026-10-15T09:30:50.520Z"
+          },
+          "my_role": {
+            "enum": [
+              "owner",
+              "accessor",
+              "validator"
+            ],
+            "type": "string",
+            "description": "The caller's role"
+          },
+          "allowed_actions": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "update",
+                "delete"
+              ]
+            },
+            "description": "What the caller may do now; the app shows only these actions (rules live in the backend)"
+          },
+          "owner": {
+            "nullable": true,
+            "description": "Owner profile; null if it no longer exists",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserProfileDto"
+              }
+            ]
+          },
+          "accessor": {
+            "nullable": true,
+            "description": "Accessor profile; null if it no longer exists",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserProfileDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "category",
+          "description",
+          "status",
+          "version",
+          "owner_id",
+          "accessor_id",
+          "validator_ids",
+          "created_at",
+          "updated_at",
+          "my_role",
+          "allowed_actions",
+          "owner",
+          "accessor"
+        ]
+      },
+      "UpdateContractDTO": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "enum": [
+              "networks",
+              "devices",
+              "storage"
+            ],
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 280
           }
         }
+      },
+      "ContractEventDTO": {
+        "type": "object",
+        "properties": {
+          "seq": {
+            "type": "number",
+            "description": "Position in the contract's log, from 1",
+            "example": 1
+          },
+          "type": {
+            "type": "string",
+            "example": "contract.created"
+          },
+          "actor_id": {
+            "type": "string",
+            "nullable": true,
+            "description": "Who did it; null for the system",
+            "example": "user_2abcdefghijklmnop"
+          },
+          "body": {
+            "type": "string",
+            "description": "Canonical JSON (RFC 8785) of the details, exactly as hashed",
+            "example": "{\"fields\":[\"description\"]}"
+          },
+          "occurred_at": {
+            "type": "string",
+            "description": "ISO 8601 with milliseconds, exactly as hashed",
+            "example": "2026-10-14T20:24:32.238Z"
+          },
+          "prev_hash": {
+            "type": "string",
+            "description": "Hash of the previous event (64 zeros for the first)"
+          },
+          "hash": {
+            "type": "string",
+            "description": "hex SHA-256 of prev_hash, seq, occurred_at, contract id, type, actor_id ('' if null) and body, joined by \\n"
+          }
+        },
+        "required": [
+          "seq",
+          "type",
+          "actor_id",
+          "body",
+          "occurred_at",
+          "prev_hash",
+          "hash"
+        ]
+      },
+      "ChainVerificationDTO": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "description": "True when every event verifies"
+          },
+          "length": {
+            "type": "number",
+            "description": "Number of events",
+            "example": 3
+          },
+          "head_hash": {
+            "type": "string",
+            "nullable": true,
+            "description": "Hash of the last event"
+          },
+          "broken_at": {
+            "type": "number",
+            "nullable": true,
+            "description": "First seq that does not verify"
+          }
+        },
+        "required": [
+          "ok",
+          "length",
+          "head_hash",
+          "broken_at"
+        ]
       },
       "EnsureProfileDto": {
         "type": "object",

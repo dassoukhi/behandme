@@ -16,6 +16,16 @@ export class KyselyProfileRepository implements ProfileRepository {
     return row ? toProfile(row) : null;
   }
 
+  async findMany(ids: string[]): Promise<Profile[]> {
+    if (ids.length === 0) return [];
+    const rows = await this.db
+      .selectFrom("users")
+      .selectAll()
+      .where("id", "in", ids)
+      .execute();
+    return rows.map(toProfile);
+  }
+
   async create(
     id: string,
     fields: ProfileFields & { email: string },

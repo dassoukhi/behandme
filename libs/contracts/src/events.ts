@@ -31,6 +31,13 @@ export const PushReceiptsDue = defineEvent(
   z.object({}),
 );
 
+/** Worker, daily: handover checks the hash chain of every contract's audit log. */
+export const AuditVerifyDue = defineEvent(
+  "maintenance.audit_verify_due",
+  1,
+  z.object({}),
+);
+
 /** Worker, daily: each service deletes the data it no longer needs. */
 export const RetentionDue = defineEvent(
   "maintenance.retention_due",

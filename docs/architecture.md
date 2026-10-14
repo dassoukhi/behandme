@@ -4,8 +4,8 @@ BehindMe lets an **owner** hand a secret (social network, device or cloud access
 secret is released only after a claim, a contest window and a quorum of trusted **validators**. The server
 never sees the secret: it is encrypted end to end on the owner's phone.
 
-This document is the target design. The gateway, the notifier and the worker exist today; handover comes with
-phase 3 (see "Delivery order"). Running and deploying them: `docs/deploy.md`.
+This document is the target design. The four services exist; end-to-end encryption, claims and release come
+with phases 4 and 5 (see "Delivery order"). Running and deploying them: `docs/deploy.md`.
 
 ## Services
 
@@ -89,9 +89,9 @@ infrastructure / interface, no service importing another, libs never importing a
 
 **Data access.** Direct Postgres connection through the Supabase pooler with Kysely (typed queries, real
 transactions). One Postgres role per service, limited to its schema. RLS stays enabled everywhere and the
-public anon key has no access. Exceptions until the data moves: the gateway's users module writes
-`public.users` and `public.trusted` as `svc_gateway` (granted by migration 20261014180000), and its contracts
-module still uses supabase-js with the service-role key on `public.contracts` (until handover, phase 3).
+public anon key has no access. One exception until the data moves to `core`: the gateway's users module
+writes `public.users` and `public.trusted` as `svc_gateway` (granted by migration 20261014180000). No service
+holds the Supabase service-role key.
 
 **Notifications.** A service publishes a business event; the notifier turns it into notifications (French
 copy in `apps/notifier/.../domain/templates.ts`) in the event's transaction: inbox rows, plus one row per
@@ -115,13 +115,22 @@ Claim: `open | cancelled | withdrawn | rejected | expired | released`.
 | claimed → released | system                                                                 | approvals ≥ k **and** contest window elapsed (7 days by default, 3–30) |
 | any → revoked      | owner                                                                  | before release; all ciphertexts deleted                                |
 
-k = ⌊n/2⌋ + 1 for n validators. The gateway returns `my_role`, `allowed_actions`, `open_claim`, `threshold`
-and `health` so the app implements no rule itself. Revocation and cancellation are always decided by
+k = ⌊n/2⌋ + 1 for n validators. The gateway returns `my_role` and `allowed_actions` (then `open_claim`,
+`threshold` and `health`) so the app implements no rule itself. Today (phase 3): create (draft), update
+(owner; draft or active), delete (owner; draft only, its log stays), in
+`apps/handover/src/contracts/domain/lifecycle.ts`. Revocation and cancellation are always decided by
 handover, the single authority on the life cycle, which removes "revoke vs release" races.
 
-**Audit log.** `handover.contract_events` is append-only (triggers reject UPDATE, DELETE, TRUNCATE), each row
-holds `prev_hash` and `hash` (SHA-256 of canonical JSON) and is written in the same transaction as the
-transition. The worker verifies the chain every night; the app ships the same verifier.
+**Audit log.** `handover.contract_events` is append-only: triggers reject UPDATE, DELETE and TRUNCATE for every
+role, and `svc_handover` can only read it and call `handover.append_event`, which numbers the event and computes
+its hash in the database, in the transaction of the change it records. Format (v1):
+`hash = hex(sha256(prev_hash ⏎ seq ⏎ occurred_at ⏎ contract_id ⏎ type ⏎ actor_id ⏎ body))`, joined by
+newlines, `prev_hash` = 64 zeros for the first event, `actor_id` empty for the system, `body` canonical JSON
+(RFC 8785) of ids and field names only (the log is kept for ever: no free text, no secret). Three
+implementations agree on the shared fixture `apps/handover/src/contracts/testing/chain-v1.json`: the SQL
+function, `domain/audit-chain.ts`, and the app's `lib/audit/verifyChain.ts`. The worker has handover check
+every chain each night (`maintenance.audit_verify_due`); participants can check theirs
+(`GET /contracts/:id/events/verify`) or verify the events themselves.
 
 ## Key flows
 
@@ -147,4 +156,4 @@ The full protocol goes to `docs/crypto-protocol.md` (phase 4) and is audited ext
 0A backend foundations (monorepo, libs, schemas, messaging) → 0B app hygiene → 1 app design system →
 2 notifier, worker and deployment → 3 handover and audit log → 4 keys and sealing → 5 claims and release →
 6 polish and external crypto audit. Done: 0A, 0B, 1, 2 (deployment prepared: `Dockerfile`, `railway/`,
-`docs/deploy.md`; email deferred to phase 5, it needs a verified domain).
+`docs/deploy.md`; email deferred to phase 5, it needs a verified domain), 3.

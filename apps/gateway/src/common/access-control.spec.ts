@@ -1,6 +1,10 @@
-import { BadRequestException, NotFoundException } from "@nestjs/common";
 import { type Kysely, sql } from "kysely";
-import { NotFoundError, UnprocessableError } from "@lib/kernel";
+import {
+  ConflictError,
+  InvalidInputError,
+  NotFoundError,
+  UnprocessableError,
+} from "@lib/kernel";
 import { startTestDatabase, type TestDatabase } from "@lib/testing";
 import {
   afterAll,
@@ -11,23 +15,24 @@ import {
   expect,
   it,
 } from "vitest";
-import { ContractService } from "../contracts/contract.service.js";
+import { ContractsFacade } from "../contracts/application/contracts.facade.js";
+import { InMemoryHandover } from "../handover/testing/in-memory-handover.js";
 import type { IdentityProfile } from "../users/application/ports.js";
 import { ProfileService } from "../users/application/profile.service.js";
 import { TrustService } from "../users/application/trust.service.js";
+import { HandoverParticipation } from "../users/infrastructure/handover-participation.js";
 import { KyselyProfileRepository } from "../users/infrastructure/kysely-profile.repository.js";
 import { KyselyTrustRepository } from "../users/infrastructure/kysely-trust.repository.js";
 import { KyselyUsersUnitOfWork } from "../users/infrastructure/kysely-users.unit-of-work.js";
-import { fakeSupabaseService } from "../testing/in-memory-supabase.js";
 
-// The real services. Profiles and trust links on the real schema (PGlite, as svc_gateway);
-// contracts, still read through supabase-js, on an in-memory Supabase.
+// The real gateway services: profiles and trust links on the real schema (PGlite, as svc_gateway);
+// contracts through the handover client, here an in-memory stand-in (handover's own rules are
+// tested in apps/handover).
 
 const OWNER = "user_owner";
 const ACCESSOR = "user_accessor";
 const VALIDATOR = "user_validator";
 const STRANGER = "user_stranger";
-const CONTRACT_ID = "4bce1a03-3fa5-4d39-8c7e-7f3b7e3468a5";
 const PEOPLE = [OWNER, ACCESSOR, VALIDATOR, STRANGER];
 
 const profile = (id: string) => ({
@@ -36,42 +41,15 @@ const profile = (id: string) => ({
   phone_number: "+33600000000",
   first_name: id,
   last_name: "Test",
-  avatar_url: null,
-  created_at: "2026-01-01T00:00:00Z",
-  updated_at: "2026-01-01T00:00:00Z",
 });
-
-function seedContracts() {
-  return {
-    users: PEOPLE.map(profile),
-    contracts: [
-      {
-        id: CONTRACT_ID,
-        name: "networks",
-        description: "desc",
-        owner_id: OWNER,
-        accessor_id: ACCESSOR,
-        validators: [VALIDATOR],
-        // Legacy columns still present in the hosted table: never returned.
-        secret_hash: "s3cret",
-        blockchain_tx_id: "0x1",
-        blockchain_network: "Fabric-Network",
-        meta: { note: "private" },
-        status: "draft",
-        // Joined relations, as returned by the real select.
-        owner: profile(OWNER),
-        accessor: profile(ACCESSOR),
-      },
-    ],
-  };
-}
 
 let t: TestDatabase;
 let pg: Kysely<any>;
-let db: ReturnType<typeof seedContracts>;
-let contracts: ContractService;
+let handover: InMemoryHandover;
+let contracts: ContractsFacade;
 let users: ProfileService;
 let trust: TrustService;
+let contractId: string;
 // What Clerk would return for each user id (the only trusted source of emails).
 let identities: Record<string, IdentityProfile>;
 
@@ -88,7 +66,7 @@ afterAll(() => t?.close());
 beforeEach(async () => {
   await sql`
     reset role;
-    delete from public.trusted; delete from public.contracts; delete from public.users;
+    delete from public.trusted; delete from public.users;
     delete from core.outbox;
   `.execute(pg);
   for (const p of PEOPLE.map(profile)) {
@@ -101,9 +79,10 @@ beforeEach(async () => {
   await sql`set role svc_gateway`.execute(pg);
   // The accessor trusts the owner: the owner may see the accessor's contact details.
   await trusts(ACCESSOR, OWNER);
+  await trusts(OWNER, ACCESSOR, VALIDATOR);
 
-  db = seedContracts();
   identities = {};
+  handover = new InMemoryHandover();
   const unitOfWork = new KyselyUsersUnitOfWork(pg);
   trust = new TrustService(new KyselyTrustRepository(pg), unitOfWork);
   users = new ProfileService(
@@ -116,8 +95,17 @@ beforeEach(async () => {
     },
     trust,
     unitOfWork,
+    new HandoverParticipation(handover),
   );
-  contracts = new ContractService(fakeSupabaseService(db), trust);
+  contracts = new ContractsFacade(handover, users, trust);
+  contractId = (
+    await contracts.create(OWNER, {
+      category: "networks",
+      description: "desc",
+      accessor_id: ACCESSOR,
+      validator_ids: [VALIDATOR],
+    })
+  ).id;
 });
 afterEach(() => sql`reset role`.execute(pg));
 
@@ -134,68 +122,57 @@ describe("contracts: role × action", () => {
     ["stranger", STRANGER, { read: false, write: false }],
   ] as const;
 
-  describe.each(roles)("%s", (_role, me, can) => {
-    it(`${can.read ? "sees" : "does not see"} the contract in the list`, async () => {
-      const list = await contracts.findAll(me);
-      expect(list.map((c) => c.id)).toEqual(can.read ? [CONTRACT_ID] : []);
-    });
-
-    it(`${can.read ? "can" : "cannot"} read it (404 otherwise)`, async () => {
-      const read = contracts.findOne(me, CONTRACT_ID);
+  describe.each(roles)("%s", (role, me, can) => {
+    it(`${can.read ? "sees" : "does not see"} the contract, with their role`, async () => {
+      const list = await contracts.list(me);
+      expect(list.map((c) => [c.id, c.my_role])).toEqual(
+        can.read ? [[contractId, role]] : [],
+      );
+      const read = contracts.get(me, contractId);
       if (can.read)
-        await expect(read).resolves.toMatchObject({ id: CONTRACT_ID });
-      else await expect(read).rejects.toBeInstanceOf(NotFoundException);
+        await expect(read).resolves.toMatchObject({ my_role: role });
+      else await expect(read).rejects.toThrow(NotFoundError);
     });
 
-    it(`${can.write ? "can" : "cannot"} update it`, async () => {
-      const update = contracts.update(me, CONTRACT_ID, {
-        description: "changed",
-      });
-      if (can.write)
-        await expect(update).resolves.toMatchObject({ description: "changed" });
-      else {
-        await expect(update).rejects.toBeInstanceOf(NotFoundException);
-        expect(db.contracts[0].description).toBe("desc");
+    it(`${can.write ? "can" : "cannot"} change or delete it`, async () => {
+      const update = contracts.update(me, contractId, { description: "x" });
+      if (can.write) {
+        await expect(update).resolves.toMatchObject({ description: "x" });
+        await contracts.remove(me, contractId);
+      } else {
+        await expect(update).rejects.toThrow(NotFoundError);
+        await expect(contracts.remove(me, contractId)).rejects.toThrow(
+          NotFoundError,
+        );
       }
     });
 
-    it(`${can.write ? "can" : "cannot"} delete it`, async () => {
-      const remove = contracts.remove(me, CONTRACT_ID);
-      if (can.write) await expect(remove).resolves.toBeDefined();
-      else {
-        await expect(remove).rejects.toBeInstanceOf(NotFoundException);
-        expect(db.contracts).toHaveLength(1);
-      }
+    it(`${can.read ? "reads" : "cannot read"} the audit log`, async () => {
+      const read = contracts.events(me, contractId);
+      if (can.read) await expect(read).resolves.toEqual([]);
+      else await expect(read).rejects.toThrow(NotFoundError);
     });
   });
 
-  it("never returns secret material or legacy columns, even to the owner", async () => {
-    const views = [
-      await contracts.findOne(OWNER, CONTRACT_ID),
-      await contracts.findOne(ACCESSOR, CONTRACT_ID),
-      (await contracts.findAll(VALIDATOR))[0],
-      await contracts.update(OWNER, CONTRACT_ID, { description: "x" }),
-    ];
-    for (const view of views) {
-      for (const column of [
-        "secret_hash",
-        "blockchain_tx_id",
-        "blockchain_network",
-        "meta",
-      ]) {
-        expect(view).not.toHaveProperty(column);
-      }
-    }
+  it("calls handover for the caller only", async () => {
+    await contracts.list(VALIDATOR);
+    expect(handover.calls.at(-1)).toMatchObject({
+      method: "list",
+      userId: VALIDATOR,
+    });
   });
 
-  it("applies the profile visibility rule to joined users", async () => {
-    const asOwner = await contracts.findOne(OWNER, CONTRACT_ID);
+  it("applies the profile visibility rule to the participants", async () => {
+    const asOwner = await contracts.get(OWNER, contractId);
     // The accessor trusts the owner; the validator does not.
     expect(asOwner.accessor?.email).toBe(`${ACCESSOR}@example.com`);
     expect(asOwner.validators_list[0]).not.toHaveProperty("email");
 
-    const asValidator = await contracts.findOne(VALIDATOR, CONTRACT_ID);
-    expect(asValidator.owner).not.toHaveProperty("email");
+    const asValidator = await contracts.get(VALIDATOR, contractId);
+    // The owner trusts every participant, so they all see the owner's details…
+    expect(asValidator.owner?.email).toBe(`${OWNER}@example.com`);
+    // …but not each other's, unless they trust each other.
+    expect(asValidator.accessor).not.toHaveProperty("email");
     expect(asValidator.validators_list[0].email).toBe(
       `${VALIDATOR}@example.com`,
     );
@@ -203,37 +180,34 @@ describe("contracts: role × action", () => {
 
   describe("creation", () => {
     const body = {
-      name: "devices" as const,
+      category: "devices" as const,
       accessor_id: OWNER,
-      validators: [VALIDATOR],
+      validator_ids: [VALIDATOR],
     };
 
-    it("always creates contracts owned by the caller, with no client-set status", async () => {
+    it("creates the contract for the caller once its participants are trusted", async () => {
       await trusts(STRANGER, OWNER, VALIDATOR);
       const created = await contracts.create(STRANGER, body);
-      expect(created.owner_id).toBe(STRANGER);
-      expect(db.contracts.at(-1)).not.toHaveProperty("secret_hash");
-      expect(db.contracts.at(-1)).not.toHaveProperty("status");
+      expect(created).toMatchObject({ owner_id: STRANGER, my_role: "owner" });
+      expect(created.validators_list.map((p) => p.id)).toEqual([VALIDATOR]);
     });
 
-    it("rejects participants the caller does not trust", async () => {
+    it("rejects participants the caller does not trust, without calling handover", async () => {
       await trusts(STRANGER, OWNER); // the validator is not trusted
-      await expect(contracts.create(STRANGER, body)).rejects.toBeInstanceOf(
-        BadRequestException,
+      const before = handover.contracts.length;
+      await expect(contracts.create(STRANGER, body)).rejects.toThrow(
+        new InvalidInputError(
+          "Accessor and validators must be people you trust",
+        ),
       );
-      expect(db.contracts).toHaveLength(1);
+      expect(handover.contracts).toHaveLength(before);
     });
 
-    it.each([
-      ["the caller as accessor", { ...body, accessor_id: STRANGER }],
-      ["the caller as validator", { ...body, validators: [STRANGER] }],
-      ["the accessor as validator", { ...body, validators: [OWNER] }],
-    ])("rejects %s", async (_case, invalid) => {
-      // Even trusting oneself (only possible in the data) does not make it valid.
-      await trusts(STRANGER, OWNER, VALIDATOR, STRANGER);
-      await expect(contracts.create(STRANGER, invalid)).rejects.toBeInstanceOf(
-        BadRequestException,
-      );
+    it("leaves the caller-as-participant rule to handover", async () => {
+      await trusts(STRANGER, OWNER, VALIDATOR);
+      await expect(
+        contracts.create(STRANGER, { ...body, accessor_id: STRANGER }),
+      ).rejects.toThrow(/own contract/);
     });
   });
 });
@@ -257,6 +231,12 @@ describe("users: profile visibility", () => {
     await users.updateMe(STRANGER, { phone_number: "+33700000000" });
     expect((await users.findMe(STRANGER)).phone_number).toBe("+33700000000");
     expect((await users.findMe(OWNER)).phone_number).toBe("+33600000000");
+  });
+
+  it("refuses to delete someone who takes part in another's contract", async () => {
+    await expect(users.removeMe(VALIDATOR)).rejects.toThrow(ConflictError);
+    expect((await users.findMe(VALIDATOR)).id).toBe(VALIDATOR);
+    expect(await outboxTypes()).toEqual([]);
   });
 
   it("only deletes the caller's own profile, and tells the other services", async () => {
@@ -345,9 +325,11 @@ describe("trust links: only the caller's own", () => {
   });
 
   it("lists who the caller trusts, hiding contact details of those who do not trust back", async () => {
-    await trusts(OWNER, VALIDATOR);
     const listed = await trust.listTrusted(OWNER);
-    expect(listed.map((p) => p.id)).toEqual([VALIDATOR]);
-    expect(listed[0]).not.toHaveProperty("email");
+    expect(listed.map((p) => p.id).sort()).toEqual([ACCESSOR, VALIDATOR]);
+    expect(listed.find((p) => p.id === ACCESSOR)?.email).toBe(
+      `${ACCESSOR}@example.com`,
+    );
+    expect(listed.find((p) => p.id === VALIDATOR)).not.toHaveProperty("email");
   });
 });

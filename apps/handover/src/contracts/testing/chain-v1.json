@@ -1,0 +1,46 @@
+{
+  "format": "behindme-audit-chain-v1",
+  "contract_id": "3f6c1b9a-2d4e-4f8a-9b7c-1e2d3c4b5a69",
+  "events": [
+    {
+      "contract_id": "3f6c1b9a-2d4e-4f8a-9b7c-1e2d3c4b5a69",
+      "seq": 1,
+      "type": "contract.created",
+      "actor_id": "user_owner",
+      "body": "{\"accessor_id\":\"user_accessor\",\"category\":\"networks\",\"validator_ids\":[\"user_v1\",\"user_v2\"]}",
+      "occurred_at": "2026-10-14T20:24:32.238Z",
+      "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "hash": "610fd81e00eae754a4048b683bb966552b79d69f2e4950459e652f29c94a94db"
+    },
+    {
+      "contract_id": "3f6c1b9a-2d4e-4f8a-9b7c-1e2d3c4b5a69",
+      "seq": 2,
+      "type": "contract.updated",
+      "actor_id": "user_owner",
+      "body": "{\"fields\":[\"description\"]}",
+      "occurred_at": "2026-10-14T20:24:32.240Z",
+      "prev_hash": "610fd81e00eae754a4048b683bb966552b79d69f2e4950459e652f29c94a94db",
+      "hash": "ff8c0437e75f7a3a6187106cfa27f2097ce860c3ce3a27a47897af5cf4f57c37"
+    },
+    {
+      "contract_id": "3f6c1b9a-2d4e-4f8a-9b7c-1e2d3c4b5a69",
+      "seq": 3,
+      "type": "contract.updated",
+      "actor_id": "user_owner",
+      "body": "{\"fields\":[\"category\",\"description\"]}",
+      "occurred_at": "2026-10-14T20:24:32.240Z",
+      "prev_hash": "ff8c0437e75f7a3a6187106cfa27f2097ce860c3ce3a27a47897af5cf4f57c37",
+      "hash": "9db9578d8b2a256d344a64adff559b0d7dc982c22a6fc3c1a7a2592bec769f17"
+    },
+    {
+      "contract_id": "3f6c1b9a-2d4e-4f8a-9b7c-1e2d3c4b5a69",
+      "seq": 4,
+      "type": "contract.deleted",
+      "actor_id": null,
+      "body": "{\"reason\":\"owner\"}",
+      "occurred_at": "2026-10-14T20:24:32.241Z",
+      "prev_hash": "9db9578d8b2a256d344a64adff559b0d7dc982c22a6fc3c1a7a2592bec769f17",
+      "hash": "c20cd717490a57bb655d4d70f712ebe02d0e4230901ce8a09226397ee60f6b70"
+    }
+  ]
+}

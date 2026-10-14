@@ -2,18 +2,17 @@
  * Writes the OpenAPI contract of the public API without starting the server.
  * Run with `npm run openapi` (builds first so the Swagger CLI plugin metadata is included),
  * which writes `openapi.json` at the repository root (the file the mobile app reads).
- * Supabase, Clerk, the database and the notifier are never contacted: placeholder env values are
+ * Clerk, the database and the other services are never contacted: placeholder env values are
  * used when missing, and the app is never initialised (no background loop starts).
  */
 import { writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 process.env.NODE_ENV ??= "development";
-process.env.SUPABASE_URL ??= "http://localhost:54321";
-process.env.SUPABASE_SERVICE_ROLE_KEY ??= "placeholder";
 process.env.CLERK_SECRET_KEY ??= "placeholder";
 process.env.DATABASE_URL ??= "postgresql://placeholder@localhost/placeholder";
 process.env.NOTIFIER_URL ??= "http://localhost:3001";
+process.env.HANDOVER_URL ??= "http://localhost:3003";
 process.env.INTERNAL_JWT_SECRET ??=
   "placeholder-placeholder-placeholder-placeholder";
 process.env.MESSAGING_ENABLED = "false";

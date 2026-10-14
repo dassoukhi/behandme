@@ -37,7 +37,8 @@ delivery order are in `docs/architecture.md`.
 
 - `apps/<service>/src` — one deployable NestJS app per service, configured in `nest-cli.json` (tsc builder) with
   its own `tsconfig.app.json`: `gateway` (the public API, the only service the mobile app calls), `notifier`
-  (notifications, push, internal API for the gateway), `worker` (scheduled jobs). Planned: `handover`. Build
+  (notifications, push, internal API for the gateway), `handover` (contracts, their life cycle and audit
+  log, internal API for the gateway), `worker` (scheduled jobs). Build
   output: `dist/apps/<service>/apps/<service>/src/main.js`.
 - `libs/<name>/src` — shared code imported as `@lib/<name>` (aliases in the root `tsconfig.json` "paths",
   rewritten to relative paths at build by the Nest CLI, resolved by Vitest through `resolve.tsconfigPaths`):
@@ -73,38 +74,48 @@ delivery order are in `docs/architecture.md`.
   services must hear about go through `USERS_UNIT_OF_WORK`: the change and its event (`core.outbox`) commit
   together. Application specs run on in-memory ports (`users/testing/`), adapters on PGlite.
 - `notifications/` relays the caller's requests to the notifier (`NotifierClient` port, `HttpNotifierClient`).
-  `contracts/` predates the layers, reads `public.contracts` through `SupabaseService` (service-role client)
-  and moves to the handover service in phase 3. `messaging/` runs the outbox relay and the gateway's queue.
+- `contracts/` relays to handover (`ContractsFacade`): it checks that the participants of a new contract are
+  people the caller trusts, and adds the participants' profiles (visibility rule) to handover's records.
+  `handover/` provides `HANDOVER_CLIENT` to the modules that need it. `messaging/` runs the outbox relay and
+  the gateway's queue. The gateway holds no Supabase key: each service uses its own Postgres role.
 - Updates use **PATCH** (users, contracts, notifications).
 
 ## Access control (security-critical)
 
-The database denies the public anon key (RLS on, no policies — `supabase/migrations/`), so this API
-is the only gate and connects with the service-role key, which bypasses RLS. Every handler must:
+The database denies the public anon key (RLS on, no policies — `supabase/migrations/`), and each service
+connects with its own role, limited to its schema: the gateway is the only gate for the app. Every handler
+must:
 
 - Take the caller's identity from `@CurrentUserId()`, **never** from the path, query or body. DTOs
   must not expose identity fields (`owner_id`, `user_id`, `id` of the caller…); the whitelist then
   rejects them. Caller-scoped routes live under `/users/me`.
-- Filter in the Supabase query itself (`.eq("owner_id", me)`, `participantFilter(me)`), and return
-  **404** (not 403) for resources the caller cannot see.
-- Rules: contracts readable by owner/accessor/validators, name/description writable by the owner only,
-  `status` and participants never client-writable, no secret material ever returned
-  (`apps/gateway/src/contracts/`); participants must be distinct and trusted by the owner; profiles expose
+- Filter in the query itself (`where owner_id = me`…) or pass the caller to the service that owns the data,
+  and return **404** (not 403) for resources the caller cannot see.
+- Rules: contracts readable by owner/accessor/validators; what each may do is handover's
+  `allowedActions` (`apps/handover/src/contracts/domain/lifecycle.ts`: today the owner edits a draft or an
+  active contract and deletes a draft); `status` and participants never client-writable, no secret material
+  ever returned; participants must be distinct and trusted by the owner (trust checked by the gateway,
+  distinctness by handover); a contract's audit log is append-only and readable by its participants; profiles expose
   email/phone only to yourself and to users who trust you (`apps/gateway/src/users/domain/profile.ts`);
   a profile's email comes from Clerk, never from the client; a trust link is removed by its owner only;
   notifications are recipient-only and created by services from events (no client create/send route).
-- Internal services (notifier) trust only the internal token: `@ForUser()` gives the user it names, and every
+- Internal services (notifier, handover) trust only the internal token: `@ForUser()` gives the user it names, and every
   query filters on it (another user's row → 404). Only the gateway signs tokens for a user.
-- Tests: `apps/gateway/src/common/access-control.spec.ts` runs the real services (profiles and trust on PGlite
-  as `svc_gateway`, contracts on an in-memory Supabase, `apps/gateway/src/testing/in-memory-supabase.ts`) with a
-  role × action matrix — extend it for every new route. The notifier has its own
-  (`apps/notifier/src/notifications/notifier.spec.ts`, `apps/notifier/src/internal-api.spec.ts`).
+- Tests: `apps/gateway/src/common/access-control.spec.ts` runs the real gateway services (profiles and trust on
+  PGlite as `svc_gateway`, contracts through an in-memory handover, `apps/gateway/src/handover/testing/`) with a
+  role × action matrix — extend it for every new route. Notifier and handover have their own
+  (`apps/notifier/src/notifications/notifier.spec.ts`, `apps/handover/src/contracts/handover.spec.ts`, and
+  each service's `internal-api.spec.ts`).
 
 ## Known gaps (decided, do not fix piecemeal)
 
-- `DELETE /users/me` fails (500) when the caller is the accessor of someone's contract
-  (`contracts_accessor_id_fkey` has no ON DELETE rule). Left as is until the account-deletion saga
-  (phase 6, `docs/architecture.md`), by the user's choice (2026-10-14).
+- `DELETE /users/me` is refused (409) while the caller is the accessor or a validator of someone else's
+  contract; their own drafts are deleted by handover (event `user.deleted`). Removing them from other people's
+  contracts waits for the account-deletion saga (phase 6, `docs/architecture.md`), by the user's choice
+  (2026-10-14).
+- `public.contracts`, `public.notifications`, `public.push_tokens`, `public.orphan_tokens` and the RPCs
+  `get_trusted_users` / `get_contract_with_validators` are no longer used; a later migration drops them
+  (needs the user's confirmation).
 
 ## Definition of done
 

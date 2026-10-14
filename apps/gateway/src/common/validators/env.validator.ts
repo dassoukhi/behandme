@@ -24,16 +24,19 @@ class EnvironmentVariables {
   @IsNumber()
   PORT: number;
 
+  // Not used by the API any more (data goes through each service's own Postgres role); read by
+  // npm run check:rls.
+  @IsOptional()
   @IsString()
-  SUPABASE_URL: string;
+  SUPABASE_URL?: string;
 
-  // No longer used by the API (service-role only); kept optional for tooling.
   @IsOptional()
   @IsString()
   SUPABASE_ANON_KEY?: string;
 
+  @IsOptional()
   @IsString()
-  SUPABASE_SERVICE_ROLE_KEY: string;
+  SUPABASE_SERVICE_ROLE_KEY?: string;
 
   // Verifies session tokens and reads verified identities (profile emails).
   @IsString()
@@ -43,9 +46,12 @@ class EnvironmentVariables {
   @IsString()
   DATABASE_URL: string;
 
-  // Internal URL of the notifier service.
+  // Internal URLs of the notifier and handover services.
   @IsUrl({ require_tld: false, require_protocol: true })
   NOTIFIER_URL: string;
+
+  @IsUrl({ require_tld: false, require_protocol: true })
+  HANDOVER_URL: string;
 
   // Signs the gateway's calls to the other services (shared with them).
   @IsString()

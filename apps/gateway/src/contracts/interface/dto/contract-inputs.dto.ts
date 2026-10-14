@@ -10,31 +10,27 @@ import {
   IsString,
   MaxLength,
 } from "class-validator";
+import { CONTRACT_CATEGORIES, type ContractCategory } from "@lib/contracts";
 
-export const CONTRACT_CATEGORIES = ["networks", "devices", "storage"] as const;
-export type ContractCategory = (typeof CONTRACT_CATEGORIES)[number];
-
-// The owner is the authenticated caller. Status, secret material and any
-// lifecycle field are server-controlled and never accepted from the client.
+// The owner is the authenticated caller. Status and every life-cycle field are changed by handover
+// only, never accepted from the client.
 export class CreateContractDTO {
-  @ApiProperty({
-    description: "Contract category",
-    enum: CONTRACT_CATEGORIES,
-    example: "networks",
-  })
+  @ApiProperty({ enum: CONTRACT_CATEGORIES, example: "networks" })
   @IsIn(CONTRACT_CATEGORIES)
-  name: ContractCategory;
+  category: ContractCategory;
 
   @ApiPropertyOptional({
     description:
       "Short description visible to every participant: never put anything secret here",
     maxLength: 280,
+    nullable: true,
+    type: String,
     example: "Accès à mes réseaux sociaux",
   })
   @IsOptional()
   @IsString()
   @MaxLength(280)
-  description?: string;
+  description?: string | null;
 
   @ApiProperty({
     description: "Clerk ID of the accessor (must be someone the caller trusts)",
@@ -46,7 +42,7 @@ export class CreateContractDTO {
 
   @ApiProperty({
     description:
-      "Clerk IDs of 1 to 3 distinct validators (people the caller trusts)",
+      "Clerk IDs of 1 to 3 distinct validators (people the caller trusts), in order",
     type: [String],
     minItems: 1,
     maxItems: 3,
@@ -58,5 +54,19 @@ export class CreateContractDTO {
   @ArrayUnique()
   @IsString({ each: true })
   @IsNotEmpty({ each: true })
-  validators: string[];
+  validator_ids: string[];
+}
+
+// Only descriptive fields; participants change by re-sealing (phase 4).
+export class UpdateContractDTO {
+  @ApiPropertyOptional({ enum: CONTRACT_CATEGORIES })
+  @IsOptional()
+  @IsIn(CONTRACT_CATEGORIES)
+  category?: ContractCategory;
+
+  @ApiPropertyOptional({ maxLength: 280, nullable: true, type: String })
+  @IsOptional()
+  @IsString()
+  @MaxLength(280)
+  description?: string | null;
 }

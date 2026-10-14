@@ -26,6 +26,8 @@ export type ProfileFields = Partial<
 
 export interface ProfileRepository {
   find(id: string): Promise<Profile | null>;
+  /** The profiles that exist among `ids`, in no particular order. */
+  findMany(ids: string[]): Promise<Profile[]>;
   create(
     id: string,
     fields: ProfileFields & { email: string },
@@ -58,6 +60,13 @@ export interface TrustRepository {
   trusters(trustedId: string, ownerIds: string[]): Promise<string[]>;
 }
 export const TRUST_REPOSITORY = Symbol("TrustRepository");
+
+/** What the handover service knows of a user's part in other people's contracts. */
+export interface ContractParticipation {
+  /** True when the user is the accessor or a validator of a contract they do not own. */
+  takesPartInOthersContracts(userId: string): Promise<boolean>;
+}
+export const CONTRACT_PARTICIPATION = Symbol("ContractParticipation");
 
 /** Events for the other services, published only if the transaction commits. */
 export interface EventPublisher {
