@@ -1,20 +1,34 @@
 import { BadRequestException, NotFoundException } from "@nestjs/common";
-import { UnprocessableError } from "@lib/kernel";
-import { beforeEach, describe, expect, it } from "vitest";
+import { type Kysely, sql } from "kysely";
+import { NotFoundError, UnprocessableError } from "@lib/kernel";
+import { startTestDatabase, type TestDatabase } from "@lib/testing";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+} from "vitest";
 import { ContractService } from "../contracts/contract.service.js";
-import { NotificationsService } from "../notifications/notifications.service.js";
 import type { IdentityProfile } from "../users/application/ports.js";
 import { ProfileService } from "../users/application/profile.service.js";
 import { TrustService } from "../users/application/trust.service.js";
-import { SupabaseProfileRepository } from "../users/infrastructure/supabase-profile.repository.js";
-import { SupabaseTrustRepository } from "../users/infrastructure/supabase-trust.repository.js";
+import { KyselyProfileRepository } from "../users/infrastructure/kysely-profile.repository.js";
+import { KyselyTrustRepository } from "../users/infrastructure/kysely-trust.repository.js";
+import { KyselyUsersUnitOfWork } from "../users/infrastructure/kysely-users.unit-of-work.js";
 import { fakeSupabaseService } from "../testing/in-memory-supabase.js";
+
+// The real services. Profiles and trust links on the real schema (PGlite, as svc_gateway);
+// contracts, still read through supabase-js, on an in-memory Supabase.
 
 const OWNER = "user_owner";
 const ACCESSOR = "user_accessor";
 const VALIDATOR = "user_validator";
 const STRANGER = "user_stranger";
 const CONTRACT_ID = "4bce1a03-3fa5-4d39-8c7e-7f3b7e3468a5";
+const PEOPLE = [OWNER, ACCESSOR, VALIDATOR, STRANGER];
 
 const profile = (id: string) => ({
   id,
@@ -27,11 +41,9 @@ const profile = (id: string) => ({
   updated_at: "2026-01-01T00:00:00Z",
 });
 
-function seed() {
+function seedContracts() {
   return {
-    users: [OWNER, ACCESSOR, VALIDATOR, STRANGER].map(profile),
-    // The accessor trusts the owner: the owner may see the accessor's contact details.
-    trusted: [{ id: "t1", owner_id: ACCESSOR, trusted_id: OWNER }],
+    users: PEOPLE.map(profile),
     contracts: [
       {
         id: CONTRACT_ID,
@@ -51,49 +63,51 @@ function seed() {
         accessor: profile(ACCESSOR),
       },
     ],
-    notifications: [
-      {
-        id: "n1",
-        userId: OWNER,
-        title: "t",
-        message: "m",
-        is_read: false,
-        data: {},
-      },
-      {
-        id: "n2",
-        userId: STRANGER,
-        title: "t",
-        message: "m",
-        is_read: false,
-        data: {},
-      },
-    ],
-    push_tokens: [] as Record<string, any>[],
-    orphan_tokens: [] as Record<string, any>[],
   };
 }
 
-let db: ReturnType<typeof seed>;
+let t: TestDatabase;
+let pg: Kysely<any>;
+let db: ReturnType<typeof seedContracts>;
 let contracts: ContractService;
-let notifications: NotificationsService;
 let users: ProfileService;
 let trust: TrustService;
 // What Clerk would return for each user id (the only trusted source of emails).
 let identities: Record<string, IdentityProfile>;
 
-beforeEach(() => {
-  db = seed();
+/** `owner` trusts each of `ids`. */
+const trusts = (owner: string, ...ids: string[]) =>
+  Promise.all(ids.map((id) => new KyselyTrustRepository(pg).add(owner, id)));
+
+beforeAll(async () => {
+  t = await startTestDatabase();
+  pg = t.db;
+}, 60_000);
+afterAll(() => t?.close());
+
+beforeEach(async () => {
+  await sql`
+    reset role;
+    delete from public.trusted; delete from public.contracts; delete from public.users;
+    delete from core.outbox;
+  `.execute(pg);
+  for (const p of PEOPLE.map(profile)) {
+    await sql`insert into public.users (id, email, phone_number, first_name, last_name)
+      values (${p.id}, ${p.email}, ${p.phone_number}, ${p.first_name}, ${p.last_name})`.execute(
+      pg,
+    );
+  }
+  // The rights the gateway has in production.
+  await sql`set role svc_gateway`.execute(pg);
+  // The accessor trusts the owner: the owner may see the accessor's contact details.
+  await trusts(ACCESSOR, OWNER);
+
+  db = seedContracts();
   identities = {};
-  const supabase = fakeSupabaseService(db);
-  // The real services and Supabase repositories, on the in-memory client.
-  const profileRepository = new SupabaseProfileRepository(supabase);
-  trust = new TrustService(
-    profileRepository,
-    new SupabaseTrustRepository(supabase),
-  );
+  const unitOfWork = new KyselyUsersUnitOfWork(pg);
+  trust = new TrustService(new KyselyTrustRepository(pg), unitOfWork);
   users = new ProfileService(
-    profileRepository,
+    new KyselyProfileRepository(pg),
     {
       getProfile: async (id: string) => {
         if (!identities[id]) throw new Error(`unknown identity ${id}`);
@@ -101,10 +115,16 @@ beforeEach(() => {
       },
     },
     trust,
+    unitOfWork,
   );
-  contracts = new ContractService(supabase, trust);
-  notifications = new NotificationsService(supabase);
+  contracts = new ContractService(fakeSupabaseService(db), trust);
 });
+afterEach(() => sql`reset role`.execute(pg));
+
+const outboxTypes = async () =>
+  (
+    await sql<{ type: string }>`select type from core.outbox`.execute(pg)
+  ).rows.map((r) => r.type);
 
 describe("contracts: role × action", () => {
   const roles = [
@@ -182,14 +202,6 @@ describe("contracts: role × action", () => {
   });
 
   describe("creation", () => {
-    const trust = (owner: string, ...ids: string[]) =>
-      ids.forEach((id, i) =>
-        db.trusted.push({
-          id: `t-${owner}-${i}`,
-          owner_id: owner,
-          trusted_id: id,
-        }),
-      );
     const body = {
       name: "devices" as const,
       accessor_id: OWNER,
@@ -197,7 +209,7 @@ describe("contracts: role × action", () => {
     };
 
     it("always creates contracts owned by the caller, with no client-set status", async () => {
-      trust(STRANGER, OWNER, VALIDATOR);
+      await trusts(STRANGER, OWNER, VALIDATOR);
       const created = await contracts.create(STRANGER, body);
       expect(created.owner_id).toBe(STRANGER);
       expect(db.contracts.at(-1)).not.toHaveProperty("secret_hash");
@@ -205,7 +217,7 @@ describe("contracts: role × action", () => {
     });
 
     it("rejects participants the caller does not trust", async () => {
-      trust(STRANGER, OWNER); // the validator is not trusted
+      await trusts(STRANGER, OWNER); // the validator is not trusted
       await expect(contracts.create(STRANGER, body)).rejects.toBeInstanceOf(
         BadRequestException,
       );
@@ -217,53 +229,12 @@ describe("contracts: role × action", () => {
       ["the caller as validator", { ...body, validators: [STRANGER] }],
       ["the accessor as validator", { ...body, validators: [OWNER] }],
     ])("rejects %s", async (_case, invalid) => {
-      trust(STRANGER, OWNER, VALIDATOR, STRANGER);
+      // Even trusting oneself (only possible in the data) does not make it valid.
+      await trusts(STRANGER, OWNER, VALIDATOR, STRANGER);
       await expect(contracts.create(STRANGER, invalid)).rejects.toBeInstanceOf(
         BadRequestException,
       );
     });
-  });
-});
-
-describe("notifications: only the recipient", () => {
-  it("lists only the caller's notifications", async () => {
-    const list = await notifications.findAll(OWNER);
-    expect(list.map((n) => n.id)).toEqual(["n1"]);
-  });
-
-  it.each([
-    ["read", (me: string) => notifications.findOne(me, "n2")],
-    [
-      "mark as read",
-      (me: string) => notifications.update(me, "n2", { is_read: true }),
-    ],
-    ["delete", (me: string) => notifications.remove(me, "n2")],
-  ])("cannot %s someone else's notification", async (_action, act) => {
-    await expect(act(OWNER)).rejects.toBeInstanceOf(NotFoundException);
-    expect(db.notifications.find((n) => n.id === "n2")).toMatchObject({
-      is_read: false,
-    });
-  });
-
-  it("can mark its own notification as read", async () => {
-    await expect(
-      notifications.update(OWNER, "n1", { is_read: true }),
-    ).resolves.toMatchObject({
-      is_read: true,
-    });
-  });
-
-  it("moves a device token to whoever signs in on it", async () => {
-    await notifications.registerOrphanToken({ token: "ExponentPushToken[a]" });
-    await notifications.registerPushToken(STRANGER, {
-      token: "ExponentPushToken[a]",
-    });
-    await notifications.registerPushToken(OWNER, {
-      token: "ExponentPushToken[a]",
-    });
-
-    expect(db.push_tokens.map((t) => t.user_id)).toEqual([OWNER]);
-    expect(db.orphan_tokens).toHaveLength(0);
   });
 });
 
@@ -284,12 +255,15 @@ describe("users: profile visibility", () => {
 
   it("only updates the caller's own profile", async () => {
     await users.updateMe(STRANGER, { phone_number: "+33700000000" });
-    expect(db.users.find((u) => u.id === STRANGER)?.phone_number).toBe(
-      "+33700000000",
-    );
-    expect(db.users.find((u) => u.id === OWNER)?.phone_number).toBe(
-      "+33600000000",
-    );
+    expect((await users.findMe(STRANGER)).phone_number).toBe("+33700000000");
+    expect((await users.findMe(OWNER)).phone_number).toBe("+33600000000");
+  });
+
+  it("only deletes the caller's own profile, and tells the other services", async () => {
+    await users.removeMe(STRANGER);
+    await expect(users.findMe(STRANGER)).rejects.toBeInstanceOf(NotFoundError);
+    expect((await users.findMe(OWNER)).id).toBe(OWNER);
+    expect(await outboxTypes()).toEqual(["user.deleted"]);
   });
 
   describe("profile provisioning", () => {
@@ -323,7 +297,11 @@ describe("users: profile visibility", () => {
         email: "nina.new@example.com",
         first_name: "Nina-Rose",
       });
-      expect(db.users.filter((u) => u.id === NEW_USER)).toHaveLength(1);
+      const { rows } =
+        await sql`select 1 from public.users where id = ${NEW_USER}`.execute(
+          pg,
+        );
+      expect(rows).toHaveLength(1);
     });
 
     it("refuses an account without a verified email", async () => {
@@ -331,12 +309,45 @@ describe("users: profile visibility", () => {
       await expect(users.ensureMe(NEW_USER)).rejects.toBeInstanceOf(
         UnprocessableError,
       );
-      expect(db.users.find((u) => u.id === NEW_USER)).toBeUndefined();
+      await expect(users.findMe(NEW_USER)).rejects.toBeInstanceOf(
+        NotFoundError,
+      );
     });
   });
+});
 
-  it("only trusts on behalf of the caller", async () => {
+describe("trust links: only the caller's own", () => {
+  it("only trusts on behalf of the caller, and tells the person added", async () => {
     const link = await trust.add(STRANGER, OWNER);
     expect(link.owner_id).toBe(STRANGER);
+    expect(await outboxTypes()).toEqual(["trust.added"]);
+  });
+
+  it("removes the caller's own link only (404 for someone else's)", async () => {
+    // ACCESSOR trusts OWNER; the owner and a stranger cannot remove that link.
+    await expect(trust.remove(OWNER, OWNER)).rejects.toBeInstanceOf(
+      NotFoundError,
+    );
+    await expect(trust.remove(STRANGER, OWNER)).rejects.toBeInstanceOf(
+      NotFoundError,
+    );
+    expect(await trust.trustedIds(ACCESSOR)).toEqual(new Set([OWNER]));
+
+    await trust.remove(ACCESSOR, OWNER);
+    expect(await trust.trustedIds(ACCESSOR)).toEqual(new Set());
+  });
+
+  it("lists who trusts the caller, with their contact details", async () => {
+    const asOwner = await trust.listTrustedBy(OWNER);
+    expect(asOwner.map((p) => p.id)).toEqual([ACCESSOR]);
+    expect(asOwner[0].email).toBe(`${ACCESSOR}@example.com`);
+    expect(await trust.listTrustedBy(STRANGER)).toEqual([]);
+  });
+
+  it("lists who the caller trusts, hiding contact details of those who do not trust back", async () => {
+    await trusts(OWNER, VALIDATOR);
+    const listed = await trust.listTrusted(OWNER);
+    expect(listed.map((p) => p.id)).toEqual([VALIDATOR]);
+    expect(listed[0]).not.toHaveProperty("email");
   });
 });

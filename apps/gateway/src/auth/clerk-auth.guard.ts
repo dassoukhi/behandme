@@ -1,6 +1,7 @@
 import { type ExecutionContext, Injectable } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { AuthGuard } from "@nestjs/passport";
+import { isOpenRoute } from "@lib/platform";
 import { IS_PUBLIC_KEY } from "../decorators/public.decorator.js";
 
 @Injectable()
@@ -15,7 +16,7 @@ export class ClerkAuthGuard extends AuthGuard("clerk") {
       context.getClass(),
     ]);
 
-    if (isPublic) {
+    if (isPublic || isOpenRoute(this.reflector, context)) {
       return true;
     }
 

@@ -19,7 +19,9 @@ delivery order are in `docs/architecture.md`.
 
 ## Commands
 
-- `npm run start:dev` — gateway in watch mode, port `PORT` (default 3000). Swagger UI `/api/docs`, JSON `/api/docs-json`.
+- `npm run dev` — the three services in watch mode: gateway (port 3000, Swagger UI `/api/docs`, JSON
+  `/api/docs-json`), notifier (3001), worker (3002). One alone: `npm run start:dev` (gateway),
+  `start:dev:notifier`, `start:dev:worker`. Env files: see "Configuration".
 - `npm run verify` — **push gate**, see "Definition of done".
 - `npm run build` (every app), `npm run openapi`, `npm test` (vitest, specs in `{apps,libs}/*/src/**/*.spec.ts`),
   `npm run lint` (**applies fixes**), `npm run format`.
@@ -28,17 +30,24 @@ delivery order are in `docs/architecture.md`.
   only). Run after every migration.
 - `npm run check:schema` — replays the migrations on PGlite and compares them with the hosted schema
   captured in `supabase/introspection.json`. Run after the user applies a migration.
-- Node 24 (`.nvmrc`). Env: see `.env.example` (Supabase + Clerk required to serve requests).
+- Node 24 (`.nvmrc`; dependency-cruiser refuses Node 23). The repo `.npmrc` sets `legacy-peer-deps`, like the
+  lockfile (pglite-socket lists every PGlite extension as a required peer).
 
 ## Monorepo layout
 
 - `apps/<service>/src` — one deployable NestJS app per service, configured in `nest-cli.json` (tsc builder) with
-  its own `tsconfig.app.json`. Today: `gateway` (the public API, the only service the mobile app calls).
-  Planned: `handover`, `notifier`, `worker`. Build output: `dist/apps/<service>/apps/<service>/src/main.js`.
+  its own `tsconfig.app.json`: `gateway` (the public API, the only service the mobile app calls), `notifier`
+  (notifications, push, internal API for the gateway), `worker` (scheduled jobs). Planned: `handover`. Build
+  output: `dist/apps/<service>/apps/<service>/src/main.js`.
 - `libs/<name>/src` — shared code imported as `@lib/<name>` (aliases in the root `tsconfig.json` "paths",
   rewritten to relative paths at build by the Nest CLI, resolved by Vitest through `resolve.tsconfigPaths`):
-  `kernel` (Clock, ids, Logger), `messaging` (outbox, relay, consumer, pgmq), `persistence` (Kysely + pg),
-  `testing` (FakeClock, `startTestDatabase`). How messaging works: `docs/architecture.md`.
+  `kernel` (Clock, ids, Logger, errors, correlation), `contracts` (event types with zod schemas, internal API
+  types), `messaging` (outbox, relay, consumer, pgmq, retention), `persistence` (Kysely + pg), `platform` (Nest
+  building blocks: config, database module, health, internal-token guard, exception filter, logger, polling
+  loops), `testing` (FakeClock, `startTestDatabase`). How messaging works: `docs/architecture.md`.
+- Events: define them in `libs/contracts/src/events.ts` (new payload shape = new version), publish with
+  `Event.create(payload)` through a transactional outbox, consume with `on(Event, handler)`, and route them with
+  rows in `messaging.subscriptions` (a migration).
 - New feature code follows clean architecture inside each module: `domain/` (pure rules, imports only
   domain code and `@lib/kernel`), `application/` (use cases and ports), `infrastructure/` (adapters:
   database, Clerk, push…), `interface/` (controllers, message consumers). The `*.module.ts` file wires them.
@@ -47,21 +56,25 @@ delivery order are in `docs/architecture.md`.
 
 ## Gateway architecture
 
-- All routes under `/api/v1` (`app.setGlobalPrefix`). Swagger config shared in `apps/gateway/src/swagger.ts`.
+- All routes under `/api/v1` (`app.setGlobalPrefix`), except `GET /health`. Swagger config shared in
+  `apps/gateway/src/swagger.ts`.
 - Global `ValidationPipe({ whitelist, forbidNonWhitelisted, transform })`: **every** body field needs a
   class-validator decorator, otherwise requests fail with "property X should not exist".
 - Auth: global `ClerkAuthGuard` (passport-custom strategy, `apps/gateway/src/auth/`). Clients send
   `Authorization: Bearer <Clerk session JWT>`; opt out with `@Public()` (`apps/gateway/src/decorators/`).
   `req.user` is `{ id }` (Clerk user id = `users.id`), read with `@CurrentUserId()`.
-- Errors: `GlobalExceptionFilter` → `{ statusCode, timestamp, path, error, message }`. Domain and
+- Errors: `GlobalExceptionFilter` (`libs/platform`, every service) → `{ statusCode, timestamp, path, error, message }`. Domain and
   application code throw the `@lib/kernel` errors (`InvalidInputError` 400, `NotFoundError` 404,
   `ConflictError` 409, `UnprocessableError` 422), which the filter answers like the matching Nest
   exception. Any other error is a 500 whose message stays in the logs ("Internal server error" to the client).
-- `users/` is layered (domain: visibility and trust rules; application: `ProfileService`, `TrustService`
-  and their ports; infrastructure: Supabase repositories, Clerk; interface: controller and DTOs) and is
-  the model for new modules; its application specs run on in-memory ports (`users/testing/`).
-  `contracts/` and `notifications/` predate the layers and move to the handover and notifier services.
-  Data: `SupabaseService` (`apps/gateway/src/supabase/`, service-role client only). Push: `apps/gateway/src/expo/`.
+- `users/` is layered (domain: visibility and trust rules; application: `ProfileService`, `TrustService`,
+  their ports and a unit of work; infrastructure: Kysely repositories on `public.users`/`public.trusted` as
+  `svc_gateway`, Clerk; interface: controller and DTOs) and is the model for new modules. Writes that other
+  services must hear about go through `USERS_UNIT_OF_WORK`: the change and its event (`core.outbox`) commit
+  together. Application specs run on in-memory ports (`users/testing/`), adapters on PGlite.
+- `notifications/` relays the caller's requests to the notifier (`NotifierClient` port, `HttpNotifierClient`).
+  `contracts/` predates the layers, reads `public.contracts` through `SupabaseService` (service-role client)
+  and moves to the handover service in phase 3. `messaging/` runs the outbox relay and the gateway's queue.
 - Updates use **PATCH** (users, contracts, notifications).
 
 ## Access control (security-critical)
@@ -78,10 +91,14 @@ is the only gate and connects with the service-role key, which bypasses RLS. Eve
   `status` and participants never client-writable, no secret material ever returned
   (`apps/gateway/src/contracts/`); participants must be distinct and trusted by the owner; profiles expose
   email/phone only to yourself and to users who trust you (`apps/gateway/src/users/domain/profile.ts`);
-  a profile's email comes from Clerk, never from the client; notifications are recipient-only and created
-  server-side (no client create/send route).
-- Tests: `apps/gateway/src/common/access-control.spec.ts` runs the real services against an in-memory Supabase
-  (`apps/gateway/src/testing/in-memory-supabase.ts`) with a role × action matrix — extend it for every new route.
+  a profile's email comes from Clerk, never from the client; a trust link is removed by its owner only;
+  notifications are recipient-only and created by services from events (no client create/send route).
+- Internal services (notifier) trust only the internal token: `@ForUser()` gives the user it names, and every
+  query filters on it (another user's row → 404). Only the gateway signs tokens for a user.
+- Tests: `apps/gateway/src/common/access-control.spec.ts` runs the real services (profiles and trust on PGlite
+  as `svc_gateway`, contracts on an in-memory Supabase, `apps/gateway/src/testing/in-memory-supabase.ts`) with a
+  role × action matrix — extend it for every new route. The notifier has its own
+  (`apps/notifier/src/notifications/notifier.spec.ts`, `apps/notifier/src/internal-api.spec.ts`).
 
 ## Known gaps (decided, do not fix piecemeal)
 
@@ -102,10 +119,18 @@ If the contract changed, push this repo before the front.
 
 | Change                       | Action                                                                   |
 | ---------------------------- | ------------------------------------------------------------------------ |
-| code in `apps/` or `libs/`   | `npm run start:dev` reloads by itself; redeploy any hosted instance      |
+| code in `apps/` or `libs/`   | `npm run dev` reloads by itself; redeploy any hosted instance            |
 | route, DTO or response shape | `npm run openapi`, then in `../behindMe`: `npm run api:sync`             |
-| `.env`                       | restart `start:dev` (env is read at boot)                                |
+| `.env`, `.env.<service>`     | restart `npm run dev` (env is read at boot)                              |
 | SQL migration                | the user applies it in the SQL editor, refreshes `supabase/introspection.json`, then `check:rls` and `check:schema` |
+
+## Configuration
+
+- Each service reads `.env.<service>` first (what differs: `DATABASE_URL` with its own role, `PORT`), then the
+  shared `.env` (`INTERNAL_JWT_SECRET`, Supabase and Clerk keys, `NOTIFIER_URL`). Template: `.env.example`.
+  Validated at boot (gateway: `apps/gateway/src/common/validators/env.validator.ts`; others: zod, `config.ts`).
+- `MESSAGING_ENABLED=false` stops a service's background loops; `npm run openapi` sets it.
+- Deployment (Docker image per service, Railway): `docs/deploy.md`.
 
 ## Data changes (Supabase)
 

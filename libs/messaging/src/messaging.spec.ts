@@ -8,9 +8,12 @@ import {
   it,
   vi,
 } from "vitest";
+import { currentCorrelationId } from "@lib/kernel";
 import { FakeClock, startTestDatabase, type TestDatabase } from "@lib/testing";
 import { createEnvelope, type EventEnvelope } from "./envelope.js";
 import { QueueConsumer, type EventHandler } from "./consumer.js";
+import { MalformedMessageError } from "./errors.js";
+import { purgeMessagingTables } from "./retention.js";
 import { TransactionalOutbox } from "./outbox.js";
 import { PgmqBus } from "./pgmq-bus.js";
 import { OutboxRelay } from "./relay.js";
@@ -246,6 +249,47 @@ describe("queue consumer", () => {
     );
   });
 
+  it("dead-letters a malformed payload at once, without retrying", async () => {
+    await bus.send(
+      t.db,
+      "notifier",
+      createEnvelope(trustAdded, { correlationId: "c" }, clock),
+    );
+    const result = await poll(
+      consumer({
+        "trust.added": async () => {
+          throw new MalformedMessageError("ownerName is missing");
+        },
+      }),
+    );
+
+    expect(result).toMatchObject({ failed: 0, deadLettered: 1 });
+    expect(await count("pgmq.a_notifier")).toBe(1);
+    expect(await count("notify.processed_messages")).toBe(0);
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.stringContaining("malformed trust.added"),
+    );
+  });
+
+  it("runs the handler with the event's correlation id", async () => {
+    await bus.send(
+      t.db,
+      "notifier",
+      createEnvelope(trustAdded, { correlationId: "corr-42" }, clock),
+    );
+    let seen: string | undefined;
+    await poll(
+      consumer({
+        "trust.added": async () => {
+          seen = currentCorrelationId();
+        },
+      }),
+    );
+
+    expect(seen).toBe("corr-42");
+    expect(currentCorrelationId()).toBeUndefined();
+  });
+
   it("delivers end to end: publish, relay, consume", async () => {
     const event = await t.asRole("svc_gateway", (db) => publish(db));
     await relay();
@@ -262,5 +306,31 @@ describe("queue consumer", () => {
 
     expect(result.handled).toBe(1);
     expect(seen).toEqual([event]);
+  });
+});
+
+describe("retention", () => {
+  it("forgets relayed events and processed ids once they are old enough", async () => {
+    const now = new Date("2026-03-01T00:00:00Z");
+    await sql`
+      insert into core.outbox (event_id, type, envelope, sent_at) values
+        (gen_random_uuid(), 'old', '{}', '2026-02-20T00:00:00Z'),
+        (gen_random_uuid(), 'recent', '{}', '2026-02-25T00:00:00Z'),
+        (gen_random_uuid(), 'pending', '{}', null);
+      insert into core.processed_messages (consumer, event_id, processed_at) values
+        ('gateway', gen_random_uuid(), '2026-01-15T00:00:00Z'),
+        ('gateway', gen_random_uuid(), '2026-02-15T00:00:00Z');
+    `.execute(t.db);
+
+    const purged = await t.asRole("svc_gateway", (db) =>
+      purgeMessagingTables(db, "core", now),
+    );
+
+    expect(purged).toEqual({ outbox: 1, processed: 1 });
+    const { rows } = await sql<{
+      type: string;
+    }>`select type from core.outbox order by type`.execute(t.db);
+    expect(rows.map((r) => r.type)).toEqual(["pending", "recent"]);
+    await sql`delete from core.processed_messages`.execute(t.db);
   });
 });

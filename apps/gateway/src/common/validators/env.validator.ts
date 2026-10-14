@@ -1,11 +1,15 @@
 import { plainToInstance } from "class-transformer";
 import {
   IsEnum,
+  IsIn,
   IsNumber,
   IsOptional,
   IsString,
+  IsUrl,
+  MinLength,
   validateSync,
 } from "class-validator";
+import { MIN_SECRET_LENGTH } from "@lib/platform";
 
 enum Environment {
   Development = "development",
@@ -34,6 +38,24 @@ class EnvironmentVariables {
   // Verifies session tokens and reads verified identities (profile emails).
   @IsString()
   CLERK_SECRET_KEY: string;
+
+  // Postgres as svc_gateway (Supabase pooler): profiles, trust links, core.outbox, the gateway queue.
+  @IsString()
+  DATABASE_URL: string;
+
+  // Internal URL of the notifier service.
+  @IsUrl({ require_tld: false, require_protocol: true })
+  NOTIFIER_URL: string;
+
+  // Signs the gateway's calls to the other services (shared with them).
+  @IsString()
+  @MinLength(MIN_SECRET_LENGTH)
+  INTERNAL_JWT_SECRET: string;
+
+  // "false" stops the outbox relay and the queue consumer (tooling, tests).
+  @IsOptional()
+  @IsIn(["true", "false"])
+  MESSAGING_ENABLED?: string;
 }
 
 export function validate(config: Record<string, unknown>) {

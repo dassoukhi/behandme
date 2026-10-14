@@ -46,6 +46,7 @@ export async function startTestDatabase({
   await pglite.exec(
     "create or replace function pgmq._belongs_to_pgmq(table_name text) returns boolean language sql as 'select true';",
   );
+  await pglite.exec(readFileSync(join(SQL_DIR, "pg_cron-stub.sql"), "utf8"));
   for (const file of migrations ? trackedMigrations() : []) {
     await pglite.exec(readFileSync(join(MIGRATIONS_DIR, file), "utf8"));
   }

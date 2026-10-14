@@ -1,11 +1,14 @@
-import type { Logger } from "@lib/kernel";
+import { type Logger, withCorrelation } from "@lib/kernel";
 import { type EventEnvelope, isEnvelope } from "./envelope.js";
 import type { Executor, MessageBus, ReceivedMessage } from "./message-bus.js";
+import { MalformedMessageError } from "./errors.js";
 import { type ServiceMessagingTables, withTables } from "./tables.js";
 
 /**
  * Handles one event. All its writes must go through `tx`: they commit together with the record
- * that the event was processed, so a redelivered event has no second effect.
+ * that the event was processed, so a redelivered event has no second effect. It runs with the
+ * event's correlation id (`currentCorrelationId()`), and throws `MalformedMessageError` for a
+ * payload it cannot read: retrying would not help, so the message is dead-lettered at once.
  */
 export type EventHandler = (
   event: EventEnvelope,
@@ -93,23 +96,34 @@ export class QueueConsumer {
     const event = envelope as EventEnvelope;
 
     try {
-      const firstTime = await this.db.transaction().execute(async (tx) => {
-        const recorded = await withTables<ServiceMessagingTables>(tx)
-          .withSchema(schema)
-          .insertInto("processed_messages")
-          .values({ consumer: queue, event_id: event.id })
-          .onConflict((oc) => oc.doNothing())
-          .returning("event_id")
-          .executeTakeFirst();
-        if (recorded) await handlers[event.type](event, tx);
-        return recorded !== undefined;
-      });
+      const firstTime = await withCorrelation(event.correlationId, () =>
+        this.db.transaction().execute(async (tx) => {
+          const recorded = await withTables<ServiceMessagingTables>(tx)
+            .withSchema(schema)
+            .insertInto("processed_messages")
+            .values({ consumer: queue, event_id: event.id })
+            .onConflict((oc) => oc.doNothing())
+            .returning("event_id")
+            .executeTakeFirst();
+          if (recorded) await handlers[event.type](event, tx);
+          return recorded !== undefined;
+        }),
+      );
       // After commit, so that any transport works: a crash before this line redelivers the
       // message, and processed_messages turns the redelivery into a no-op.
       await bus.ack(this.db, queue, message.id);
       if (firstTime) result.handled++;
       else result.duplicates++;
     } catch (error) {
+      if (error instanceof MalformedMessageError) {
+        await bus.deadLetter(this.db, queue, message.id);
+        logger.error(
+          `Message ${message.id} on ${queue} is a malformed ${event.type}: dead-lettered ` +
+            `(${error.message})`,
+        );
+        result.deadLettered++;
+        return;
+      }
       result.failed++;
       logger.warn(
         `Handler for ${event.type} failed on event ${event.id} ` +

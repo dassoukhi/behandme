@@ -1,17 +1,19 @@
 import { NestFactory } from "@nestjs/core";
 import { ValidationPipe } from "@nestjs/common";
 import { SwaggerModule } from "@nestjs/swagger";
-import { AppModule } from "./app.module.js";
 import { ConfigService } from "@nestjs/config";
+import { ServiceLogger } from "@lib/platform";
+import { AppModule } from "./app.module.js";
 import { LoggingInterceptor } from "./common/interceptors/logging.interceptor.js";
 import { createOpenApiDocument } from "./swagger.js";
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const logger = new ServiceLogger("gateway");
+  const app = await NestFactory.create(AppModule, { logger });
   const configService = app.get(ConfigService);
 
-  // Global prefix for all routes
-  app.setGlobalPrefix("api/v1");
+  // Every route under /api/v1, except the host's health check.
+  app.setGlobalPrefix("api/v1", { exclude: ["health"] });
 
   // Enable validation pipe globally
   app.useGlobalPipes(
@@ -28,6 +30,9 @@ async function bootstrap() {
   // Enable CORS
   app.enableCors();
 
+  // Stop the background loops and close the database pool on SIGTERM (deploys).
+  app.enableShutdownHooks();
+
   // Setup Swagger documentation
   const document = createOpenApiDocument(app);
   SwaggerModule.setup("api/docs", app, document);
@@ -35,6 +40,6 @@ async function bootstrap() {
   // Get port from environment variables or use default
   const port = configService.get<number>("PORT", 3000);
   await app.listen(port);
-  console.log(`Application is running on: ${await app.getUrl()}`);
+  logger.log(`Gateway listening on ${await app.getUrl()}`, "Bootstrap");
 }
 bootstrap();

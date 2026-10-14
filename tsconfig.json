@@ -24,9 +24,11 @@
     "noFallthroughCasesInSwitch": true,
     "types": ["node"],
     "paths": {
+      "@lib/contracts": ["./libs/contracts/src/index.ts"],
       "@lib/kernel": ["./libs/kernel/src/index.ts"],
       "@lib/messaging": ["./libs/messaging/src/index.ts"],
       "@lib/persistence": ["./libs/persistence/src/index.ts"],
+      "@lib/platform": ["./libs/platform/src/index.ts"],
       "@lib/testing": ["./libs/testing/src/index.ts"]
     }
   },

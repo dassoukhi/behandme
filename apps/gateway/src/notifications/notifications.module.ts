@@ -1,12 +1,25 @@
 import { Module } from "@nestjs/common";
-import { NotificationsService } from "./notifications.service.js";
-import { NotificationsController } from "./notifications.controller.js";
-import { ExpoModule } from "../expo/expo.module.js";
+import { ConfigService } from "@nestjs/config";
+import { NOTIFIER_CLIENT } from "./application/ports.js";
+import {
+  HttpNotifierClient,
+  NOTIFIER_HTTP_OPTIONS,
+  type NotifierHttpOptions,
+} from "./infrastructure/http-notifier.client.js";
+import { NotificationsController } from "./interface/notifications.controller.js";
 
 @Module({
   controllers: [NotificationsController],
-  providers: [NotificationsService, ExpoModule],
-  exports: [NotificationsService, ExpoModule],
-  imports: [ExpoModule],
+  providers: [
+    {
+      provide: NOTIFIER_HTTP_OPTIONS,
+      useFactory: (config: ConfigService): NotifierHttpOptions => ({
+        baseUrl: config.getOrThrow<string>("NOTIFIER_URL"),
+        secret: config.getOrThrow<string>("INTERNAL_JWT_SECRET"),
+      }),
+      inject: [ConfigService],
+    },
+    { provide: NOTIFIER_CLIENT, useClass: HttpNotifierClient },
+  ],
 })
 export class NotificationsModule {}

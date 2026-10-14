@@ -1,3 +1,4 @@
+import type { NewEvent } from "@lib/messaging";
 import type { Profile } from "../domain/profile.js";
 import type { TrustLink } from "../domain/trust.js";
 
@@ -25,7 +26,10 @@ export type ProfileFields = Partial<
 
 export interface ProfileRepository {
   find(id: string): Promise<Profile | null>;
-  create(id: string, fields: ProfileFields): Promise<Profile>;
+  create(
+    id: string,
+    fields: ProfileFields & { email: string },
+  ): Promise<Profile>;
   /** Null when there is no such profile. */
   update(id: string, fields: ProfileFields): Promise<Profile | null>;
   /** False when there was no such profile. */
@@ -42,11 +46,33 @@ export const PROFILE_REPOSITORY = Symbol("ProfileRepository");
 export interface TrustRepository {
   /** Null when `ownerId` already trusts `trustedId`. */
   add(ownerId: string, trustedId: string): Promise<TrustLink | null>;
+  /** False when `ownerId` did not trust `trustedId`. */
+  remove(ownerId: string, trustedId: string): Promise<boolean>;
   /** Profiles of the users `ownerId` trusts. */
   trustedProfiles(ownerId: string): Promise<Profile[]>;
+  /** Profiles of the users who trust `trustedId`. */
+  trusterProfiles(trustedId: string): Promise<Profile[]>;
   /** Ids of the users `ownerId` trusts: all of them, or those among `among`. */
   trustedIds(ownerId: string, among?: string[]): Promise<string[]>;
   /** Ids among `ownerIds` of the users who trust `trustedId`. */
   trusters(trustedId: string, ownerIds: string[]): Promise<string[]>;
 }
 export const TRUST_REPOSITORY = Symbol("TrustRepository");
+
+/** Events for the other services, published only if the transaction commits. */
+export interface EventPublisher {
+  publish(event: NewEvent): Promise<void>;
+}
+
+/** Repositories bound to one transaction, and the events it publishes. */
+export interface UsersTransaction {
+  profiles: ProfileRepository;
+  trust: TrustRepository;
+  events: EventPublisher;
+}
+
+/** Runs `work` in a transaction: its writes and events commit together or not at all. */
+export interface UsersUnitOfWork {
+  run<T>(work: (tx: UsersTransaction) => Promise<T>): Promise<T>;
+}
+export const USERS_UNIT_OF_WORK = Symbol("UsersUnitOfWork");

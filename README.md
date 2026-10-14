@@ -3,9 +3,9 @@
 NestJS 12 (ESM) API for the BehindMe mobile app (`../behindMe`). Authentication with Clerk, data in
 Supabase Postgres (accessed with the service-role key; the public anon key is denied by RLS).
 
-It is a NestJS monorepo: one app per service in `apps/` (today `gateway`, the public API; then `handover`,
-`notifier`, `worker`) and shared libraries in `libs/`. The target design is in `docs/architecture.md`; the
-working rules are in `CLAUDE.md`.
+It is a NestJS monorepo: one app per service in `apps/` (`gateway`, the public API; `notifier`, notifications
+and push; `worker`, scheduled jobs; then `handover`) and shared libraries in `libs/`. The target design is in
+`docs/architecture.md`, running and deploying in `docs/deploy.md`, the working rules in `CLAUDE.md`.
 
 ## Requirements
 
@@ -15,9 +15,9 @@ working rules are in `CLAUDE.md`.
 ## Setup
 
 ```bash
-cp .env.example .env   # fill in Supabase and Clerk keys
+cp .env.example .env   # fill in Supabase and Clerk keys; DATABASE_URL per service (docs/deploy.md)
 npm install
-npm run start:dev      # gateway on http://localhost:3000/api/v1, Swagger UI at /api/docs
+npm run dev            # gateway on http://localhost:3000/api/v1 (Swagger UI at /api/docs), notifier, worker
 ```
 
 ## Commands
@@ -45,6 +45,6 @@ npm run start:dev      # gateway on http://localhost:3000/api/v1, Swagger UI at 
 
 ## API
 
-All routes are under `/api/v1` and require `Authorization: Bearer <Clerk session token>`, except the health
-check. The identity of the caller always comes from the token, never from the request body. The full contract is
+All routes are under `/api/v1` and require `Authorization: Bearer <Clerk session token>`; the health check is
+`GET /health`. The identity of the caller always comes from the token, never from the request body. The full contract is
 `openapi.json`; the access rules are described in `CLAUDE.md` ("Access control").

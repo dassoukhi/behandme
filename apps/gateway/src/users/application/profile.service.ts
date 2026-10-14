@@ -1,4 +1,5 @@
 import { Inject, Injectable } from "@nestjs/common";
+import { UserDeleted } from "@lib/contracts";
 import {
   InvalidInputError,
   NotFoundError,
@@ -8,8 +9,10 @@ import type { Profile } from "../domain/profile.js";
 import {
   IDENTITY_PROVIDER,
   PROFILE_REPOSITORY,
+  USERS_UNIT_OF_WORK,
   type IdentityProvider,
   type ProfileRepository,
+  type UsersUnitOfWork,
 } from "./ports.js";
 import { TrustService } from "./trust.service.js";
 
@@ -21,6 +24,7 @@ export class ProfileService {
     @Inject(PROFILE_REPOSITORY) private readonly profiles: ProfileRepository,
     @Inject(IDENTITY_PROVIDER) private readonly identity: IdentityProvider,
     private readonly trust: TrustService,
+    @Inject(USERS_UNIT_OF_WORK) private readonly unitOfWork: UsersUnitOfWork,
   ) {}
 
   /**
@@ -82,10 +86,14 @@ export class ProfileService {
     return profile;
   }
 
+  /** Deletes the profile; the other services then forget the user (event user.deleted). */
   async removeMe(me: string): Promise<void> {
-    if (!(await this.profiles.delete(me))) {
-      throw new NotFoundError("Profile not found");
-    }
+    await this.unitOfWork.run(async ({ profiles, events }) => {
+      if (!(await profiles.delete(me))) {
+        throw new NotFoundError("Profile not found");
+      }
+      await events.publish(UserDeleted.create({ userId: me }));
+    });
   }
 
   /**

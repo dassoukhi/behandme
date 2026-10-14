@@ -1,35 +1,44 @@
-import { Module } from "@nestjs/common";
+import {
+  type MiddlewareConsumer,
+  Module,
+  type NestModule,
+} from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
-import { APP_FILTER } from "@nestjs/core";
-import { AppController } from "./app.controller.js";
-import { AppService } from "./app.service.js";
+import { APP_FILTER, APP_GUARD } from "@nestjs/core";
+import {
+  correlationMiddleware,
+  DatabaseModule,
+  GlobalExceptionFilter,
+  HealthController,
+} from "@lib/platform";
 import { UsersModule } from "./users/users.module.js";
 import { AuthModule } from "./auth/auth.module.js";
 import { SupabaseModule } from "./supabase/supabase.module.js";
-import { GlobalExceptionFilter } from "./common/filters/global-exception.filter.js";
 import { validate } from "./common/validators/env.validator.js";
 import { ClerkClientProvider } from "./providers/clerk-client.provider.js";
 import { ClerkAuthGuard } from "./auth/clerk-auth.guard.js";
-import { APP_GUARD } from "@nestjs/core";
 import { NotificationsModule } from "./notifications/notifications.module.js";
 import { ContractModule } from "./contracts/contract.module.js";
+import { MessagingModule } from "./messaging/messaging.module.js";
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       validate,
-      envFilePath: [".env"],
+      // .env.gateway first (e.g. DATABASE_URL, which differs between services), then the shared .env.
+      envFilePath: [".env.gateway", ".env"],
     }),
+    DatabaseModule.forRoot({ applicationName: "gateway" }),
     NotificationsModule,
     SupabaseModule,
     ContractModule,
     UsersModule,
     AuthModule,
+    MessagingModule,
   ],
-  controllers: [AppController],
+  controllers: [HealthController],
   providers: [
-    AppService,
     {
       provide: APP_FILTER,
       useClass: GlobalExceptionFilter,
@@ -41,4 +50,8 @@ import { ContractModule } from "./contracts/contract.module.js";
     },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer): void {
+    consumer.apply(correlationMiddleware).forRoutes("*");
+  }
+}

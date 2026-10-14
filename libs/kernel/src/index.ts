@@ -1,4 +1,5 @@
 export { type Clock, systemClock } from "./clock.js";
+export { currentCorrelationId, withCorrelation } from "./correlation.js";
 export {
   ConflictError,
   DomainError,

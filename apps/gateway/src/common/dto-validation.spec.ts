@@ -3,9 +3,11 @@ import type { ArgumentMetadata } from "@nestjs/common";
 import { describe, expect, it } from "vitest";
 import { CreateContractDTO } from "../contracts/dto/create-contract.dto.js";
 import { UpdateContractDTO } from "../contracts/dto/update-contract.dto.js";
-import { CreateNotificationDto } from "../notifications/dto/create-notifications.dto.js";
-import { RegisterTokenDto } from "../notifications/dto/register-token.dto.js";
-import { UpdateNotificationDto } from "../notifications/dto/update-notifications.dto.js";
+import {
+  PushTokenDto,
+  UpdateNotificationDto,
+  UpdateNotificationPreferencesDto,
+} from "../notifications/interface/dto/notification-inputs.dto.js";
 import { EnsureProfileDto } from "../users/interface/dto/create-user.dto.js";
 import { UpdateUserDto } from "../users/interface/dto/update-user.dto.js";
 import { AddTrustedDto } from "../users/interface/dto/add-trusted.dto.js";
@@ -28,43 +30,50 @@ const contract = {
 };
 
 describe("notification DTOs", () => {
-  const notification = {
-    userId: "user_2abcdefghijklmnop",
-    title: "Contract update",
-    message: "Your contract has been updated.",
-    type: "contract_updated",
-    scheduled_at: "2026-10-11T12:00:00Z",
-    meta: { key: "value" },
-    data: { contractId: "c1" },
-  };
-
-  it("accepts a create body using the table column names", async () => {
+  it("accepts marking a notification as read or unread", async () => {
     await expect(
-      validate(CreateNotificationDto, notification),
-    ).resolves.toMatchObject(notification);
+      validate(UpdateNotificationDto, { read: true }),
+    ).resolves.toEqual({ read: true });
+    await expect(
+      validate(UpdateNotificationDto, { read: false }),
+    ).resolves.toEqual({ read: false });
   });
 
-  it("rejects an unknown notification type", async () => {
-    await expect(
-      validate(CreateNotificationDto, { ...notification, type: "spam" }),
-    ).rejects.toBeInstanceOf(BadRequestException);
+  it.each([
+    ["the legacy is_read field", { is_read: true }],
+    ["another field", { read: true, title: "hijacked" }],
+    ["a non-boolean", { read: "yes" }],
+  ])("rejects %s on update", async (_case, body) => {
+    await expect(validate(UpdateNotificationDto, body)).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
   });
 
-  it("accepts marking a notification as read", async () => {
-    await expect(
-      validate(UpdateNotificationDto, { is_read: true }),
-    ).resolves.toEqual({ is_read: true });
+  it("accepts Expo push tokens only", async () => {
+    for (const token of [
+      "ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]",
+      "ExpoPushToken[yyyyyyyyyyyyyyyyyyyy]",
+    ]) {
+      await expect(validate(PushTokenDto, { token })).resolves.toEqual({
+        token,
+      });
+    }
+    for (const token of ["", "abc", "ExponentPushToken[]", "fcm:token"]) {
+      await expect(validate(PushTokenDto, { token })).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+    }
   });
 
-  it("rejects the legacy camelCase isRead field", async () => {
+  it("accepts a partial preferences update, booleans only", async () => {
     await expect(
-      validate(UpdateNotificationDto, { isRead: true }),
-    ).rejects.toBeInstanceOf(BadRequestException);
-  });
-
-  it("only lets the app change the read state", async () => {
+      validate(UpdateNotificationPreferencesDto, { push_enabled: false }),
+    ).resolves.toEqual({ push_enabled: false });
     await expect(
-      validate(UpdateNotificationDto, { is_read: true, title: "hijacked" }),
+      validate(UpdateNotificationPreferencesDto, {}),
+    ).resolves.toEqual({});
+    await expect(
+      validate(UpdateNotificationPreferencesDto, { push_enabled: "no" }),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 });
@@ -177,8 +186,13 @@ describe("identity fields are rejected in request bodies", () => {
     ],
     [
       "push token user_id",
-      RegisterTokenDto,
+      PushTokenDto,
       { token: "ExponentPushToken[a]", user_id: "user_x" },
+    ],
+    [
+      "preferences user_id",
+      UpdateNotificationPreferencesDto,
+      { push_enabled: true, user_id: "user_x" },
     ],
   ];
 

@@ -12,7 +12,10 @@
       {
         "name": "@nestjs/swagger",
         "options": {
-          "dtoFileNameSuffix": [".dto.ts", ".entity.ts"],
+          "dtoFileNameSuffix": [
+            ".dto.ts",
+            ".entity.ts"
+          ],
           "classValidatorShim": true
         }
       }
@@ -26,6 +29,24 @@
       "sourceRoot": "apps/gateway/src",
       "compilerOptions": {
         "tsConfigPath": "apps/gateway/tsconfig.app.json"
+      }
+    },
+    "notifier": {
+      "type": "application",
+      "root": "apps/notifier",
+      "entryFile": "main",
+      "sourceRoot": "apps/notifier/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/notifier/tsconfig.app.json"
+      }
+    },
+    "worker": {
+      "type": "application",
+      "root": "apps/worker",
+      "entryFile": "main",
+      "sourceRoot": "apps/worker/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/worker/tsconfig.app.json"
       }
     }
   }

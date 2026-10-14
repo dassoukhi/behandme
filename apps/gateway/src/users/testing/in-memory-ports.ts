@@ -1,3 +1,4 @@
+import type { NewEvent } from "@lib/messaging";
 import type { Profile } from "../domain/profile.js";
 import type { TrustLink } from "../domain/trust.js";
 import type {
@@ -6,15 +7,37 @@ import type {
   ProfileFields,
   ProfileRepository,
   TrustRepository,
+  UsersTransaction,
+  UsersUnitOfWork,
 } from "../application/ports.js";
 
-/** Test doubles of the users ports, sharing one in-memory store. */
+/**
+ * Test doubles of the users ports, sharing one in-memory store. The unit of work keeps the events
+ * of a failed transaction out of `published`; it does not undo the store's writes.
+ */
 export class InMemoryUsers
-  implements ProfileRepository, TrustRepository, IdentityProvider
+  implements
+    ProfileRepository,
+    TrustRepository,
+    IdentityProvider,
+    UsersUnitOfWork
 {
   profiles = new Map<string, Profile>();
   links: TrustLink[] = [];
   identities = new Map<string, IdentityProfile>();
+  published: NewEvent[] = [];
+
+  // UsersUnitOfWork
+  async run<T>(work: (tx: UsersTransaction) => Promise<T>): Promise<T> {
+    const staged: NewEvent[] = [];
+    const result = await work({
+      profiles: this,
+      trust: this,
+      events: { publish: async (event) => void staged.push(event) },
+    });
+    this.published.push(...staged);
+    return result;
+  }
 
   // ProfileRepository
   async find(id: string) {
@@ -69,6 +92,19 @@ export class InMemoryUsers
     };
     this.links.push(link);
     return link;
+  }
+  async remove(ownerId: string, trustedId: string) {
+    const before = this.links.length;
+    this.links = this.links.filter(
+      (l) => !(l.owner_id === ownerId && l.trusted_id === trustedId),
+    );
+    return this.links.length < before;
+  }
+  async trusterProfiles(trustedId: string) {
+    return this.links
+      .filter((l) => l.trusted_id === trustedId)
+      .map((l) => this.profiles.get(l.owner_id))
+      .filter((p): p is Profile => p !== undefined);
   }
   async trustedProfiles(ownerId: string) {
     return this.links

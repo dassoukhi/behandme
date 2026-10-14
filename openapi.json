@@ -1,95 +1,6 @@
 {
   "openapi": "3.0.0",
   "paths": {
-    "/api/v1": {
-      "get": {
-        "operationId": "AppController_getHealth",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Application is healthy"
-          }
-        },
-        "summary": "Get health status",
-        "tags": [
-          "app"
-        ]
-      }
-    },
-    "/api/v1/notifications/register-token": {
-      "post": {
-        "operationId": "NotificationsController_registerOrphanToken",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RegisterTokenDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RegisterTokenDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Register a device push token before sign-in (not linked to any user)",
-        "tags": [
-          "notifications"
-        ]
-      }
-    },
-    "/api/v1/notifications/push-token": {
-      "post": {
-        "operationId": "NotificationsController_registerPushToken",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RegisterTokenDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RegisterTokenDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Link a device push token to the caller",
-        "tags": [
-          "notifications"
-        ]
-      }
-    },
     "/api/v1/notifications": {
       "get": {
         "operationId": "NotificationsController_findAll",
@@ -107,6 +18,9 @@
                 }
               }
             }
+          },
+          "503": {
+            "description": "The notifier is unavailable"
           }
         },
         "security": [
@@ -114,38 +28,29 @@
             "bearer": []
           }
         ],
-        "summary": "List the caller's notifications",
+        "summary": "The caller's latest notifications, newest first",
         "tags": [
           "notifications"
         ]
       }
     },
-    "/api/v1/notifications/{id}": {
+    "/api/v1/notifications/unread-count": {
       "get": {
-        "operationId": "NotificationsController_findOne",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
+        "operationId": "NotificationsController_unreadCount",
+        "parameters": [],
         "responses": {
           "200": {
             "description": "",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/NotificationDto"
+                  "$ref": "#/components/schemas/UnreadCountDto"
                 }
               }
             }
           },
-          "404": {
-            "description": "Notification not found"
+          "503": {
+            "description": "The notifier is unavailable"
           }
         },
         "security": [
@@ -153,11 +58,191 @@
             "bearer": []
           }
         ],
-        "summary": "Get one of the caller's notifications",
+        "summary": "How many of the caller's notifications are unread",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/notifications/read-all": {
+      "post": {
+        "operationId": "NotificationsController_markAllRead",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarkedReadDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The notifier is unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mark all the caller's notifications as read",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/notifications/push-token": {
+      "post": {
+        "operationId": "NotificationsController_registerPushToken",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PushTokenDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PushTokenDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The notifier is unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Send this device's pushes to the caller (a device belongs to whoever signed in on it last)",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/notifications/push-token/unregister": {
+      "post": {
+        "operationId": "NotificationsController_unregisterPushToken",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PushTokenDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PushTokenDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The notifier is unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Stop pushes to this device (call before signing out)",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/notifications/preferences": {
+      "get": {
+        "operationId": "NotificationsController_preferences",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationPreferencesDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The notifier is unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The caller's notification settings",
         "tags": [
           "notifications"
         ]
       },
+      "patch": {
+        "operationId": "NotificationsController_updatePreferences",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateNotificationPreferencesDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationPreferencesDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The notifier is unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change the caller's notification settings",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/notifications/{id}": {
       "patch": {
         "operationId": "NotificationsController_update",
         "parameters": [
@@ -193,6 +278,9 @@
           },
           "404": {
             "description": "Notification not found"
+          },
+          "503": {
+            "description": "The notifier is unavailable"
           }
         },
         "security": [
@@ -200,7 +288,7 @@
             "bearer": []
           }
         ],
-        "summary": "Mark one of the caller's notifications as read",
+        "summary": "Mark one of the caller's notifications as read or unread",
         "tags": [
           "notifications"
         ]
@@ -223,6 +311,9 @@
           },
           "404": {
             "description": "Notification not found"
+          },
+          "503": {
+            "description": "The notifier is unavailable"
           }
         },
         "security": [
@@ -628,6 +719,68 @@
         ]
       }
     },
+    "/api/v1/users/me/trusteds/{trustedId}": {
+      "delete": {
+        "operationId": "UsersController_removeTrusted",
+        "parameters": [
+          {
+            "name": "trustedId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User no longer trusted"
+          },
+          "404": {
+            "description": "The caller does not trust them"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Stop trusting a user",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/api/v1/users/me/trusted-by": {
+      "get": {
+        "operationId": "UsersController_getTrustedBy",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserProfileDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List the users who trust the caller (with their contact details)",
+        "tags": [
+          "users"
+        ]
+      }
+    },
     "/api/v1/users/search": {
       "get": {
         "operationId": "UsersController_searchUsers",
@@ -725,12 +878,88 @@
       }
     },
     "schemas": {
-      "RegisterTokenDto": {
+      "NotificationDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "123e4567-e89b-12d3-a456-426614174000"
+          },
+          "type": {
+            "type": "string",
+            "description": "Kind of notification, e.g. trust_added. Unknown kinds may appear: show them as generic.",
+            "example": "trust_added"
+          },
+          "title": {
+            "type": "string",
+            "example": "Nouveau proche"
+          },
+          "body": {
+            "type": "string",
+            "example": "Sam Durand vous a ajouté à ses proches."
+          },
+          "data": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Includes `url`, the app screen to open when tapped",
+            "example": {
+              "url": "/people/user_2abc123def456"
+            }
+          },
+          "read_at": {
+            "type": "string",
+            "nullable": true,
+            "description": "When it was read; null while unread",
+            "example": null
+          },
+          "created_at": {
+            "type": "string",
+            "example": "2026-10-14T12:34:56.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "title",
+          "body",
+          "data",
+          "read_at",
+          "created_at"
+        ]
+      },
+      "UnreadCountDto": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "number",
+            "example": 3
+          }
+        },
+        "required": [
+          "count"
+        ]
+      },
+      "MarkedReadDto": {
+        "type": "object",
+        "properties": {
+          "updated": {
+            "type": "number",
+            "description": "Notifications marked as read",
+            "example": 3
+          }
+        },
+        "required": [
+          "updated"
+        ]
+      },
+      "PushTokenDto": {
         "type": "object",
         "properties": {
           "token": {
             "type": "string",
-            "description": "Expo push token of the device",
+            "maxLength": 256,
+            "pattern": "^Expo(nent)?PushToken\\[[^\\]]+\\]$",
+            "description": "Expo push token of this device",
             "example": "ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]"
           }
         },
@@ -738,101 +967,39 @@
           "token"
         ]
       },
-      "NotificationDto": {
+      "NotificationPreferencesDto": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string",
-            "description": "Unique identifier for the notification",
-            "example": "123e4567-e89b-12d3-a456-426614174000"
-          },
-          "userId": {
-            "type": "string",
-            "nullable": true,
-            "description": "Identifier of the recipient user",
-            "example": "user_2abc123def456"
-          },
-          "title": {
-            "type": "string",
-            "description": "Title of the notification",
-            "example": "Contract updated"
-          },
-          "message": {
-            "type": "string",
-            "description": "Message content of the notification",
-            "example": "Your contract has been updated."
-          },
-          "type": {
-            "nullable": true,
-            "enum": [
-              "contract_created",
-              "contract_updated",
-              "reminder",
-              "system"
-            ],
-            "type": "string",
-            "description": "Type of notification"
-          },
-          "is_read": {
+          "push_enabled": {
             "type": "boolean",
-            "nullable": true,
-            "description": "Indicates whether the notification has been read",
-            "default": false
-          },
-          "created_at": {
-            "type": "string",
-            "nullable": true,
-            "description": "Timestamp when the notification was created",
-            "example": "2023-10-10T12:34:56Z"
-          },
-          "scheduled_at": {
-            "type": "string",
-            "nullable": true,
-            "description": "Scheduled time for the notification",
-            "example": "2023-10-11T12:00:00Z"
-          },
-          "meta": {
-            "type": "object",
-            "additionalProperties": true,
-            "nullable": true,
-            "description": "Additional metadata",
-            "example": {
-              "key": "value"
-            }
-          },
-          "data": {
-            "type": "object",
-            "additionalProperties": true,
-            "description": "Payload delivered with the notification",
-            "example": {
-              "contractId": "4bce1a03-3fa5-4d39-8c7e-7f3b7e3468a5"
-            }
-          }
-        },
-        "required": [
-          "id",
-          "userId",
-          "title",
-          "message",
-          "type",
-          "is_read",
-          "created_at",
-          "scheduled_at",
-          "meta",
-          "data"
-        ]
-      },
-      "UpdateNotificationDto": {
-        "type": "object",
-        "properties": {
-          "is_read": {
-            "type": "boolean",
-            "description": "Indicates whether the notification has been read",
+            "description": "Push for non-critical notifications. Critical ones (a claim on your contract) are always pushed.",
             "example": true
           }
         },
         "required": [
-          "is_read"
+          "push_enabled"
+        ]
+      },
+      "UpdateNotificationPreferencesDto": {
+        "type": "object",
+        "properties": {
+          "push_enabled": {
+            "type": "boolean",
+            "example": false
+          }
+        }
+      },
+      "UpdateNotificationDto": {
+        "type": "object",
+        "properties": {
+          "read": {
+            "type": "boolean",
+            "description": "Read (true) or unread (false)",
+            "example": true
+          }
+        },
+        "required": [
+          "read"
         ]
       },
       "CreateContractDTO": {

@@ -16,14 +16,32 @@ let trust: TrustService;
 beforeEach(() => {
   store = new InMemoryUsers();
   trust = new TrustService(store, store);
-  profiles = new ProfileService(store, store, trust);
+  profiles = new ProfileService(store, store, trust, store);
 });
 
 describe("TrustService", () => {
-  it("records that the caller trusts someone", async () => {
-    store.person("me").person("bob");
+  it("records that the caller trusts someone, and tells them", async () => {
+    store.person("me", "Sam").person("bob");
+    store.profiles.get("me")!.last_name = "Durand";
     const link = await trust.add("me", "bob");
     expect(link).toMatchObject({ owner_id: "me", trusted_id: "bob" });
+    expect(store.published).toEqual([
+      {
+        type: "trust.added",
+        version: 1,
+        payload: { ownerId: "me", trustedId: "bob", ownerName: "Sam Durand" },
+      },
+    ]);
+  });
+
+  it("names nobody in the event when the caller has no name", async () => {
+    store.person("me").person("bob");
+    Object.assign(store.profiles.get("me")!, {
+      first_name: null,
+      last_name: "  ",
+    });
+    await trust.add("me", "bob");
+    expect(store.published[0].payload).toMatchObject({ ownerName: null });
   });
 
   it("refuses to trust oneself, an unknown user, or someone already trusted", async () => {
@@ -35,6 +53,24 @@ describe("TrustService", () => {
     await expect(trust.add("me", "bob")).rejects.toThrow(
       new ConflictError("User is already trusted"),
     );
+    expect(store.published).toEqual([]);
+  });
+
+  it("stops trusting someone, and says when there was no link", async () => {
+    store.person("me").person("bob").trusts("me", "bob").trusts("bob", "me");
+    await trust.remove("me", "bob");
+    expect(await trust.trustedIds("me")).toEqual(new Set());
+    expect(await trust.trustedIds("bob")).toEqual(new Set(["me"]));
+    await expect(trust.remove("me", "bob")).rejects.toThrow(
+      new NotFoundError("User with ID bob is not trusted"),
+    );
+  });
+
+  it("lists the users who trust the caller, with their contact details", async () => {
+    store.person("me").person("bob").person("eve").trusts("bob", "me");
+    const listed = await trust.listTrustedBy("me");
+    expect(listed.map((p) => p.id)).toEqual(["bob"]);
+    expect(listed[0].email).toBe("bob@example.com");
   });
 
   it("lists trusted users with contact details only for those who trust the caller back", async () => {
@@ -108,15 +144,19 @@ describe("ProfileService", () => {
       profiles.updateMe("me", { phone_number: "+1" }),
     ).rejects.toThrow(NotFoundError);
     await expect(profiles.removeMe("me")).rejects.toThrow(NotFoundError);
+    expect(store.published).toEqual([]);
     await expect(profiles.findOne("me", "ghost")).rejects.toThrow(
       new NotFoundError("User with ID ghost not found"),
     );
   });
 
-  it("deletes the caller's profile", async () => {
+  it("deletes the caller's profile and tells the other services", async () => {
     store.person("me");
     await profiles.removeMe("me");
     expect(store.profiles.has("me")).toBe(false);
+    expect(store.published).toEqual([
+      { type: "user.deleted", version: 1, payload: { userId: "me" } },
+    ]);
   });
 
   describe("search", () => {

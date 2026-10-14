@@ -115,6 +115,27 @@ export class UsersController {
     return this.trust.add(me, addTrustedDto.trusted_id);
   }
 
+  @Delete("me/trusteds/:trustedId")
+  @ApiOperation({ summary: "Stop trusting a user" })
+  @ApiResponse({ status: 200, description: "User no longer trusted" })
+  @ApiResponse({ status: 404, description: "The caller does not trust them" })
+  async removeTrusted(
+    @CurrentUserId() me: string,
+    @Param("trustedId") trustedId: string,
+  ): Promise<{ message: string }> {
+    await this.trust.remove(me, trustedId);
+    return { message: "User no longer trusted" };
+  }
+
+  @Get("me/trusted-by")
+  @ApiOperation({
+    summary: "List the users who trust the caller (with their contact details)",
+  })
+  @ApiResponse({ status: 200, type: [UserProfileDto] })
+  getTrustedBy(@CurrentUserId() me: string): Promise<UserProfileDto[]> {
+    return this.trust.listTrustedBy(me);
+  }
+
   @Get("search")
   @ApiOperation({
     summary:
