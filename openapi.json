@@ -532,6 +532,161 @@
         ]
       }
     },
+    "/api/v1/contracts/{id}/seal": {
+      "post": {
+        "operationId": "ContractsController_seal",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SealContractDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractDetailDTO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The sealed material or its signature does not check out"
+          },
+          "404": {
+            "description": "Contract not found"
+          },
+          "409": {
+            "description": "The contract or someone's keys changed meanwhile: reload and seal again"
+          },
+          "503": {
+            "description": "The handover service is unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Seal or re-seal the contract (owner): the encrypted secret, the wrapped key and shares, and the signed manifest",
+        "tags": [
+          "contracts"
+        ]
+      }
+    },
+    "/api/v1/contracts/{id}/sealed": {
+      "get": {
+        "operationId": "ContractsController_sealed",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SealedMaterialDTO"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Contract not found or not sealed"
+          },
+          "503": {
+            "description": "The handover service is unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What the caller's role may download of the sealed contract (owner: envelope and key; validator: their share; accessor: the manifest until release)",
+        "tags": [
+          "contracts"
+        ]
+      }
+    },
+    "/api/v1/contracts/{id}/revoke": {
+      "post": {
+        "operationId": "ContractsController_revoke",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RevokeContractDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractDetailDTO"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Contract not found"
+          },
+          "409": {
+            "description": "Not possible in this status, or the contract changed"
+          },
+          "503": {
+            "description": "The handover service is unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Revoke the contract (owner): every ciphertext is deleted",
+        "tags": [
+          "contracts"
+        ]
+      }
+    },
     "/api/v1/contracts/{id}/events": {
       "get": {
         "operationId": "ContractsController_events",
@@ -1361,6 +1516,11 @@
             "description": "Bumped by every change",
             "example": 1
           },
+          "sealed_version": {
+            "type": "number",
+            "description": "Number of the current sealing; 0 while a draft",
+            "example": 0
+          },
           "owner_id": {
             "type": "string",
             "example": "user_2abcdefghijklmnop"
@@ -1402,7 +1562,9 @@
               "type": "string",
               "enum": [
                 "update",
-                "delete"
+                "delete",
+                "seal",
+                "revoke"
               ]
             },
             "description": "What the caller may do now; the app shows only these actions (rules live in the backend)"
@@ -1441,6 +1603,7 @@
           "description",
           "status",
           "version",
+          "sealed_version",
           "owner_id",
           "accessor_id",
           "validator_ids",
@@ -1491,6 +1654,11 @@
             "description": "Bumped by every change",
             "example": 1
           },
+          "sealed_version": {
+            "type": "number",
+            "description": "Number of the current sealing; 0 while a draft",
+            "example": 0
+          },
           "owner_id": {
             "type": "string",
             "example": "user_2abcdefghijklmnop"
@@ -1532,7 +1700,9 @@
               "type": "string",
               "enum": [
                 "update",
-                "delete"
+                "delete",
+                "seal",
+                "revoke"
               ]
             },
             "description": "What the caller may do now; the app shows only these actions (rules live in the backend)"
@@ -1564,6 +1734,7 @@
           "description",
           "status",
           "version",
+          "sealed_version",
           "owner_id",
           "accessor_id",
           "validator_ids",
@@ -1592,6 +1763,179 @@
             "maxLength": 280
           }
         }
+      },
+      "ShareWrapDTO": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "example": "user_2aaaaaaaaaaaaaaa"
+          },
+          "index": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 3,
+            "description": "1 to n, the validator's position",
+            "example": 1
+          },
+          "key_version": {
+            "type": "number",
+            "minimum": 1,
+            "example": 1
+          },
+          "wrap": {
+            "type": "string",
+            "maxLength": 2000,
+            "format": "base64",
+            "description": "The share wrapped to that validator (HPKE X-Wing), base64"
+          }
+        },
+        "required": [
+          "user_id",
+          "index",
+          "key_version",
+          "wrap"
+        ]
+      },
+      "SealContractDTO": {
+        "type": "object",
+        "properties": {
+          "expected_version": {
+            "type": "number",
+            "minimum": 1,
+            "description": "The contract version the owner saw",
+            "example": 1
+          },
+          "accessor_id": {
+            "type": "string",
+            "description": "Must be someone the caller trusts, with keys"
+          },
+          "validator_ids": {
+            "uniqueItems": true,
+            "minItems": 1,
+            "maxItems": 3,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "envelope": {
+            "type": "string",
+            "maxLength": 90000,
+            "format": "base64",
+            "description": "The encrypted secret, base64"
+          },
+          "owner_wrap": {
+            "type": "string",
+            "maxLength": 2000,
+            "format": "base64",
+            "description": "The contract key wrapped to the owner, base64"
+          },
+          "shares": {
+            "minItems": 1,
+            "maxItems": 3,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ShareWrapDTO"
+            }
+          },
+          "manifest": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "The manifest the owner signed (behindme/v1/manifest)"
+          },
+          "manifest_signature": {
+            "type": "string",
+            "maxLength": 100,
+            "format": "base64",
+            "description": "Ed25519 by the owner over the RFC 8785 JSON of the manifest, base64"
+          }
+        },
+        "required": [
+          "expected_version",
+          "accessor_id",
+          "validator_ids",
+          "envelope",
+          "owner_wrap",
+          "shares",
+          "manifest",
+          "manifest_signature"
+        ]
+      },
+      "SealedShareDTO": {
+        "type": "object",
+        "properties": {
+          "index": {
+            "type": "number",
+            "example": 1
+          },
+          "key_version": {
+            "type": "number",
+            "example": 1
+          },
+          "wrap": {
+            "type": "string",
+            "description": "The share wrapped to the caller, base64"
+          }
+        },
+        "required": [
+          "index",
+          "key_version",
+          "wrap"
+        ]
+      },
+      "SealedMaterialDTO": {
+        "type": "object",
+        "properties": {
+          "sealed_version": {
+            "type": "number",
+            "example": 1
+          },
+          "manifest": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "The manifest the owner signed"
+          },
+          "manifest_signature": {
+            "type": "string",
+            "description": "The owner's Ed25519 signature of the manifest, base64"
+          },
+          "envelope": {
+            "type": "string",
+            "description": "Owner only: the encrypted secret, base64"
+          },
+          "owner_wrap": {
+            "type": "string",
+            "description": "Owner only: the contract key wrapped to them, base64"
+          },
+          "share": {
+            "description": "Validator only: their share",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SealedShareDTO"
+              }
+            ]
+          }
+        },
+        "required": [
+          "sealed_version",
+          "manifest",
+          "manifest_signature"
+        ]
+      },
+      "RevokeContractDTO": {
+        "type": "object",
+        "properties": {
+          "expected_version": {
+            "type": "number",
+            "minimum": 1,
+            "description": "The contract version the owner saw",
+            "example": 2
+          }
+        },
+        "required": [
+          "expected_version"
+        ]
       },
       "ContractEventDTO": {
         "type": "object",

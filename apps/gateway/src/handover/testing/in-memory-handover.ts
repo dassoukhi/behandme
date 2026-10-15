@@ -4,6 +4,9 @@ import type {
   ContractChanges,
   ContractRecord,
   NewContract,
+  RegisteredKeyRecord,
+  SealedMaterial,
+  SealRequestBody,
 } from "@lib/contracts";
 import { InvalidInputError, NotFoundError } from "@lib/kernel";
 import type { HandoverClient } from "../application/handover-client.js";
@@ -43,6 +46,7 @@ export class InMemoryHandover implements HandoverClient {
       description: contract.description ?? null,
       status: "draft",
       version: 1,
+      sealed_version: 0,
       accessor_id: contract.accessor_id,
       validator_ids: contract.validator_ids,
       created_at: "2026-10-14T00:00:00.000Z",
@@ -61,6 +65,45 @@ export class InMemoryHandover implements HandoverClient {
   async remove(userId: string, id: string) {
     this.owned(userId, id);
     this.contracts = this.contracts.filter((c) => c.id !== id);
+  }
+
+  /** Records the keys the gateway passed; checks only who seals (handover's checks are tested there). */
+  sealedWith: { sealing: SealRequestBody; keys: RegisteredKeyRecord[] } | null =
+    null;
+
+  async seal(
+    userId: string,
+    id: string,
+    sealing: SealRequestBody,
+    keys: RegisteredKeyRecord[],
+  ) {
+    const contract = this.owned(userId, id);
+    this.sealedWith = { sealing, keys };
+    Object.assign(contract, {
+      status: "active",
+      sealed_version: contract.sealed_version + 1,
+      version: contract.version + 1,
+      accessor_id: sealing.accessor_id,
+      validator_ids: sealing.validator_ids,
+    });
+    return record(contract, userId);
+  }
+
+  async sealed(userId: string, id: string): Promise<SealedMaterial> {
+    const contract = this.visible(userId, id);
+    if (contract.sealed_version === 0)
+      throw new NotFoundError("This contract is not sealed");
+    return {
+      sealed_version: contract.sealed_version,
+      manifest: {},
+      manifest_signature: "",
+    };
+  }
+
+  async revoke(userId: string, id: string) {
+    const contract = this.owned(userId, id);
+    contract.status = "revoked";
+    return record(contract, userId);
   }
 
   async events(userId: string, id: string): Promise<AuditEvent[]> {
@@ -102,6 +145,8 @@ function record(c: Stored, userId: string): ContractRecord {
     ...c,
     my_role: role,
     allowed_actions:
-      role === "owner" && c.status === "draft" ? ["update", "delete"] : [],
+      role === "owner" && c.status === "draft"
+        ? ["update", "delete", "seal"]
+        : [],
   };
 }

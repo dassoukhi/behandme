@@ -16,5 +16,6 @@ import { KeysController } from "./interface/keys.controller.js";
     { provide: KEY_CRYPTOGRAPHY, useValue: nodeKeyCryptography },
     { provide: KEYS_CLOCK, useValue: systemClock },
   ],
+  exports: [KeysService],
 })
 export class KeysModule {}

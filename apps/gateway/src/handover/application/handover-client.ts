@@ -4,6 +4,9 @@ import type {
   ContractChanges,
   ContractRecord,
   NewContract,
+  RegisteredKeyRecord,
+  SealedMaterial,
+  SealRequestBody,
 } from "@lib/contracts";
 
 /**
@@ -21,6 +24,20 @@ export interface HandoverClient {
     changes: ContractChanges,
   ): Promise<ContractRecord>;
   remove(userId: string, id: string): Promise<void>;
+  /** `keys`: the current registered keys of the owner and of every participant (the gateway owns them). */
+  seal(
+    userId: string,
+    id: string,
+    sealing: SealRequestBody,
+    keys: RegisteredKeyRecord[],
+  ): Promise<ContractRecord>;
+  /** What the user's role may have of the sealed contract. */
+  sealed(userId: string, id: string): Promise<SealedMaterial>;
+  revoke(
+    userId: string,
+    id: string,
+    expectedVersion: number,
+  ): Promise<ContractRecord>;
   events(userId: string, id: string): Promise<AuditEvent[]>;
   verify(userId: string, id: string): Promise<ChainVerification>;
 }

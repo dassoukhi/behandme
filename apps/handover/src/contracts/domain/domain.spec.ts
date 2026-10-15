@@ -22,6 +22,7 @@ const draft: Contract = {
   description: "Mes réseaux",
   status: "draft",
   version: 1,
+  sealedVersion: 0,
   accessorId: "acc",
   validatorIds: ["v1", "v2"],
   createdAt: "2026-10-14T00:00:00.000Z",
@@ -74,15 +75,30 @@ describe("draft rules", () => {
 });
 
 describe("life cycle", () => {
-  it("lets the owner edit and delete a draft, and nobody else", () => {
-    expect(allowedActions(draft, "owner")).toEqual(["update", "delete"]);
+  it("lets the owner edit, delete and seal a draft, and nobody else", () => {
+    expect(allowedActions(draft, "owner")).toEqual([
+      "update",
+      "delete",
+      "seal",
+    ]);
     expect(allowedActions(draft, "accessor")).toEqual([]);
     expect(allowedActions(draft, "validator")).toEqual([]);
   });
 
-  it("only lets the owner edit an active contract", () => {
+  it("lets the owner edit, re-seal or revoke an active contract", () => {
     expect(allowedActions({ ...draft, status: "active" }, "owner")).toEqual([
       "update",
+      "seal",
+      "revoke",
+    ]);
+    expect(allowedActions({ ...draft, status: "active" }, "validator")).toEqual(
+      [],
+    );
+  });
+
+  it("lets the owner revoke, not re-seal, during a claim", () => {
+    expect(allowedActions({ ...draft, status: "claimed" }, "owner")).toEqual([
+      "revoke",
     ]);
   });
 

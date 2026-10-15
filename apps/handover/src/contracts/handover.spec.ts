@@ -80,7 +80,7 @@ describe("contracts: role × action", () => {
       accessor_id: ACCESSOR,
       validator_ids: [VALIDATOR],
       my_role: "owner",
-      allowed_actions: ["update", "delete"],
+      allowed_actions: ["update", "delete", "seal"],
     });
     const [event] = await contracts.events(OWNER, created.id);
     expect(event).toMatchObject({

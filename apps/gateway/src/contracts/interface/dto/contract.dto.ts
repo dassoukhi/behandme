@@ -8,11 +8,12 @@ import {
   type ContractCategory,
   type ContractRole,
   type ContractStatus,
+  type SealedMaterial,
 } from "@lib/contracts";
 import { UserProfileDto } from "../../../users/interface/dto/user-profile.dto.js";
 
 const ROLES: ContractRole[] = ["owner", "accessor", "validator"];
-const ACTIONS: ContractAction[] = ["update", "delete"];
+const ACTIONS: ContractAction[] = ["update", "delete", "seal", "revoke"];
 
 // A contract as one of its participants sees it. Secret material is never returned.
 export class ContractDTO {
@@ -39,6 +40,12 @@ export class ContractDTO {
 
   @ApiProperty({ description: "Bumped by every change", example: 1 })
   version: number;
+
+  @ApiProperty({
+    description: "Number of the current sealing; 0 while a draft",
+    example: 0,
+  })
+  sealed_version: number;
 
   @ApiProperty({ example: "user_2abcdefghijklmnop" })
   owner_id: string;
@@ -155,4 +162,52 @@ export class ChainVerificationDTO implements ChainVerification {
     description: "First seq that does not verify",
   })
   broken_at: number | null;
+}
+
+class SealedShareDTO {
+  @ApiProperty({ example: 1 })
+  index: number;
+
+  @ApiProperty({ example: 1 })
+  key_version: number;
+
+  @ApiProperty({ description: "The share wrapped to the caller, base64" })
+  wrap: string;
+}
+
+/** What the caller's role may have of a sealed contract. */
+export class SealedMaterialDTO implements SealedMaterial {
+  @ApiProperty({ example: 1 })
+  sealed_version: number;
+
+  @ApiProperty({
+    description: "The manifest the owner signed",
+    type: "object",
+    additionalProperties: true,
+  })
+  manifest: Record<string, unknown>;
+
+  @ApiProperty({
+    description: "The owner's Ed25519 signature of the manifest, base64",
+  })
+  manifest_signature: string;
+
+  @ApiProperty({
+    description: "Owner only: the encrypted secret, base64",
+    required: false,
+  })
+  envelope?: string;
+
+  @ApiProperty({
+    description: "Owner only: the contract key wrapped to them, base64",
+    required: false,
+  })
+  owner_wrap?: string;
+
+  @ApiProperty({
+    description: "Validator only: their share",
+    required: false,
+    type: () => SealedShareDTO,
+  })
+  share?: SealedShareDTO;
 }

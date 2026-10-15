@@ -5,13 +5,17 @@ import type { Contract, Role, Status } from "./contract.js";
 // gateway and the app read `allowedActions` instead of repeating these rules. Sealing (phase 4),
 // claims and release (phase 5) add their actions here.
 
-export type Action = "update" | "delete";
+export type Action = "update" | "delete" | "seal" | "revoke";
 
 const RULES: Record<Action, { roles: Role[]; statuses: Status[] }> = {
   // Category and description; participants change by re-sealing (phase 4).
   update: { roles: ["owner"], statuses: ["draft", "active"] },
-  // Only a draft, which holds nothing yet; a sealed contract is revoked instead (phase 4).
+  // Only a draft, which holds nothing yet; a sealed contract is revoked instead.
   delete: { roles: ["owner"], statuses: ["draft"] },
+  // First sealing, or a new one (new secret, new participants, new keys): never during a claim.
+  seal: { roles: ["owner"], statuses: ["draft", "active"] },
+  // Until release: the sealed material is deleted, and nobody can ever open it.
+  revoke: { roles: ["owner"], statuses: ["active", "claimed"] },
 };
 
 export function allowedActions(contract: Contract, role: Role): Action[] {

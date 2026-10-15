@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -21,9 +22,12 @@ import {
   ContractDetailDTO,
   ContractDTO,
   ContractEventDTO,
+  SealedMaterialDTO,
 } from "./dto/contract.dto.js";
 import {
   CreateContractDTO,
+  RevokeContractDTO,
+  SealContractDTO,
   UpdateContractDTO,
 } from "./dto/contract-inputs.dto.js";
 
@@ -97,6 +101,64 @@ export class ContractsController {
   ): Promise<{ message: string }> {
     await this.contracts.remove(me, id);
     return { message: "Contract deleted" };
+  }
+
+  @Post(":id/seal")
+  @HttpCode(200)
+  @ApiOperation({
+    summary:
+      "Seal or re-seal the contract (owner): the encrypted secret, the wrapped key and shares, and the signed manifest",
+  })
+  @ApiResponse({ status: 200, type: ContractDetailDTO })
+  @ApiResponse({
+    status: 400,
+    description: "The sealed material or its signature does not check out",
+  })
+  @ApiResponse({ status: 404, description: "Contract not found" })
+  @ApiResponse({
+    status: 409,
+    description:
+      "The contract or someone's keys changed meanwhile: reload and seal again",
+  })
+  seal(
+    @CurrentUserId() me: string,
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body() body: SealContractDTO,
+  ): Promise<ContractDetailDTO> {
+    return this.contracts.seal(me, id, body);
+  }
+
+  @Get(":id/sealed")
+  @ApiOperation({
+    summary:
+      "What the caller's role may download of the sealed contract (owner: envelope and key; validator: their share; accessor: the manifest until release)",
+  })
+  @ApiResponse({ status: 200, type: SealedMaterialDTO })
+  @ApiResponse({ status: 404, description: "Contract not found or not sealed" })
+  sealed(
+    @CurrentUserId() me: string,
+    @Param("id", ParseUUIDPipe) id: string,
+  ): Promise<SealedMaterialDTO> {
+    return this.contracts.sealed(me, id);
+  }
+
+  @Post(":id/revoke")
+  @HttpCode(200)
+  @ApiOperation({
+    summary: "Revoke the contract (owner): every ciphertext is deleted",
+  })
+  @ApiResponse({ status: 200, type: ContractDetailDTO })
+  @ApiResponse({ status: 404, description: "Contract not found" })
+  @ApiResponse({
+    status: 409,
+    description: "Not possible in this status, or the contract changed",
+  })
+  revoke(
+    @CurrentUserId() me: string,
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body() { expected_version }: RevokeContractDTO,
+  ): Promise<ContractDetailDTO> {
+    return this.contracts.revoke(me, id, expected_version);
   }
 
   @Get(":id/events")

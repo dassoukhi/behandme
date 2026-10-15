@@ -11,8 +11,31 @@ export interface ContractsTable {
   description: string | null;
   status: ColumnType<string, string | undefined, string>;
   version: ColumnType<number, number | undefined, number>;
+  sealed_version: ColumnType<number, number | undefined, number>;
+  sealed_at: Date | null;
+  revoked_at: Date | null;
   created_at: Timestamp;
   updated_at: Timestamp;
+}
+
+export interface EnvelopesTable {
+  contract_id: string;
+  sealed_version: number;
+  envelope: Uint8Array;
+  envelope_hash: string;
+  manifest: string;
+  manifest_signature: Uint8Array;
+  owner_wrap: Uint8Array;
+  owner_key_version: number;
+  sealed_at: ColumnType<Date, Date | undefined, Date>;
+}
+
+export interface KeyWrapsTable {
+  contract_id: string;
+  share_index: number;
+  user_id: string;
+  key_version: number;
+  wrap: Uint8Array;
 }
 
 export interface ParticipantsTable {
@@ -39,4 +62,6 @@ export interface HandoverDatabase {
   contracts: ContractsTable;
   participants: ParticipantsTable;
   contract_events: ContractEventsTable;
+  envelopes: EnvelopesTable;
+  key_wraps: KeyWrapsTable;
 }

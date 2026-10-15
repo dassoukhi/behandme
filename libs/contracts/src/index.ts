@@ -29,4 +29,7 @@ export {
   type ContractRole,
   type ContractStatus,
   type NewContract,
+  type RegisteredKeyRecord,
+  type SealedMaterial,
+  type SealRequestBody,
 } from "./handover-api.js";

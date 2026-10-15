@@ -116,9 +116,12 @@ Claim: `open | cancelled | withdrawn | rejected | expired | released`.
 | any → revoked      | owner                                                                  | before release; all ciphertexts deleted                                |
 
 k = ⌊n/2⌋ + 1 for n validators. The gateway returns `my_role` and `allowed_actions` (then `open_claim`,
-`threshold` and `health`) so the app implements no rule itself. Today (phase 3): create (draft), update
-(owner; draft or active), delete (owner; draft only, its log stays), in
-`apps/handover/src/contracts/domain/lifecycle.ts`. Revocation and cancellation are always decided by
+`threshold` and `health`) so the app implements no rule itself. Today: create (draft), update (owner; draft
+or active), delete (owner; draft only, its log stays), seal (owner; draft, or active to re-seal), revoke
+(owner; active or claimed), in `apps/handover/src/contracts/domain/lifecycle.ts`. Sealing stores the
+envelope, the owner's wrapped key, one wrapped share per validator and the signed manifest
+(`handover.envelopes`, `handover.key_wraps`); handover checks them against the registered keys the gateway
+passes along (`domain/sealing.ts`) and keeps only the current sealing. Revocation and cancellation are always decided by
 handover, the single authority on the life cycle, which removes "revoke vs release" races.
 
 **Audit log.** `handover.contract_events` is append-only: triggers reject UPDATE, DELETE and TRUNCATE for every

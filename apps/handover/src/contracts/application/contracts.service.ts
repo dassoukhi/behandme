@@ -144,6 +144,7 @@ export function toRecord(contract: Contract, role: Role): ContractRecord {
     description: contract.description,
     status: contract.status,
     version: contract.version,
+    sealed_version: contract.sealedVersion,
     accessor_id: contract.accessorId,
     validator_ids: contract.validatorIds,
     created_at: contract.createdAt,

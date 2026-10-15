@@ -1,5 +1,6 @@
 import type { Executor } from "@lib/messaging";
 import type { AuditEntry } from "../domain/audit-events.js";
+import type { SealCrypto } from "../domain/sealing.js";
 import type { ChainEvent } from "../domain/audit-chain.js";
 import type {
   Contract,
@@ -20,6 +21,44 @@ export interface ContractRepository {
   ): Promise<Contract | null>;
   delete(id: string): Promise<void>;
   draftsOwnedBy(userId: string): Promise<Contract[]>;
+  /**
+   * Records a new sealing: participants replaced, status active, sealed_version set. Null when the
+   * version is no longer `expectedVersion`.
+   */
+  markSealed(
+    id: string,
+    sealing: {
+      sealedVersion: number;
+      accessorId: string;
+      validatorIds: string[];
+    },
+    expectedVersion: number,
+  ): Promise<Contract | null>;
+  markRevoked(id: string, expectedVersion: number): Promise<Contract | null>;
+}
+
+/** The current sealing of a contract (handover.envelopes and key_wraps). */
+export interface Sealing {
+  sealedVersion: number;
+  envelope: Uint8Array;
+  envelopeHash: string;
+  manifestText: string;
+  manifestSignature: Uint8Array;
+  ownerWrap: Uint8Array;
+  ownerKeyVersion: number;
+  shares: {
+    userId: string;
+    index: number;
+    keyVersion: number;
+    wrap: Uint8Array;
+  }[];
+}
+
+export interface SealingRepository {
+  find(contractId: string): Promise<Sealing | null>;
+  /** Replaces the previous sealing, if any. */
+  replace(contractId: string, sealing: Sealing): Promise<void>;
+  delete(contractId: string): Promise<void>;
 }
 
 export interface AuditLog {
@@ -38,6 +77,7 @@ export interface AuditLog {
 /** Handover's repositories, bound to one connection or transaction. */
 export interface HandoverStore {
   contracts: ContractRepository;
+  sealings: SealingRepository;
   audit: AuditLog;
 }
 
@@ -54,3 +94,8 @@ export const HANDOVER_STORES = Symbol("HandoverStores");
 /** Lowercase hex SHA-256 of a UTF-8 string. */
 export type Sha256Hex = (text: string) => string;
 export const SHA256 = Symbol("Sha256");
+
+export const SEAL_CRYPTO = Symbol("SealCrypto");
+export type { SealCrypto };
+
+export const CLOCK = Symbol("Clock");

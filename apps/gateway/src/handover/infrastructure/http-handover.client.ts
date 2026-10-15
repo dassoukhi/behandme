@@ -6,6 +6,9 @@ import {
   type ChainVerification,
   HANDOVER_AUDIENCE,
   type NewContract,
+  type RegisteredKeyRecord,
+  type SealedMaterial,
+  type SealRequestBody,
 } from "@lib/contracts";
 import { InternalHttpClient, type InternalHttpOptions } from "@lib/platform";
 import type { HandoverClient } from "../application/handover-client.js";
@@ -56,6 +59,36 @@ export class HttpHandoverClient implements HandoverClient {
 
   async remove(userId: string, id: string) {
     await this.http.call(userId, "DELETE", path(id), { idempotent: false });
+  }
+
+  seal(
+    userId: string,
+    id: string,
+    sealing: SealRequestBody,
+    keys: RegisteredKeyRecord[],
+  ) {
+    return this.http.call<ContractRecord>(userId, "POST", `${path(id)}/seal`, {
+      body: { ...sealing, registered_keys: keys },
+      idempotent: false,
+    });
+  }
+
+  sealed(userId: string, id: string) {
+    return this.http.call<SealedMaterial>(userId, "GET", `${path(id)}/sealed`, {
+      idempotent: true,
+    });
+  }
+
+  revoke(userId: string, id: string, expectedVersion: number) {
+    return this.http.call<ContractRecord>(
+      userId,
+      "POST",
+      `${path(id)}/revoke`,
+      {
+        body: { expected_version: expectedVersion },
+        idempotent: false,
+      },
+    );
   }
 
   events(userId: string, id: string) {

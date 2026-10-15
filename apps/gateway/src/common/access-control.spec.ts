@@ -53,6 +53,7 @@ let contracts: ContractsFacade;
 let users: ProfileService;
 let trust: TrustService;
 let contractId: string;
+let keys: KeysService;
 // What Clerk would return for each user id (the only trusted source of emails).
 let identities: Record<string, IdentityProfile>;
 
@@ -100,7 +101,13 @@ beforeEach(async () => {
     unitOfWork,
     new HandoverParticipation(handover),
   );
-  contracts = new ContractsFacade(handover, users, trust);
+  keys = new KeysService(
+    new KyselyKeyRepository(pg),
+    nodeKeyCryptography,
+    new FakeClock(),
+    trust,
+  );
+  contracts = new ContractsFacade(handover, users, trust, keys);
   contractId = (
     await contracts.create(OWNER, {
       category: "networks",
@@ -339,12 +346,6 @@ describe("trust links: only the caller's own", () => {
 
 describe("public keys: who may read them", () => {
   it("shows a user's keys to them and to people linked by trust, not to strangers", async () => {
-    const keys = new KeysService(
-      new KyselyKeyRepository(pg),
-      nodeKeyCryptography,
-      new FakeClock(),
-      trust,
-    );
     await sql`reset role`.execute(pg);
     await sql`insert into core.user_keys (user_id, key_version, kem_public_key, signing_public_key, fingerprint, signature, usable_from)
       values (${ACCESSOR}, 1, ${new Uint8Array(1216)}, ${new Uint8Array(32)}, ${"0".repeat(64)}, ${new Uint8Array(64)}, now())`.execute(
@@ -361,4 +362,67 @@ describe("public keys: who may read them", () => {
       expect(visible.map((k) => k.userId)).toEqual(sees ? [ACCESSOR] : []);
     }
   });
+});
+
+describe("sealing: who may, with whose keys", () => {
+  const sealing = (accessor = ACCESSOR) => ({
+    expected_version: 1,
+    accessor_id: accessor,
+    validator_ids: [VALIDATOR],
+    envelope: "AQ==",
+    owner_wrap: "AQ==",
+    shares: [{ user_id: VALIDATOR, index: 1, key_version: 1, wrap: "AQ==" }],
+    manifest: {},
+    manifest_signature: "AA==",
+  });
+  /** Registers placeholder keys for these users, as if they had activated them in the app. */
+  async function withKeys(...ids: string[]) {
+    await sql`reset role`.execute(pg);
+    for (const id of ids) {
+      await sql`insert into core.user_keys (user_id, key_version, kem_public_key, signing_public_key, fingerprint, signature, usable_from)
+        values (${id}, 1, ${new Uint8Array(1216)}, ${new Uint8Array(32).fill(id.length)}, ${"a".repeat(64)}, ${new Uint8Array(64)}, now())`.execute(
+        pg,
+      );
+    }
+    await sql`set role svc_gateway`.execute(pg);
+  }
+
+  it("passes handover the registered keys of the owner and every participant, from the database", async () => {
+    await withKeys(OWNER, ACCESSOR, VALIDATOR);
+    await contracts.seal(OWNER, contractId, sealing());
+    expect(handover.sealedWith?.keys.map((k) => k.user_id).sort()).toEqual(
+      [ACCESSOR, OWNER, VALIDATOR].sort(),
+    );
+    expect(handover.sealedWith?.keys[0]).toMatchObject({
+      key_version: 1,
+      fingerprint: "a".repeat(64),
+    });
+  });
+
+  it("refuses while someone has not activated their keys, naming them", async () => {
+    await withKeys(OWNER, ACCESSOR);
+    await expect(contracts.seal(OWNER, contractId, sealing())).rejects.toThrow(
+      `missing: ${VALIDATOR}`,
+    );
+    expect(handover.sealedWith).toBeNull();
+  });
+
+  it("refuses participants the owner does not trust", async () => {
+    await withKeys(OWNER, ACCESSOR, VALIDATOR, STRANGER);
+    await expect(
+      contracts.seal(OWNER, contractId, sealing(STRANGER)),
+    ).rejects.toThrow(InvalidInputError);
+  });
+
+  it.each([ACCESSOR, VALIDATOR, STRANGER])(
+    "is not possible for %s",
+    async (who) => {
+      await withKeys(OWNER, ACCESSOR, VALIDATOR);
+      await trusts(who, ACCESSOR, VALIDATOR);
+      await expect(
+        contracts.seal(who, contractId, sealing()),
+      ).rejects.toThrow();
+      expect(handover.sealedWith).toBeNull();
+    },
+  );
 });

@@ -95,8 +95,12 @@ must:
 - Filter in the query itself (`where owner_id = me`…) or pass the caller to the service that owns the data,
   and return **404** (not 403) for resources the caller cannot see.
 - Rules: contracts readable by owner/accessor/validators; what each may do is handover's
-  `allowedActions` (`apps/handover/src/contracts/domain/lifecycle.ts`: today the owner edits a draft or an
-  active contract and deletes a draft); `status` and participants never client-writable, no secret material
+  `allowedActions` (`apps/handover/src/contracts/domain/lifecycle.ts`: the owner edits a draft or an active
+  contract, deletes a draft, seals a draft or re-seals an active one, revokes until release); sealed
+  material by role (`GET /contracts/:id/sealed`): the owner gets the envelope and their wrapped key, a
+  validator their own share, the accessor only the signed manifest until release; handover checks every
+  sealing (`domain/sealing.ts`: signature, participants, registered keys, hashes, sizes, version) against
+  the keys the gateway passes, never keys from the client; `status` and participants never client-writable, no secret material
   ever returned; participants must be distinct and trusted by the owner (trust checked by the gateway,
   distinctness by handover); a contract's audit log is append-only and readable by its participants; profiles expose
   email/phone only to yourself and to users who trust you (`apps/gateway/src/users/domain/profile.ts`);

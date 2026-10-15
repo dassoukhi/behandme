@@ -25,7 +25,10 @@ export interface Contract {
   /** Visible to every participant: never anything secret. */
   description: string | null;
   status: Status;
+  /** Bumped by every change. */
   version: number;
+  /** Number of the current sealing; 0 while never sealed. */
+  sealedVersion: number;
   accessorId: string;
   validatorIds: string[];
   createdAt: string;
