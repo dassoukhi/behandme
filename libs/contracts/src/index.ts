@@ -1,6 +1,7 @@
 export { defineEvent, on, type EventDefinition } from "./event-definition.js";
 export {
   AuditVerifyDue,
+  KeysRotated,
   PushReceiptsDue,
   RetentionDue,
   SchedulerTick,

@@ -18,6 +18,24 @@ export const TrustAdded = defineEvent(
   }),
 );
 
+/**
+ * Gateway: `userId` replaced their end-to-end keys (lost or compromised). Others may encrypt to the new
+ * keys from `usableFrom`, after a quarantine that leaves time to react if it was not them.
+ */
+export const KeysRotated = defineEvent(
+  "keys.rotated",
+  1,
+  z.object({
+    userId,
+    keyVersion: z.number().int().min(2),
+    usableFrom: z.iso.datetime(),
+    /** How the user is shown to others; null when they have no name. */
+    userName: z.string().min(1).nullable(),
+    /** The people who trust the user: they may encrypt to them, and should compare the new code. */
+    trusterIds: z.array(userId),
+  }),
+);
+
 /** Gateway: the profile is gone; every service forgets the user's data. */
 export const UserDeleted = defineEvent("user.deleted", 1, z.object({ userId }));
 

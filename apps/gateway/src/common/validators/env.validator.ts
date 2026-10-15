@@ -58,6 +58,11 @@ class EnvironmentVariables {
   @MinLength(MIN_SECRET_LENGTH)
   INTERNAL_JWT_SECRET: string;
 
+  // Seconds before others may use keys after a reset, to test resets: refused in production (72 h).
+  @IsOptional()
+  @IsString()
+  KEY_QUARANTINE_SECONDS_OVERRIDE?: string;
+
   // "false" stops the outbox relay and the queue consumer (tooling, tests).
   @IsOptional()
   @IsIn(["true", "false"])

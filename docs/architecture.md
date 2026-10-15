@@ -54,9 +54,9 @@ shared through `libs/contracts` (e.g. `notifier-api.ts`); the gateway keeps its 
 - **Envelope.** `{ id, type, version, occurredAt, correlationId, causationId, payload }`. Event types and their
   payload schemas (zod) are versioned in `libs/contracts` (`events.ts`), checked when publishing
   (`TrustAdded.create`) and when consuming (`on(TrustAdded, handler)`); a payload that does not match is
-  dead-lettered at once. Today: `trust.added`, `user.deleted`, `scheduler.tick`,
-  `maintenance.push_receipts_due`, `maintenance.retention_due`. Later: `keys.rotated`, `contract.sealed`,
-  `claim.filed`, `claim.decision_recorded`, `claim.quorum_reached`, `contract.released`, `contract.revoked`.
+  dead-lettered at once. Today: `trust.added`, `keys.rotated`, `user.deleted`, `scheduler.tick`,
+  `maintenance.push_receipts_due`, `maintenance.retention_due`. Later: `contract.sealed`, `claim.filed`,
+  `claim.decision_recorded`, `claim.quorum_reached`, `contract.released`, `contract.revoked`.
 - **Correlation.** The gateway gives each request a correlation id (`x-correlation-id`, kept from the caller
   when valid); it travels in internal calls and in every event's envelope, consumers run with it, and every
   log line carries it (`ServiceLogger`, JSON in production).
@@ -123,6 +123,15 @@ envelope, the owner's wrapped key, one wrapped share per validator and the signe
 (`handover.envelopes`, `handover.key_wraps`); handover checks them against the registered keys the gateway
 passes along (`domain/sealing.ts`) and keeps only the current sealing. Revocation and cancellation are always decided by
 handover, the single authority on the life cycle, which removes "revoke vs release" races.
+
+**Key reset.** A user who lost their recovery phrase (or fears their keys leaked) registers new keys with the
+next `key_version` (`POST /users/me/keys/reset`, gateway `keys/`). A stolen session must not be enough: the
+request needs a Clerk reverification less than 10 minutes old (the session token's `fva` claim, Clerk's
+"strict" level; otherwise 403 with Clerk's `clerk_error` hint, which the app's `useReverification` handles).
+The old keys go to `core.user_key_history`; the new ones are usable by others only after a 72-hour quarantine
+(`usable_from`; handover refuses a sealing with keys in quarantine, the owner's included), and `keys.rotated`
+alerts the user (critical push) and the people who trust them (compare the new security code). Contracts sealed
+with the old keys stay as they are: the owner can no longer read them and re-seals them with the secret.
 
 **Audit log.** `handover.contract_events` is append-only: triggers reject UPDATE, DELETE and TRUNCATE for every
 role, and `svc_handover` can only read it and call `handover.append_event`, which numbers the event and computes

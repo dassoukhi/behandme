@@ -9,7 +9,7 @@ import {
   it,
   vi,
 } from "vitest";
-import { TrustAdded, UserDeleted } from "@lib/contracts";
+import { KeysRotated, TrustAdded, UserDeleted } from "@lib/contracts";
 import { NotFoundError } from "@lib/kernel";
 import { createEnvelope, PgmqBus, QueueConsumer } from "@lib/messaging";
 import { FakeClock, startTestDatabase, type TestDatabase } from "@lib/testing";
@@ -73,6 +73,9 @@ async function receive(...envelopes: ReturnType<typeof createEnvelope>[]) {
     handlers: Object.fromEntries([
       on(TrustAdded, (payload, _e, tx) =>
         events.trustAdded(stores.bind(tx), payload),
+      ),
+      on(KeysRotated, (payload, _e, tx) =>
+        events.keysRotated(stores.bind(tx), payload),
       ),
       on(UserDeleted, ({ userId }, _e, tx) =>
         events.userDeleted(stores.bind(tx), userId),
@@ -147,6 +150,48 @@ describe("trust.added", () => {
     await receive(aliceAddsBob());
     expect(await inbox.list(BOB)).toHaveLength(1);
     expect(await deliveries()).toEqual([]);
+  });
+});
+
+describe("keys.rotated", () => {
+  const bobResetsKeys = () =>
+    createEnvelope(
+      KeysRotated.create({
+        userId: BOB,
+        keyVersion: 2,
+        usableFrom: "2026-10-17T10:00:00.000Z",
+        userName: "Bob Durand",
+        trusterIds: [ALICE],
+      }),
+      { correlationId: "c" },
+      clock,
+    );
+
+  it("alerts the user even with push off, and tells the people who trust them", async () => {
+    await inbox.registerDevice(BOB, TOKEN_B1);
+    await inbox.updatePreferences(BOB, { push_enabled: false });
+    await inbox.registerDevice(ALICE, "ExponentPushToken[alice]");
+
+    expect(await receive(bobResetsKeys())).toMatchObject({ handled: 1 });
+
+    expect(await inbox.list(BOB)).toMatchObject([
+      {
+        type: "keys_reset",
+        title: "Vos clés ont été réinitialisées",
+        data: { url: "/settings/security" },
+      },
+    ]);
+    expect(await inbox.list(ALICE)).toMatchObject([
+      {
+        type: "contact_keys_reset",
+        body: "Bob Durand a réinitialisé ses clés. Comparez son nouveau code de sécurité avant de lui confier un accès.",
+        data: { url: `/people/${BOB}` },
+      },
+    ]);
+    // Bob's alert is critical: it reaches his phone although he turned push off.
+    expect((await deliveries()).map((d) => d.token).sort()).toEqual(
+      ["ExponentPushToken[alice]", TOKEN_B1].sort(),
+    );
   });
 });
 

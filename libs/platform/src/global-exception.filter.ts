@@ -44,6 +44,8 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let message = "Internal server error";
     let error = "Internal Server Error";
+    // Clerk's reverification hint (`clerk_error`): the app's useReverification looks for it in the body.
+    let clerkError: unknown;
 
     const http =
       exception instanceof DomainError ? toHttpException(exception) : exception;
@@ -54,6 +56,8 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       if (typeof errorResponse === "object") {
         message = (errorResponse as any).message || message;
         error = (errorResponse as any).error || error;
+        clerkError = (errorResponse as any).clerk_error;
+        if (clerkError) message = "Verify your identity again";
       } else {
         message = errorResponse as string;
       }
@@ -78,6 +82,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       path: request.url,
       error,
       message,
+      ...(clerkError ? { clerk_error: clerkError } : {}),
     });
   }
 }

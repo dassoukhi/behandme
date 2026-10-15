@@ -19,3 +19,35 @@ export function trustAdded(params: {
     critical: false,
   };
 }
+
+/**
+ * The user's end-to-end keys were reset. If it was not them, someone holds their session: pushed even
+ * when push is off, while the quarantine still protects their contacts.
+ */
+export function keysReset(params: { userId: string }): NotificationDraft {
+  return {
+    userId: params.userId,
+    type: "keys_reset",
+    title: "Vos clés ont été réinitialisées",
+    body: "Si ce n'est pas vous, changez votre mot de passe tout de suite et prévenez vos proches.",
+    data: { url: "/settings/security" },
+    critical: true,
+  };
+}
+
+/** Someone the reader trusts has new keys: compare their new security code before entrusting them. */
+export function contactKeysReset(params: {
+  trusterId: string;
+  userId: string;
+  userName: string | null;
+}): NotificationDraft {
+  const who = params.userName ?? "Un de vos proches";
+  return {
+    userId: params.trusterId,
+    type: "contact_keys_reset",
+    title: "Clés réinitialisées",
+    body: `${who} a réinitialisé ses clés. Comparez son nouveau code de sécurité avant de lui confier un accès.`,
+    data: { url: `/people/${params.userId}` },
+    critical: false,
+  };
+}

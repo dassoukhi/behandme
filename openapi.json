@@ -1197,6 +1197,55 @@
         ]
       }
     },
+    "/api/v1/users/me/keys/reset": {
+      "post": {
+        "operationId": "KeysController_reset",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterKeysDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicKeysDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed keys, a signature that does not verify, or the current keys again"
+          },
+          "403": {
+            "description": "Reverification needed: the body is Clerk's reverification hint (clerk_error), handled by useReverification"
+          },
+          "404": {
+            "description": "No keys registered yet"
+          },
+          "409": {
+            "description": "key_version is not the next one, or the keys changed meanwhile"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Replace the caller's lost or compromised keys (signed by the new keys, next key_version). Needs a Clerk reverification less than 10 minutes old; others may use the new keys after a quarantine (72 h).",
+        "tags": [
+          "keys"
+        ]
+      }
+    },
     "/api/v1/keys": {
       "get": {
         "operationId": "KeysController_visible",

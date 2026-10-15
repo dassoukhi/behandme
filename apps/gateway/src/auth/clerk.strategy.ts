@@ -25,7 +25,16 @@ export class ClerkStrategy extends PassportStrategy(Strategy, "clerk") {
       const payload = await verifyToken(token, {
         secretKey: this.configService.get("CLERK_SECRET_KEY"),
       });
-      return { id: payload.sub };
+      const fva = payload.fva;
+      return {
+        id: payload.sub,
+        fva:
+          Array.isArray(fva) &&
+          fva.length === 2 &&
+          fva.every((age) => Number.isInteger(age))
+            ? [fva[0], fva[1]]
+            : null,
+      };
     } catch {
       throw new UnauthorizedException("Invalid token");
     }

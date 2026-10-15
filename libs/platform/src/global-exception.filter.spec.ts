@@ -1,6 +1,7 @@
 import type { ArgumentsHost } from "@nestjs/common";
 import {
   BadRequestException,
+  ForbiddenException,
   Logger,
   ConflictException,
   HttpException,
@@ -62,6 +63,24 @@ describe("global exception filter", () => {
       expect(respond(domain)).toEqual(respond(http));
     },
   );
+
+  it("keeps Clerk's reverification hint in the body, for the app's useReverification", () => {
+    const hint = {
+      clerk_error: {
+        type: "forbidden",
+        reason: "reverification-error",
+        metadata: {
+          reverification: { level: "second_factor", afterMinutes: 10 },
+        },
+      },
+    };
+    const { status, body } = respond(new ForbiddenException(hint));
+    expect(status).toBe(403);
+    expect(body).toMatchObject({ statusCode: 403, ...hint });
+    expect(respond(new ForbiddenException("No")).body).not.toHaveProperty(
+      "clerk_error",
+    );
+  });
 
   it("logs a refused request as one warning line, an unexpected error with its stack", () => {
     const warn = vi

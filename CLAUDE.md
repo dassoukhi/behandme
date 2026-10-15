@@ -79,7 +79,10 @@ delivery order are in `docs/architecture.md`.
   `handover/` provides `HANDOVER_CLIENT` to the modules that need it. `keys/` stores users' public end-to-end
   keys (`core.user_keys`): it checks the Ed25519 signature of a registration with `node:crypto` and never
   handles a private key (protocol: the app's `docs/crypto-protocol.md`; shared fixture
-  `apps/gateway/src/keys/testing/key-registration-v1.json`, a copy of the app's — keep them identical). `messaging/` runs the outbox relay and
+  `apps/gateway/src/keys/testing/key-registration-v1.json`, a copy of the app's — keep them identical). A key
+  reset needs a recent Clerk reverification (`fva` claim, `CurrentVerificationAge`) and puts the new keys in a
+  72 h quarantine (`KEY_QUARANTINE_SECONDS_OVERRIDE` shortens it outside production only); see
+  docs/architecture.md, "Key reset". `messaging/` runs the outbox relay and
   the gateway's queue. The gateway holds no Supabase key: each service uses its own Postgres role.
 - Updates use **PATCH** (users, contracts, notifications).
 
@@ -105,7 +108,8 @@ must:
   distinctness by handover); a contract's audit log is append-only and readable by its participants; profiles expose
   email/phone only to yourself and to users who trust you (`apps/gateway/src/users/domain/profile.ts`);
   a profile's email comes from Clerk, never from the client; a trust link is removed by its owner only;
-  a user's public keys are readable by them, the people they trust and the people who trust them;
+  a user's public keys are readable by them, the people they trust and the people who trust them, and replaced
+  only by them after a Clerk reverification (`POST /users/me/keys/reset`), usable by others after a quarantine;
   notifications are recipient-only and created by services from events (no client create/send route).
 - Internal services (notifier, handover) trust only the internal token: `@ForUser()` gives the user it names, and every
   query filters on it (another user's row → 404). Only the gateway signs tokens for a user.

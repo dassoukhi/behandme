@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Post, Query } from "@nestjs/common";
+import { reverificationError } from "@clerk/backend/internal";
+import {
+  Body,
+  Controller,
+  ForbiddenException,
+  Get,
+  HttpCode,
+  Post,
+  Query,
+} from "@nestjs/common";
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -6,13 +15,28 @@ import {
   ApiResponse,
   ApiTags,
 } from "@nestjs/swagger";
-import { CurrentUserId } from "../../auth/current-user.decorator.js";
+import {
+  CurrentUserId,
+  CurrentVerificationAge,
+} from "../../auth/current-user.decorator.js";
 import { KeysService } from "../application/keys.service.js";
-import type { RegisteredKeys } from "../domain/keys.js";
+import {
+  type KeySubmission,
+  type RegisteredKeys,
+  RESET_REVERIFICATION,
+  ReverificationRequired,
+} from "../domain/keys.js";
 import { PublicKeysDto, RegisterKeysDto } from "./dto/keys.dto.js";
 
 const fromBase64 = (text: string) =>
   new Uint8Array(Buffer.from(text, "base64"));
+
+const toSubmission = (body: RegisterKeysDto): KeySubmission => ({
+  keyVersion: body.key_version,
+  kemPublicKey: fromBase64(body.kem_public_key),
+  signingPublicKey: fromBase64(body.signing_public_key),
+  signature: fromBase64(body.signature),
+});
 
 function toDto(keys: RegisteredKeys): PublicKeysDto {
   const b64 = (bytes: Uint8Array) => Buffer.from(bytes).toString("base64");
@@ -57,14 +81,45 @@ export class KeysController {
     @CurrentUserId() me: string,
     @Body() body: RegisterKeysDto,
   ): Promise<PublicKeysDto> {
-    return toDto(
-      await this.keys.register(me, {
-        keyVersion: body.key_version,
-        kemPublicKey: fromBase64(body.kem_public_key),
-        signingPublicKey: fromBase64(body.signing_public_key),
-        signature: fromBase64(body.signature),
-      }),
-    );
+    return toDto(await this.keys.register(me, toSubmission(body)));
+  }
+
+  @Post("users/me/keys/reset")
+  @HttpCode(200)
+  @ApiOperation({
+    summary:
+      "Replace the caller's lost or compromised keys (signed by the new keys, next key_version). Needs a Clerk reverification less than 10 minutes old; others may use the new keys after a quarantine (72 h).",
+  })
+  @ApiResponse({ status: 200, type: PublicKeysDto })
+  @ApiResponse({
+    status: 400,
+    description:
+      "Malformed keys, a signature that does not verify, or the current keys again",
+  })
+  @ApiResponse({
+    status: 403,
+    description:
+      "Reverification needed: the body is Clerk's reverification hint (clerk_error), handled by useReverification",
+  })
+  @ApiResponse({ status: 404, description: "No keys registered yet" })
+  @ApiResponse({
+    status: 409,
+    description:
+      "key_version is not the next one, or the keys changed meanwhile",
+  })
+  async reset(
+    @CurrentUserId() me: string,
+    @CurrentVerificationAge() fva: [number, number] | null,
+    @Body() body: RegisterKeysDto,
+  ): Promise<PublicKeysDto> {
+    try {
+      return toDto(await this.keys.reset(me, toSubmission(body), fva));
+    } catch (error) {
+      if (error instanceof ReverificationRequired) {
+        throw new ForbiddenException(reverificationError(RESET_REVERIFICATION));
+      }
+      throw error;
+    }
   }
 
   @Get("keys")

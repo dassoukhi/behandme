@@ -1,6 +1,10 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { type Clock } from "@lib/kernel";
-import { trustAdded } from "../domain/templates.js";
+import {
+  contactKeysReset,
+  keysReset,
+  trustAdded,
+} from "../domain/templates.js";
 import { NotifyService } from "./notify.service.js";
 import { CLOCK, type NotifierStore } from "./ports.js";
 
@@ -23,6 +27,23 @@ export class NotificationEvents {
         ownerId: event.ownerId,
         ownerName: event.ownerName,
       }),
+    ]);
+  }
+
+  /** Alert the user (it may not have been them), and tell the people who may encrypt to them. */
+  async keysRotated(
+    store: NotifierStore,
+    event: { userId: string; userName: string | null; trusterIds: string[] },
+  ): Promise<void> {
+    await this.notifier.notify(store, [
+      keysReset({ userId: event.userId }),
+      ...event.trusterIds.map((trusterId) =>
+        contactKeysReset({
+          trusterId,
+          userId: event.userId,
+          userName: event.userName,
+        }),
+      ),
     ]);
   }
 

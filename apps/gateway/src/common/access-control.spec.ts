@@ -17,7 +17,10 @@ import {
 } from "vitest";
 import { ContractsFacade } from "../contracts/application/contracts.facade.js";
 import { KeysService } from "../keys/application/keys.service.js";
+import { KEY_QUARANTINE_MS } from "../keys/domain/keys.js";
 import { KyselyKeyRepository } from "../keys/infrastructure/kysely-key.repository.js";
+import { KyselyKeysUnitOfWork } from "../keys/infrastructure/kysely-keys.unit-of-work.js";
+import { UsersKeyHolderDirectory } from "../keys/infrastructure/users-key-holder-directory.js";
 import { nodeKeyCryptography } from "../keys/infrastructure/node-key-cryptography.js";
 import { InMemoryHandover } from "../handover/testing/in-memory-handover.js";
 import type { IdentityProfile } from "../users/application/ports.js";
@@ -106,6 +109,9 @@ beforeEach(async () => {
     nodeKeyCryptography,
     new FakeClock(),
     trust,
+    new KyselyKeysUnitOfWork(pg),
+    new UsersKeyHolderDirectory(users, trust),
+    KEY_QUARANTINE_MS,
   );
   contracts = new ContractsFacade(handover, users, trust, keys);
   contractId = (

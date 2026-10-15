@@ -8,6 +8,7 @@ import {
 import { ConfigService } from "@nestjs/config";
 import type { Kysely } from "kysely";
 import {
+  KeysRotated,
   on,
   PushReceiptsDue,
   RetentionDue,
@@ -56,6 +57,9 @@ export class NotifierMessaging
       handlers: Object.fromEntries([
         on(TrustAdded, (payload, _event, tx) =>
           events.trustAdded(stores.bind(tx), payload),
+        ),
+        on(KeysRotated, (payload, _event, tx) =>
+          events.keysRotated(stores.bind(tx), payload),
         ),
         on(UserDeleted, ({ userId }, _event, tx) =>
           events.userDeleted(stores.bind(tx), userId),

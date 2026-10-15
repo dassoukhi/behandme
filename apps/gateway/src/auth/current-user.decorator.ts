@@ -8,6 +8,11 @@ import {
 export interface AuthUser {
   /** Clerk user ID, also the primary key of the `users` table. */
   id: string;
+  /**
+   * Minutes since the session verified its first and second factor (Clerk's `fva` claim, -1 for a
+   * factor never verified); null when the token has none.
+   */
+  fva: [number, number] | null;
 }
 
 // Clerk IDs are `user_` + alphanumerics. Checked so the id is always safe to
@@ -23,5 +28,14 @@ export const CurrentUserId = createParamDecorator(
       throw new UnauthorizedException();
     }
     return user.id;
+  },
+);
+
+/** How recently the caller's session verified its factors (for actions that need a reverification). */
+export const CurrentVerificationAge = createParamDecorator(
+  (_data: unknown, context: ExecutionContext): [number, number] | null => {
+    const user = context.switchToHttp().getRequest().user as
+      AuthUser | undefined;
+    return user?.fva ?? null;
   },
 );
