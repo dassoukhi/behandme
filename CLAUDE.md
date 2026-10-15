@@ -76,7 +76,10 @@ delivery order are in `docs/architecture.md`.
 - `notifications/` relays the caller's requests to the notifier (`NotifierClient` port, `HttpNotifierClient`).
 - `contracts/` relays to handover (`ContractsFacade`): it checks that the participants of a new contract are
   people the caller trusts, and adds the participants' profiles (visibility rule) to handover's records.
-  `handover/` provides `HANDOVER_CLIENT` to the modules that need it. `messaging/` runs the outbox relay and
+  `handover/` provides `HANDOVER_CLIENT` to the modules that need it. `keys/` stores users' public end-to-end
+  keys (`core.user_keys`): it checks the Ed25519 signature of a registration with `node:crypto` and never
+  handles a private key (protocol: the app's `docs/crypto-protocol.md`; shared fixture
+  `apps/gateway/src/keys/testing/key-registration-v1.json`, a copy of the app's — keep them identical). `messaging/` runs the outbox relay and
   the gateway's queue. The gateway holds no Supabase key: each service uses its own Postgres role.
 - Updates use **PATCH** (users, contracts, notifications).
 
@@ -98,6 +101,7 @@ must:
   distinctness by handover); a contract's audit log is append-only and readable by its participants; profiles expose
   email/phone only to yourself and to users who trust you (`apps/gateway/src/users/domain/profile.ts`);
   a profile's email comes from Clerk, never from the client; a trust link is removed by its owner only;
+  a user's public keys are readable by them, the people they trust and the people who trust them;
   notifications are recipient-only and created by services from events (no client create/send route).
 - Internal services (notifier, handover) trust only the internal token: `@ForUser()` gives the user it names, and every
   query filters on it (another user's row → 404). Only the gateway signs tokens for a user.

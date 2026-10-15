@@ -1,0 +1,14 @@
+{
+  "source": "Made by lib/crypto (identity.ts) from the seed 01 02 … 20; checked by both repos.",
+  "seed_hex": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+  "phrase": "abrasif appuyer prétexte alléger exister intrigue brousse dégrafer amour flamme intense bolide armature algèbre élève nature aviser prénom diluer comédie problème limonade huileux autruche",
+  "user_id": "user_fixture",
+  "registration": {
+    "key_version": 1,
+    "kem_public_key": "D+eIkgC6Q3ULJCduUOFw/nNydbuwKZC3emh1p1MhTumr2Mlz4TzGRbQX7sh46wo4wnywowkZz+YvxNsLnTIN7jLGBhZ1lnEw6AdN3mKgnVlkiLpkeAKuv7nFP5tzscQSrOJ7/HmP+3uEexYVYAYHS7oTPBN508a1+eoY5BOcSHAE2MVREKFSOhiK5AqflnQc0cpt+tXGfvYtMAljjNwm+7VHD8dZD+OiLREdAlVezqxnYbA6J9isY6od+9TBxcOSEeymIqeC2WVEIdBOQrx1TyrL+jxLGUqKxRZXxDvBiUMqC1GAazWsg7G0rCmWmXas6GWwe5BSGsmrEPWK/DsPJDnIpeTKtalQbWSTMxykxiUEw+A/FgRzYICVz9eG7kslsBkn8YB3CkOwkxajnDe49dqmRZa5dlEZMvSZT/lV6AQrXWOz0XO4rmsSPVs/uKZpCzo8WRNTiQk2TZOoF4Nsf3s3JACIGrQqZVdufjJGgvIFb1YD4GpgAmiSjZhhZjWfgtlWoXROP9gpwIwBcqeTFhq6SLXBWPN8hydLY4IaK0hUXzJ8OVLNuoE6IdyYU3wCJod8TRkKBPuxMzfNVnAmuVNTHdwxRTJUiNaLKcvH8JxBVgLNX4UJihKTYYd/LMU00xKIbejGMdTCbfptqSlkbCJeApmZn4emdUE2MBbN1YNpK5TNq6xbfIPIXDdCh3G0uNhcW5MuNJqeXjUKgOQe1oxJwySeY3hVO6QaeJIqCVl1fOOUDNOrVYdt1Wc9eDeD4DihbLdBmToirqmxHalMXnYf02Gb4kaihFgOIFgyTomPYSVvkyEykewQHOdNrOKn+egBwyZFewyxsFiVPIVZ7kBx8UwpJdY8KZysAlAvfRFymxF4iZkGr7HOTDOUmceag2ae1hpH1eAoZvVIMAmLnYcotLIEtALKzgDG4ywczlKIwJx2NciFUXKWrHRHklwtRfCmtUNxRmxloaolb4ZAj6CcKDECxWAJZpa1hCdCcwaFCzdCmfIq+xoO31lkZ0l4CUFCXIJHD5HJmtY4JEt+rtSClwoL61MkGAs/T+MrEnNVoNsObpBnB+VRNoJiSpJTNISWN+SHCXdWehJLYxE9MWh5LXBDtmGrYMaHind/VbVq8OpK89Vhi2ABvOiBhZxKPENG2fJGhZVs/NcVwiSoDQcihfkNZ0hwEXKzAScQUYMtRAMpeJS5rfLGnuENUSHK7tgCCFwhFrYhC3So3LMnPXmXZGQCvjqzy5yjbpYHrDJRJGKWhrF4EvuN/fkyCqJwE5nBA2NRE1JaCCJmABvMSwE5aWW+xgU0OClcCRY0iVKwjkfDd1QajUUO+WEMkao6dDImmkM1qgcO0xY6EAQfugdmmReqPABvasWX5vAt3IsnRjqEqLk36KNrnWasY+IJGxmSJlKga+CPIfsufVabpAy+QlexhVYUmwS737Al5Vc3dYG4OeM9AKpGQjKNOumjBQNFWWd+bDVe1ViLBXwaQyyvXKcpA8N+/AMeA3PJqdIiszW0hhc9uHwD/9WmuIrO2109YcWtRwel05VZV2mdlkNTMyf2MauKOCIQFtVU7bhoDj1l67GCJ+d1I32aNdY5Rus3Y/jM/bqjdHojoFtMZA==",
+    "signing_public_key": "DqBr5XYYTsArfkkhcSYdHE2na7ZOTo+cI9UzOOtG0To=",
+    "signature": "w2PhoVBxMHwWCIF6caMLS20ln07dcWzOoyXYF+8+5mfJ3+BgTrBUgAa5sllcV7HnxqoyjrP0sb7QeH9dpG+pCg=="
+  },
+  "fingerprint": "e6c9767c1a793ea04f978cad0435f958dad5977a2fb65e368d71608297280ef1",
+  "security_code": "63514 36343 55769 53082 90573 75560"
+}

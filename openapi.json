@@ -970,6 +970,117 @@
           "users"
         ]
       }
+    },
+    "/api/v1/users/me/keys": {
+      "get": {
+        "operationId": "KeysController_mine",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicKeysDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No keys registered yet"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The caller's registered public keys",
+        "tags": [
+          "keys"
+        ]
+      },
+      "post": {
+        "operationId": "KeysController_register",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterKeysDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicKeysDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed keys or a signature that does not verify"
+          },
+          "409": {
+            "description": "Keys are already registered"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Register the caller's first public keys (signed by the caller)",
+        "tags": [
+          "keys"
+        ]
+      }
+    },
+    "/api/v1/keys": {
+      "get": {
+        "operationId": "KeysController_visible",
+        "parameters": [
+          {
+            "name": "user_ids",
+            "required": true,
+            "in": "query",
+            "description": "Comma-separated Clerk ids (50 at most)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PublicKeysDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Public keys of some users: the caller, people they trust and people who trust them. Users without keys are left out.",
+        "tags": [
+          "keys"
+        ]
+      }
     }
   },
   "info": {
@@ -1623,6 +1734,90 @@
           "owner_id",
           "trusted_id",
           "created_at"
+        ]
+      },
+      "PublicKeysDto": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "example": "user_2abcdefghijklmnop"
+          },
+          "key_version": {
+            "type": "number",
+            "example": 1
+          },
+          "kem_public_key": {
+            "type": "string",
+            "description": "X-Wing public key, base64"
+          },
+          "signing_public_key": {
+            "type": "string",
+            "description": "Ed25519 public key, base64"
+          },
+          "fingerprint": {
+            "type": "string",
+            "description": "hex SHA-256 of both keys; its first 30 digits are the security code"
+          },
+          "signature": {
+            "type": "string",
+            "description": "The user's signature of these keys, base64"
+          },
+          "usable_from": {
+            "type": "string",
+            "description": "Others may encrypt to these keys from this time (later than created_at after a reset)",
+            "example": "2026-10-15T09:00:00.000Z"
+          },
+          "created_at": {
+            "type": "string",
+            "example": "2026-10-15T09:00:00.000Z"
+          }
+        },
+        "required": [
+          "user_id",
+          "key_version",
+          "kem_public_key",
+          "signing_public_key",
+          "fingerprint",
+          "signature",
+          "usable_from",
+          "created_at"
+        ]
+      },
+      "RegisterKeysDto": {
+        "type": "object",
+        "properties": {
+          "key_version": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 1000,
+            "description": "1 for a first registration",
+            "example": 1
+          },
+          "kem_public_key": {
+            "type": "string",
+            "maxLength": 2000,
+            "format": "base64",
+            "description": "X-Wing public key, base64 (1216 bytes)"
+          },
+          "signing_public_key": {
+            "type": "string",
+            "maxLength": 100,
+            "format": "base64",
+            "description": "Ed25519 public key, base64 (32 bytes)"
+          },
+          "signature": {
+            "type": "string",
+            "maxLength": 200,
+            "format": "base64",
+            "description": "Ed25519 signature, base64, by the signing key over the RFC 8785 JSON of {type: 'behindme/v1/key-registration', user_id, key_version, kem_public_key, signing_public_key}"
+          }
+        },
+        "required": [
+          "key_version",
+          "kem_public_key",
+          "signing_public_key",
+          "signature"
         ]
       }
     }

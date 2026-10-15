@@ -13,6 +13,7 @@ import { ClerkClientProvider } from "./providers/clerk-client.provider.js";
 import { ClerkAuthGuard } from "./auth/clerk-auth.guard.js";
 import { NotificationsModule } from "./notifications/notifications.module.js";
 import { ContractsModule } from "./contracts/contracts.module.js";
+import { KeysModule } from "./keys/keys.module.js";
 import { MessagingModule } from "./messaging/messaging.module.js";
 
 @Module({
@@ -26,6 +27,7 @@ import { MessagingModule } from "./messaging/messaging.module.js";
     DatabaseModule.forRoot({ applicationName: "gateway" }),
     NotificationsModule,
     ContractsModule,
+    KeysModule,
     UsersModule,
     AuthModule,
     MessagingModule,

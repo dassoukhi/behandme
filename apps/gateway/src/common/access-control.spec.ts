@@ -5,7 +5,7 @@ import {
   NotFoundError,
   UnprocessableError,
 } from "@lib/kernel";
-import { startTestDatabase, type TestDatabase } from "@lib/testing";
+import { FakeClock, startTestDatabase, type TestDatabase } from "@lib/testing";
 import {
   afterAll,
   afterEach,
@@ -16,6 +16,9 @@ import {
   it,
 } from "vitest";
 import { ContractsFacade } from "../contracts/application/contracts.facade.js";
+import { KeysService } from "../keys/application/keys.service.js";
+import { KyselyKeyRepository } from "../keys/infrastructure/kysely-key.repository.js";
+import { nodeKeyCryptography } from "../keys/infrastructure/node-key-cryptography.js";
 import { InMemoryHandover } from "../handover/testing/in-memory-handover.js";
 import type { IdentityProfile } from "../users/application/ports.js";
 import { ProfileService } from "../users/application/profile.service.js";
@@ -331,5 +334,31 @@ describe("trust links: only the caller's own", () => {
       `${ACCESSOR}@example.com`,
     );
     expect(listed.find((p) => p.id === VALIDATOR)).not.toHaveProperty("email");
+  });
+});
+
+describe("public keys: who may read them", () => {
+  it("shows a user's keys to them and to people linked by trust, not to strangers", async () => {
+    const keys = new KeysService(
+      new KyselyKeyRepository(pg),
+      nodeKeyCryptography,
+      new FakeClock(),
+      trust,
+    );
+    await sql`reset role`.execute(pg);
+    await sql`insert into core.user_keys (user_id, key_version, kem_public_key, signing_public_key, fingerprint, signature, usable_from)
+      values (${ACCESSOR}, 1, ${new Uint8Array(1216)}, ${new Uint8Array(32)}, ${"0".repeat(64)}, ${new Uint8Array(64)}, now())`.execute(
+      pg,
+    );
+    await sql`set role svc_gateway`.execute(pg);
+    // ACCESSOR trusts OWNER, and OWNER trusts ACCESSOR: both ways linked; STRANGER is not.
+    for (const [viewer, sees] of [
+      [ACCESSOR, true],
+      [OWNER, true],
+      [STRANGER, false],
+    ] as const) {
+      const visible = await keys.visible(viewer, [ACCESSOR]);
+      expect(visible.map((k) => k.userId)).toEqual(sees ? [ACCESSOR] : []);
+    }
   });
 });
