@@ -125,9 +125,6 @@ must:
 
 ## Known gaps (decided, do not fix piecemeal)
 
-- `public.contracts`, `public.notifications`, `public.push_tokens`, `public.orphan_tokens` and the RPCs
-  `get_trusted_users` / `get_contract_with_validators` are no longer used; a later migration drops them
-  (needs the user's confirmation).
 
 ## Definition of done
 

@@ -15,7 +15,7 @@ afterAll(() => t?.close());
 
 beforeEach(async () => {
   await sql`
-    delete from public.trusted; delete from public.contracts; delete from public.users;
+    delete from public.trusted; delete from public.users;
     delete from core.outbox;
     insert into public.users (id, email, first_name, last_name) values
       ('u1', 'alice.martin@example.com', 'Alice', 'Durand'),

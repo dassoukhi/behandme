@@ -77,26 +77,30 @@ describe("client roles (anon and authenticated keys)", () => {
   });
 });
 
-describe("the API role (service_role)", () => {
-  it("still reads the tables and runs get_trusted_users", async () => {
-    await sql`
-      insert into public.users (id, email) values ('user_a', 'a@example.com'), ('user_b', 'b@example.com');
-      insert into public.trusted (owner_id, trusted_id) values ('user_a', 'user_b');`.execute(
+describe("leftovers", () => {
+  it("drops the tables and the function the app used before the services; profiles and trust links stay", async () => {
+    const { rows } = await sql<{
+      name: string;
+      present: boolean;
+    }>`select name, to_regclass('public.' || name) is not null as present
+       from unnest(array['contracts', 'notifications', 'push_tokens', 'orphan_tokens', 'users', 'trusted']) name`.execute(
       t.db,
     );
-
-    const trusted = await t.asRole("service_role", (db) =>
-      sql<{
-        id: string;
-      }>`select id from public.get_trusted_users('user_a')`.execute(db),
-    );
-
-    expect(trusted.rows).toEqual([{ id: "user_b" }]);
-    await sql`delete from public.users`.execute(t.db);
+    expect(Object.fromEntries(rows.map((r) => [r.name, r.present]))).toEqual({
+      contracts: false,
+      notifications: false,
+      push_tokens: false,
+      orphan_tokens: false,
+      users: true,
+      trusted: true,
+    });
+    const functions =
+      await sql`select 1 from pg_proc where proname = 'get_trusted_users'`.execute(
+        t.db,
+      );
+    expect(functions.rows).toEqual([]);
   });
-});
 
-describe("leftovers", () => {
   it("drops get_contract_with_validators, broken since the blockchain columns went", async () => {
     expect(
       await rows(
