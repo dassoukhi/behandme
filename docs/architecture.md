@@ -126,7 +126,8 @@ of the owner cancelling their last claim), cancel_claim (owner), withdraw_claim 
 sealing: a share wrapped to reset keys is lost until the owner re-seals. Sealing stores the
 envelope, the owner's wrapped key, one wrapped share per validator and the signed manifest
 (`handover.envelopes`, `handover.key_wraps`); handover checks them against the registered keys the gateway
-passes along (`domain/sealing.ts`) and keeps only the current sealing. Revocation and cancellation are always decided by
+passes along (`domain/sealing.ts`; the envelope must be padded, format 2: 1 KiB, or a power of two up to 32 KiB,
+so that its size does not give the secret's length) and keeps only the current sealing. Revocation and cancellation are always decided by
 handover, the single authority on the life cycle, which removes "revoke vs release" races.
 
 **Claims and release** (`apps/handover/src/contracts/application/claims.service.ts`). A claim moves the

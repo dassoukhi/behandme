@@ -7,12 +7,29 @@ import { assertValidDraft, type Contract } from "./contract.js";
 
 export const SUITE_NAME =
   "behindme/v1 HPKE(X-Wing, HKDF-SHA256, AES-256-GCM) + Shamir GF(256)";
-const FORMAT = 0x01;
+const WRAP_FORMAT = 0x01;
 const ENC_LENGTH = 1120; // X-Wing ciphertext
 const TAG_LENGTH = 16; // AES-GCM
 const NONCE_LENGTH = 12;
 const KEY_LENGTH = 32; // contract key K
 const SHAMIR_SHARE_LENGTH = 33; // 32 bytes + the share's x coordinate
+
+// Envelope format 2 pads the secret to 1 KiB, or to the next power of two up to 32 KiB, so that its size
+// does not give the secret's length; format 1 (unpadded) is no longer accepted for a new sealing.
+const ENVELOPE_FORMAT = 0x02;
+const MIN_PADDED_LENGTH = 1024;
+const MAX_PADDED_LENGTH = 32768;
+
+/** A format 2 envelope whose size is one of the padding steps. */
+export function isPaddedEnvelope(envelope: Uint8Array): boolean {
+  const padded = envelope.length - (1 + NONCE_LENGTH + TAG_LENGTH);
+  return (
+    envelope[0] === ENVELOPE_FORMAT &&
+    padded >= MIN_PADDED_LENGTH &&
+    padded <= MAX_PADDED_LENGTH &&
+    (padded & (padded - 1)) === 0
+  );
+}
 
 export const wrapLength = (secretLength: number) =>
   1 + ENC_LENGTH + secretLength + TAG_LENGTH;
@@ -20,7 +37,7 @@ export const wrapLength = (secretLength: number) =>
 /** A wrapped key share of a contract with `validators` validators (n = 1: the share is K itself). */
 export function isShareWrap(wrap: Uint8Array, validators: number): boolean {
   const shareLength = validators === 1 ? KEY_LENGTH : SHAMIR_SHARE_LENGTH;
-  return wrap[0] === FORMAT && wrap.length === wrapLength(shareLength);
+  return wrap[0] === WRAP_FORMAT && wrap.length === wrapLength(shareLength);
 }
 
 export interface ManifestParty {
@@ -220,11 +237,10 @@ export function checkSeal(
 
   // The envelope is the one the manifest names.
   const { envelope } = request;
-  if (
-    envelope[0] !== FORMAT ||
-    envelope.length < 1 + NONCE_LENGTH + TAG_LENGTH
-  ) {
-    throw new InvalidInputError("The envelope is not a behindme/v1 envelope");
+  if (!isPaddedEnvelope(envelope)) {
+    throw new InvalidInputError(
+      "The envelope is not a padded behindme/v1 envelope (format 2)",
+    );
   }
   if (crypto.sha256Hex(envelope) !== manifest.envelope_hash) {
     throw new InvalidInputError(
@@ -236,7 +252,7 @@ export function checkSeal(
   // content is opaque here: a wrap put in another slot is refused by the recipient's phone, whose HPKE
   // context names the slot.
   const isWrap = (wrap: Uint8Array, secretLength: number) =>
-    wrap[0] === FORMAT && wrap.length === wrapLength(secretLength);
+    wrap[0] === WRAP_FORMAT && wrap.length === wrapLength(secretLength);
   if (!isWrap(request.ownerWrap, KEY_LENGTH)) {
     throw new InvalidInputError("The owner's wrap is malformed");
   }

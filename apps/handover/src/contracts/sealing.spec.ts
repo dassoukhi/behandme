@@ -1,4 +1,6 @@
+import canonicalize from "canonicalize";
 import { type Kysely, sql } from "kysely";
+import { createHash, createPrivateKey, hkdfSync, sign } from "node:crypto";
 import {
   afterAll,
   afterEach,
@@ -206,6 +208,72 @@ describe("sealing", () => {
       await expect(sealing.material(OWNER, ID)).rejects.toThrow(NotFoundError);
     },
   );
+});
+
+describe("the envelope's padding", () => {
+  // Signed again by the owner, as their phone would: the manifest names the envelope, so the padding
+  // rule is what refuses it, not the hash or the signature.
+  const ownerKey = createPrivateKey({
+    key: {
+      kty: "OKP",
+      crv: "Ed25519",
+      // The app's derivation (docs/crypto-protocol.md, "Identity keys").
+      d: Buffer.from(
+        hkdfSync(
+          "sha256",
+          new Uint8Array(32).fill(P.owner.seed_byte),
+          "behindme/v1/identity",
+          "signing/ed25519",
+          32,
+        ),
+      ).toString("base64url"),
+      x: Buffer.from(P.owner.signing_public_key, "base64").toString(
+        "base64url",
+      ),
+    },
+    format: "jwk",
+  });
+  const withEnvelope = (envelope: Uint8Array): SealRequest => {
+    const r = request();
+    const manifest = {
+      ...(r.manifest as Record<string, unknown>),
+      envelope_hash: createHash("sha256").update(envelope).digest("hex"),
+    };
+    const signature = sign(
+      null,
+      Buffer.from(canonicalize(manifest)!),
+      ownerKey,
+    );
+    return {
+      ...r,
+      envelope,
+      manifest,
+      manifestSignature: new Uint8Array(signature),
+    };
+  };
+  const envelope = () => b(fixture.sealed.envelope);
+
+  it("accepts the same envelope signed again (the test signs as the owner)", async () => {
+    await expect(
+      sealing.seal(OWNER, ID, withEnvelope(envelope()), keys()),
+    ).resolves.toMatchObject({ status: "active" });
+  });
+
+  it.each([
+    ["an unpadded envelope (format 1)", (e: Uint8Array) => ((e[0] = 1), e)],
+    [
+      "a size between two padding steps",
+      (e: Uint8Array) => new Uint8Array([...e, ...new Uint8Array(16)]),
+    ],
+    [
+      "less than 1 KiB of padded secret",
+      (e: Uint8Array) => e.subarray(0, 1 + 12 + 512 + 16),
+    ],
+  ])("refuses %s", async (_case, change) => {
+    await expect(
+      sealing.seal(OWNER, ID, withEnvelope(change(envelope())), keys()),
+    ).rejects.toThrow(/padded/);
+  });
 });
 
 describe("what the server cannot check", () => {
