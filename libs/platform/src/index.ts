@@ -3,7 +3,10 @@ export {
   correlationMiddleware,
 } from "./correlation.middleware.js";
 export { DATABASE, DatabaseModule } from "./database.module.js";
-export { GlobalExceptionFilter } from "./global-exception.filter.js";
+export {
+  GlobalExceptionFilter,
+  httpStatusOf,
+} from "./global-exception.filter.js";
 export { HealthController } from "./health.controller.js";
 export {
   ForUser,

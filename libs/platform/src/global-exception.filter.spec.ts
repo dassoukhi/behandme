@@ -16,7 +16,10 @@ import {
   NotFoundError,
   UnprocessableError,
 } from "@lib/kernel";
-import { GlobalExceptionFilter } from "./global-exception.filter.js";
+import {
+  GlobalExceptionFilter,
+  httpStatusOf,
+} from "./global-exception.filter.js";
 
 /** Status and body the filter sends for `exception`. */
 function respond(exception: unknown) {
@@ -116,5 +119,14 @@ describe("global exception filter", () => {
       error: "Internal Server Error",
       message: "Internal server error",
     });
+  });
+});
+
+describe("httpStatusOf", () => {
+  it("gives the status the client gets: 4xx for refusals, 500 for the unexpected", () => {
+    expect(httpStatusOf(new ConflictError("Already decided"))).toBe(409);
+    expect(httpStatusOf(new NotFoundError("Contract not found"))).toBe(404);
+    expect(httpStatusOf(new ForbiddenException("No"))).toBe(403);
+    expect(httpStatusOf(new Error("connection reset"))).toBe(500);
   });
 });

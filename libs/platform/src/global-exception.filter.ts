@@ -32,6 +32,15 @@ function toHttpException(error: DomainError): HttpException {
   return new BadRequestException(error.message);
 }
 
+/** The HTTP status an exception is answered with (the same as GlobalExceptionFilter's). */
+export function httpStatusOf(exception: unknown): number {
+  const http =
+    exception instanceof DomainError ? toHttpException(exception) : exception;
+  return http instanceof HttpException
+    ? http.getStatus()
+    : HttpStatus.INTERNAL_SERVER_ERROR;
+}
+
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(GlobalExceptionFilter.name);

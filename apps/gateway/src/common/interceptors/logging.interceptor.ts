@@ -7,6 +7,7 @@ import {
 } from "@nestjs/common";
 import { Observable } from "rxjs";
 import { tap } from "rxjs/operators";
+import { httpStatusOf } from "@lib/platform";
 
 @Injectable()
 export class LoggingInterceptor implements NestInterceptor {
@@ -28,11 +29,13 @@ export class LoggingInterceptor implements NestInterceptor {
             `${method} ${url} ${response.statusCode} ${Date.now() - now}ms - ${ip} - ${userAgent}`,
           );
         },
+        // The status the client gets (a business refusal is a 4xx, not a 500); its stack, for an
+        // unexpected error, is logged once, by GlobalExceptionFilter.
         error: (err) => {
-          this.logger.error(
-            `${method} ${url} ${err.status || 500} ${Date.now() - now}ms - ${ip} - ${userAgent}`,
-            err.stack,
-          );
+          const status = httpStatusOf(err);
+          const line = `${method} ${url} ${status} ${Date.now() - now}ms - ${ip} - ${userAgent}`;
+          if (status >= 500) this.logger.error(line);
+          else this.logger.warn(line);
         },
       }),
     );
