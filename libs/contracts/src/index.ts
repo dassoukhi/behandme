@@ -5,6 +5,8 @@ export {
   ClaimDeadlineDue,
   ClaimFiled,
   ClaimQuorumReached,
+  ClaimReminder,
+  ClaimReminderDue,
   ClaimsDue,
   ContractReleased,
   KeysRotated,

@@ -176,8 +176,12 @@ describe("filing a claim", () => {
     const events = await outbox();
     expect(events.map((e) => e.type)).toEqual([
       "claim.filed",
+      "claim.reminder_due",
       "claim.deadline_due",
     ]);
+    expect(events[1].deliver_at?.toISOString()).toBe(
+      "2026-10-22T09:00:00.000Z",
+    );
     expect(events[0].envelope.payload).toMatchObject({
       contractId: ID,
       category: "networks",
@@ -185,7 +189,7 @@ describe("filing a claim", () => {
       claimantId: ACCESSOR,
       validatorIds: [V1, V2, V3],
     });
-    expect(events[1].deliver_at?.toISOString()).toBe(
+    expect(events[2].deliver_at?.toISOString()).toBe(
       "2026-10-23T09:00:00.000Z",
     );
     expect((await contracts.events(OWNER, ID)).at(-1)?.type).toBe(
@@ -266,6 +270,30 @@ describe("release", () => {
     expect(result).toEqual({ released: 0, expired: 1 });
     expect((await contracts.get(OWNER, ID)).status).toBe("active");
     expect(await settle(claimId)).toBe("closed");
+  });
+});
+
+describe("reminder", () => {
+  it("names the validators who have not decided, the claimant aside, and whether the quorum is there", async () => {
+    const claimId = await file(V1);
+    await approveAs("v3", claimId);
+    expect(
+      await stores.transaction((store) => claims.remind(store, claimId)),
+    ).toBe(true);
+    const reminder = (await outbox()).find((e) => e.type === "claim.reminder");
+    expect(reminder?.envelope.payload).toMatchObject({
+      ownerId: OWNER,
+      pendingValidatorIds: [V2],
+      quorum: false,
+    });
+  });
+
+  it("says nothing once the claim is closed", async () => {
+    const claimId = await file();
+    await claims.withdraw(ACCESSOR, ID, claimId);
+    expect(
+      await stores.transaction((store) => claims.remind(store, claimId)),
+    ).toBe(false);
   });
 });
 

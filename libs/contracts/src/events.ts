@@ -112,6 +112,30 @@ export const ClaimDeadlineDue = defineEvent(
   z.object({ contractId, claimId }),
 );
 
+/** Handover to itself, delayed to a day before the end of the contest window: remind who has not acted. */
+export const ClaimReminderDue = defineEvent(
+  "claim.reminder_due",
+  1,
+  z.object({ contractId, claimId }),
+);
+
+/** Handover: the contest window ends soon; the owner may still cancel, some validators have not decided. */
+export const ClaimReminder = defineEvent(
+  "claim.reminder",
+  1,
+  z.object({
+    contractId,
+    claimId,
+    category,
+    ownerId: userId,
+    /** Validators who have not decided yet (the claimant excluded). */
+    pendingValidatorIds: z.array(userId),
+    /** Enough approvals already: without a cancel, the release follows at the end of the window. */
+    quorum: z.boolean(),
+    contestUntil: z.iso.datetime(),
+  }),
+);
+
 /** Worker, hourly: handover settles every open claim past its deadline (catch-up for lost messages). */
 export const ClaimsDue = defineEvent("maintenance.claims_due", 1, z.object({}));
 

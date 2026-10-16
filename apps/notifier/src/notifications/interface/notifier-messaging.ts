@@ -11,6 +11,7 @@ import {
   ClaimClosed,
   ClaimFiled,
   ClaimQuorumReached,
+  ClaimReminder,
   ContractReleased,
   KeysRotated,
   on,
@@ -70,6 +71,9 @@ export class NotifierMessaging
         ),
         on(ClaimQuorumReached, (payload, _event, tx) =>
           events.claimQuorumReached(stores.bind(tx), payload),
+        ),
+        on(ClaimReminder, (payload, _event, tx) =>
+          events.claimReminder(stores.bind(tx), payload),
         ),
         on(ClaimClosed, (payload, _event, tx) =>
           events.claimClosed(stores.bind(tx), payload),

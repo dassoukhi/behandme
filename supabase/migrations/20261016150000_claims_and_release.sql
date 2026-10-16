@@ -57,8 +57,10 @@ insert into messaging.subscriptions (event_type, queue) values
   ('claim.filed', 'notifier'),
   ('claim.quorum_reached', 'notifier'),
   ('claim.closed', 'notifier'),
+  ('claim.reminder', 'notifier'),
   ('contract.released', 'notifier'),
   ('claim.deadline_due', 'handover'),
+  ('claim.reminder_due', 'handover'),
   ('maintenance.claims_due', 'handover')
 on conflict do nothing;
 

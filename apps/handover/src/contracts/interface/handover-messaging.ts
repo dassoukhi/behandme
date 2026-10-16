@@ -10,6 +10,7 @@ import type { Kysely } from "kysely";
 import {
   AuditVerifyDue,
   ClaimDeadlineDue,
+  ClaimReminderDue,
   ClaimsDue,
   on,
   RetentionDue,
@@ -47,6 +48,9 @@ export class HandoverMessaging
         on(ClaimDeadlineDue, async ({ claimId }, _event, tx) => {
           const outcome = await claims.settle(stores.bind(tx), claimId);
           logger.log(`Claim ${claimId} at its deadline: ${outcome}`);
+        }),
+        on(ClaimReminderDue, async ({ claimId }, _event, tx) => {
+          await claims.remind(stores.bind(tx), claimId);
         }),
         on(ClaimsDue, async (_payload, _event, tx) => {
           const { released, expired } = await claims.settleDue(stores.bind(tx));

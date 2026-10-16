@@ -4,6 +4,8 @@ import {
   ClaimDeadlineDue,
   ClaimFiled,
   ClaimQuorumReached,
+  ClaimReminder,
+  ClaimReminderDue,
   type ContractRecord,
   ContractReleased,
   type ReleasePackage,
@@ -26,6 +28,7 @@ import {
   claimDeadlines,
   cooldownUntil,
   type Decision,
+  reminderAt,
   settlement,
   type Tally,
   tally,
@@ -96,6 +99,10 @@ export class ClaimsService {
           validatorIds: contract.validatorIds,
           contestUntil: claim.contestUntil.toISOString(),
         }),
+      );
+      await store.events.publish(
+        ClaimReminderDue.create({ contractId: id, claimId: claim.id }),
+        { deliverAt: reminderAt(claim) },
       );
       await store.events.publish(
         ClaimDeadlineDue.create({ contractId: id, claimId: claim.id }),
@@ -224,6 +231,31 @@ export class ClaimsService {
       await this.end(store, contract, claim, "expired", null);
     }
     return outcome;
+  }
+
+  /** A day before the deadline: the owner may still cancel; validators who have not decided are asked again. */
+  async remind(store: HandoverStore, claimId: string): Promise<boolean> {
+    const claim = await store.claims.find(claimId);
+    if (!claim || claim.status !== "open") return false;
+    const contract = await store.contracts.find(claim.contractId);
+    if (!contract) return false;
+    const decisions =
+      (await store.claims.decisions([claim.id])).get(claim.id) ?? [];
+    const decided = new Set(decisions.map((d) => d.validatorId));
+    await store.events.publish(
+      ClaimReminder.create({
+        contractId: contract.id,
+        claimId: claim.id,
+        category: contract.category,
+        ownerId: contract.ownerId,
+        pendingValidatorIds: contract.validatorIds.filter(
+          (v) => !decided.has(v) && v !== claim.claimantId,
+        ),
+        quorum: tally(decisions, contract.validatorIds.length).quorum,
+        contestUntil: claim.contestUntil.toISOString(),
+      }),
+    );
+    return true;
   }
 
   /** Every open claim past its deadline (the worker's catch-up tick). */

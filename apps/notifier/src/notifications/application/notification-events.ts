@@ -5,6 +5,8 @@ import {
   claimFiledForOwner,
   claimFiledForValidator,
   claimQuorumReached,
+  claimReminderForOwner,
+  claimReminderForValidator,
   contactKeysReset,
   contractReleasedForAccessor,
   keysReset,
@@ -78,6 +80,25 @@ export class NotificationEvents {
     event: { contractId: string; category: string; ownerId: string },
   ): Promise<void> {
     await this.notifier.notify(store, [claimQuorumReached(event)]);
+  }
+
+  /** The owner's last chance, and validators who have not decided yet. */
+  async claimReminder(
+    store: NotifierStore,
+    event: {
+      contractId: string;
+      category: string;
+      ownerId: string;
+      pendingValidatorIds: string[];
+      quorum: boolean;
+    },
+  ): Promise<void> {
+    await this.notifier.notify(store, [
+      claimReminderForOwner(event),
+      ...event.pendingValidatorIds.map((validatorId) =>
+        claimReminderForValidator({ ...event, validatorId }),
+      ),
+    ]);
   }
 
   /** Everyone involved but whoever closed it. */

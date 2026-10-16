@@ -7,6 +7,7 @@ import {
   contestOverrideMs,
   cooldownUntil,
   type Decision,
+  reminderAt,
   settlement,
   tally,
 } from "./claims.js";
@@ -193,5 +194,23 @@ describe("approval", () => {
     ],
   ])("refuses %s", (_case, act, error) => {
     expect(act).toThrow(error);
+  });
+});
+
+describe("reminder", () => {
+  it("comes a day before the end of the window, or halfway through a short one", () => {
+    const filedAt = NOW;
+    expect(
+      reminderAt({
+        filedAt,
+        contestUntil: new Date("2026-10-23T09:00:00Z"),
+      }).toISOString(),
+    ).toBe("2026-10-22T09:00:00.000Z");
+    expect(
+      reminderAt({
+        filedAt,
+        contestUntil: new Date("2026-10-16T09:02:00Z"),
+      }).toISOString(),
+    ).toBe("2026-10-16T09:01:00.000Z");
   });
 });

@@ -148,3 +148,37 @@ export function contractReleasedForAccessor(params: {
     critical: true,
   };
 }
+
+/** A day before the end of the contest window: the owner's last chance to say they are there. */
+export function claimReminderForOwner(params: {
+  ownerId: string;
+  contractId: string;
+  category: string;
+  quorum: boolean;
+}): NotificationDraft {
+  return {
+    userId: params.ownerId,
+    type: "claim_reminder_owner",
+    title: "Dernier rappel",
+    body: params.quorum
+      ? `La transmission de ${contractName(params.category)} a lieu à la fin du délai, bientôt. Si vous êtes là, annulez-la maintenant.`
+      : `Une transmission de ${contractName(params.category)} est toujours demandée. Si vous êtes là, annulez-la maintenant.`,
+    data: { url: `/contract/${params.contractId}` },
+    critical: true,
+  };
+}
+
+export function claimReminderForValidator(params: {
+  validatorId: string;
+  contractId: string;
+  category: string;
+}): NotificationDraft {
+  return {
+    userId: params.validatorId,
+    type: "claim_reminder_validator",
+    title: "Votre avis est attendu",
+    body: `La transmission de ${contractName(params.category)} attend toujours votre décision.`,
+    data: { url: `/contract/${params.contractId}` },
+    critical: false,
+  };
+}

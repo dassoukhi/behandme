@@ -55,8 +55,8 @@ shared through `libs/contracts` (e.g. `notifier-api.ts`); the gateway keeps its 
   payload schemas (zod) are versioned in `libs/contracts` (`events.ts`), checked when publishing
   (`TrustAdded.create`) and when consuming (`on(TrustAdded, handler)`); a payload that does not match is
   dead-lettered at once. Today: `trust.added`, `keys.rotated`, `user.deleted`, `claim.filed`,
-  `claim.quorum_reached`, `claim.closed`, `contract.released`, `claim.deadline_due` (handover to itself,
-  delayed), `scheduler.tick`, `maintenance.push_receipts_due`, `maintenance.claims_due`,
+  `claim.quorum_reached`, `claim.reminder`, `claim.closed`, `contract.released`, `claim.reminder_due` and
+  `claim.deadline_due` (handover to itself, delayed), `scheduler.tick`, `maintenance.push_receipts_due`, `maintenance.claims_due`,
   `maintenance.retention_due`. Later: `contract.sealed`, `contract.revoked`.
 - **Correlation.** The gateway gives each request a correlation id (`x-correlation-id`, kept from the caller
   when valid); it travels in internal calls and in every event's envelope, consumers run with it, and every
@@ -136,7 +136,9 @@ shortens it outside production). An approval stores the validator's share re-wra
 keys, which must be out of quarantine (the server checks its size and the key version, not its content).
 Rejections beyond n − k close the claim; k approvals publish `claim.quorum_reached`, and the release happens
 once both quorum and deadline are there (on the delayed message, on the approval that completes the quorum
-after the deadline, or at the worker's hourly `maintenance.claims_due`). An open claim without quorum expires
+after the deadline, or at the worker's hourly `maintenance.claims_due`). A day before the end of the window (halfway
+through a window under two days), `claim.reminder` gives the owner a critical last reminder and asks the
+validators who have not decided again. An open claim without quorum expires
 after 60 days. Closing without release erases the re-wrapped shares; after a release only the accessor gets
 the package (`GET /contracts/:id/release`: envelope, signed manifest, k re-wrapped shares). Times come from the
 service clock.

@@ -53,6 +53,18 @@ export function claimDeadlines(
   };
 }
 
+/**
+ * When to remind the owner and the validators who have not decided: a day before the end of the contest
+ * window, or halfway through a window shorter than two days.
+ */
+export function reminderAt(
+  claim: Pick<Claim, "filedAt" | "contestUntil">,
+): Date {
+  const window = claim.contestUntil.getTime() - claim.filedAt.getTime();
+  const before = window >= 2 * DAY_MS ? DAY_MS : window / 2;
+  return new Date(claim.contestUntil.getTime() - before);
+}
+
 /** Until when `claimant` may not claim again after the owner cancelled their last claim; null if free. */
 export function cooldownUntil(
   lastOfClaimant: Pick<Claim, "status" | "closedAt"> | null,

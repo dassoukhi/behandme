@@ -12,6 +12,7 @@ import {
 import {
   ClaimClosed,
   ClaimFiled,
+  ClaimReminder,
   ContractReleased,
   KeysRotated,
   TrustAdded,
@@ -86,6 +87,9 @@ async function receive(...envelopes: ReturnType<typeof createEnvelope>[]) {
       ),
       on(ClaimFiled, (payload, _e, tx) =>
         events.claimFiled(stores.bind(tx), payload),
+      ),
+      on(ClaimReminder, (payload, _e, tx) =>
+        events.claimReminder(stores.bind(tx), payload),
       ),
       on(ClaimClosed, (payload, _e, tx) =>
         events.claimClosed(stores.bind(tx), payload),
@@ -272,6 +276,29 @@ describe("claims", () => {
       "Le propriétaire a annulé la demande de transmission (« Réseaux sociaux »).",
     );
     expect(await types(CAROL)).toHaveLength(1);
+  });
+
+  it("reminds the owner (critical) and the validators who have not decided", async () => {
+    await receive(
+      envelope(
+        ClaimReminder.create({
+          contractId: CONTRACT,
+          claimId: CLAIM,
+          category: "devices",
+          ownerId: ALICE,
+          pendingValidatorIds: [CAROL],
+          quorum: true,
+          contestUntil: "2026-10-21T10:00:00.000Z",
+        }),
+      ),
+    );
+    expect(await inbox.list(ALICE)).toMatchObject([
+      { type: "claim_reminder_owner", title: "Dernier rappel" },
+    ]);
+    expect(await types(CAROL)).toEqual([
+      ["claim_reminder_validator", `/contract/${CONTRACT}`],
+    ]);
+    expect(await inbox.list(BOB)).toEqual([]);
   });
 
   it("tells the accessor they can open the contract", async () => {
