@@ -123,6 +123,858 @@
           "is_identity": "NO"
         },
         {
+          "table_schema": "core",
+          "table_name": "user_key_history",
+          "column_name": "id",
+          "ordinal_position": 1,
+          "data_type": "bigint",
+          "udt_name": "int8",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "YES"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "user_key_history",
+          "column_name": "user_id",
+          "ordinal_position": 2,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "user_key_history",
+          "column_name": "key_version",
+          "ordinal_position": 3,
+          "data_type": "integer",
+          "udt_name": "int4",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "user_key_history",
+          "column_name": "kem_public_key",
+          "ordinal_position": 4,
+          "data_type": "bytea",
+          "udt_name": "bytea",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "user_key_history",
+          "column_name": "signing_public_key",
+          "ordinal_position": 5,
+          "data_type": "bytea",
+          "udt_name": "bytea",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "user_key_history",
+          "column_name": "fingerprint",
+          "ordinal_position": 6,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "user_key_history",
+          "column_name": "signature",
+          "ordinal_position": 7,
+          "data_type": "bytea",
+          "udt_name": "bytea",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "user_key_history",
+          "column_name": "created_at",
+          "ordinal_position": 8,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "user_key_history",
+          "column_name": "retired_at",
+          "ordinal_position": 9,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "is_nullable": "NO",
+          "column_default": "now()",
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "user_key_history",
+          "column_name": "reason",
+          "ordinal_position": 10,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "user_keys",
+          "column_name": "user_id",
+          "ordinal_position": 1,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "user_keys",
+          "column_name": "key_version",
+          "ordinal_position": 2,
+          "data_type": "integer",
+          "udt_name": "int4",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "user_keys",
+          "column_name": "kem_public_key",
+          "ordinal_position": 3,
+          "data_type": "bytea",
+          "udt_name": "bytea",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "user_keys",
+          "column_name": "signing_public_key",
+          "ordinal_position": 4,
+          "data_type": "bytea",
+          "udt_name": "bytea",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "user_keys",
+          "column_name": "fingerprint",
+          "ordinal_position": 5,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "user_keys",
+          "column_name": "signature",
+          "ordinal_position": 6,
+          "data_type": "bytea",
+          "udt_name": "bytea",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "user_keys",
+          "column_name": "usable_from",
+          "ordinal_position": 7,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "user_keys",
+          "column_name": "created_at",
+          "ordinal_position": 8,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "is_nullable": "NO",
+          "column_default": "now()",
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "claims",
+          "column_name": "id",
+          "ordinal_position": 1,
+          "data_type": "uuid",
+          "udt_name": "uuid",
+          "is_nullable": "NO",
+          "column_default": "gen_random_uuid()",
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "claims",
+          "column_name": "contract_id",
+          "ordinal_position": 2,
+          "data_type": "uuid",
+          "udt_name": "uuid",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "claims",
+          "column_name": "claimant_id",
+          "ordinal_position": 3,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "claims",
+          "column_name": "sealed_version",
+          "ordinal_position": 4,
+          "data_type": "integer",
+          "udt_name": "int4",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "claims",
+          "column_name": "status",
+          "ordinal_position": 5,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "NO",
+          "column_default": "'open'::text",
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "claims",
+          "column_name": "filed_at",
+          "ordinal_position": 6,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "is_nullable": "NO",
+          "column_default": "now()",
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "claims",
+          "column_name": "contest_until",
+          "ordinal_position": 7,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "claims",
+          "column_name": "expires_at",
+          "ordinal_position": 8,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "claims",
+          "column_name": "closed_at",
+          "ordinal_position": 9,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "claims",
+          "column_name": "closed_by",
+          "ordinal_position": 10,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "contract_events",
+          "column_name": "id",
+          "ordinal_position": 1,
+          "data_type": "bigint",
+          "udt_name": "int8",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "YES"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "contract_events",
+          "column_name": "contract_id",
+          "ordinal_position": 2,
+          "data_type": "uuid",
+          "udt_name": "uuid",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "contract_events",
+          "column_name": "seq",
+          "ordinal_position": 3,
+          "data_type": "integer",
+          "udt_name": "int4",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "contract_events",
+          "column_name": "type",
+          "ordinal_position": 4,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "contract_events",
+          "column_name": "actor_id",
+          "ordinal_position": 5,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "contract_events",
+          "column_name": "body",
+          "ordinal_position": 6,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "contract_events",
+          "column_name": "occurred_at",
+          "ordinal_position": 7,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "contract_events",
+          "column_name": "prev_hash",
+          "ordinal_position": 8,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "contract_events",
+          "column_name": "hash",
+          "ordinal_position": 9,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "contracts",
+          "column_name": "id",
+          "ordinal_position": 1,
+          "data_type": "uuid",
+          "udt_name": "uuid",
+          "is_nullable": "NO",
+          "column_default": "gen_random_uuid()",
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "contracts",
+          "column_name": "owner_id",
+          "ordinal_position": 2,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "contracts",
+          "column_name": "category",
+          "ordinal_position": 3,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "contracts",
+          "column_name": "description",
+          "ordinal_position": 4,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "contracts",
+          "column_name": "status",
+          "ordinal_position": 5,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "NO",
+          "column_default": "'draft'::text",
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "contracts",
+          "column_name": "version",
+          "ordinal_position": 6,
+          "data_type": "integer",
+          "udt_name": "int4",
+          "is_nullable": "NO",
+          "column_default": "1",
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "contracts",
+          "column_name": "created_at",
+          "ordinal_position": 7,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "is_nullable": "NO",
+          "column_default": "now()",
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "contracts",
+          "column_name": "updated_at",
+          "ordinal_position": 8,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "is_nullable": "NO",
+          "column_default": "now()",
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "contracts",
+          "column_name": "sealed_version",
+          "ordinal_position": 9,
+          "data_type": "integer",
+          "udt_name": "int4",
+          "is_nullable": "NO",
+          "column_default": "0",
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "contracts",
+          "column_name": "sealed_at",
+          "ordinal_position": 10,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "contracts",
+          "column_name": "revoked_at",
+          "ordinal_position": 11,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "contracts",
+          "column_name": "contest_days",
+          "ordinal_position": 12,
+          "data_type": "integer",
+          "udt_name": "int4",
+          "is_nullable": "NO",
+          "column_default": "7",
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "contracts",
+          "column_name": "released_at",
+          "ordinal_position": 13,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "decisions",
+          "column_name": "claim_id",
+          "ordinal_position": 1,
+          "data_type": "uuid",
+          "udt_name": "uuid",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "decisions",
+          "column_name": "validator_id",
+          "ordinal_position": 2,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "decisions",
+          "column_name": "approve",
+          "ordinal_position": 3,
+          "data_type": "boolean",
+          "udt_name": "bool",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "decisions",
+          "column_name": "decided_at",
+          "ordinal_position": 4,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "is_nullable": "NO",
+          "column_default": "now()",
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "decisions",
+          "column_name": "share_index",
+          "ordinal_position": 5,
+          "data_type": "smallint",
+          "udt_name": "int2",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "decisions",
+          "column_name": "accessor_key_version",
+          "ordinal_position": 6,
+          "data_type": "integer",
+          "udt_name": "int4",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "decisions",
+          "column_name": "release_wrap",
+          "ordinal_position": 7,
+          "data_type": "bytea",
+          "udt_name": "bytea",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "envelopes",
+          "column_name": "contract_id",
+          "ordinal_position": 1,
+          "data_type": "uuid",
+          "udt_name": "uuid",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "envelopes",
+          "column_name": "sealed_version",
+          "ordinal_position": 2,
+          "data_type": "integer",
+          "udt_name": "int4",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "envelopes",
+          "column_name": "envelope",
+          "ordinal_position": 3,
+          "data_type": "bytea",
+          "udt_name": "bytea",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "envelopes",
+          "column_name": "envelope_hash",
+          "ordinal_position": 4,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "envelopes",
+          "column_name": "manifest",
+          "ordinal_position": 5,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "envelopes",
+          "column_name": "manifest_signature",
+          "ordinal_position": 6,
+          "data_type": "bytea",
+          "udt_name": "bytea",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "envelopes",
+          "column_name": "owner_wrap",
+          "ordinal_position": 7,
+          "data_type": "bytea",
+          "udt_name": "bytea",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "envelopes",
+          "column_name": "owner_key_version",
+          "ordinal_position": 8,
+          "data_type": "integer",
+          "udt_name": "int4",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "envelopes",
+          "column_name": "sealed_at",
+          "ordinal_position": 9,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "is_nullable": "NO",
+          "column_default": "now()",
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "key_wraps",
+          "column_name": "contract_id",
+          "ordinal_position": 1,
+          "data_type": "uuid",
+          "udt_name": "uuid",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "key_wraps",
+          "column_name": "share_index",
+          "ordinal_position": 2,
+          "data_type": "smallint",
+          "udt_name": "int2",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "key_wraps",
+          "column_name": "user_id",
+          "ordinal_position": 3,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "key_wraps",
+          "column_name": "key_version",
+          "ordinal_position": 4,
+          "data_type": "integer",
+          "udt_name": "int4",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "key_wraps",
+          "column_name": "wrap",
+          "ordinal_position": 5,
+          "data_type": "bytea",
+          "udt_name": "bytea",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
           "table_schema": "handover",
           "table_name": "outbox",
           "column_name": "id",
@@ -202,6 +1054,54 @@
           "data_type": "timestamp with time zone",
           "udt_name": "timestamptz",
           "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "participants",
+          "column_name": "contract_id",
+          "ordinal_position": 1,
+          "data_type": "uuid",
+          "udt_name": "uuid",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "participants",
+          "column_name": "user_id",
+          "ordinal_position": 2,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "participants",
+          "column_name": "role",
+          "ordinal_position": 3,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "participants",
+          "column_name": "position",
+          "ordinal_position": 4,
+          "data_type": "smallint",
+          "udt_name": "int2",
+          "is_nullable": "NO",
           "column_default": null,
           "character_maximum_length": null,
           "is_identity": "NO"
@@ -1358,6 +2258,342 @@
           "definition": "PRIMARY KEY (consumer, event_id)"
         },
         {
+          "schema": "core",
+          "table_name": "core.user_key_history",
+          "conname": "user_key_history_pkey",
+          "contype": "p",
+          "definition": "PRIMARY KEY (id)"
+        },
+        {
+          "schema": "core",
+          "table_name": "core.user_key_history",
+          "conname": "user_key_history_reason_check",
+          "contype": "c",
+          "definition": "CHECK ((reason = 'reset'::text))"
+        },
+        {
+          "schema": "core",
+          "table_name": "core.user_key_history",
+          "conname": "user_key_history_user_id_fkey",
+          "contype": "f",
+          "definition": "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE"
+        },
+        {
+          "schema": "core",
+          "table_name": "core.user_key_history",
+          "conname": "user_key_history_user_id_key_version_key",
+          "contype": "u",
+          "definition": "UNIQUE (user_id, key_version)"
+        },
+        {
+          "schema": "core",
+          "table_name": "core.user_keys",
+          "conname": "user_keys_fingerprint_check",
+          "contype": "c",
+          "definition": "CHECK ((fingerprint ~ '^[0-9a-f]{64}$'::text))"
+        },
+        {
+          "schema": "core",
+          "table_name": "core.user_keys",
+          "conname": "user_keys_kem_public_key_check",
+          "contype": "c",
+          "definition": "CHECK ((octet_length(kem_public_key) = 1216))"
+        },
+        {
+          "schema": "core",
+          "table_name": "core.user_keys",
+          "conname": "user_keys_key_version_check",
+          "contype": "c",
+          "definition": "CHECK ((key_version >= 1))"
+        },
+        {
+          "schema": "core",
+          "table_name": "core.user_keys",
+          "conname": "user_keys_pkey",
+          "contype": "p",
+          "definition": "PRIMARY KEY (user_id)"
+        },
+        {
+          "schema": "core",
+          "table_name": "core.user_keys",
+          "conname": "user_keys_signature_check",
+          "contype": "c",
+          "definition": "CHECK ((octet_length(signature) = 64))"
+        },
+        {
+          "schema": "core",
+          "table_name": "core.user_keys",
+          "conname": "user_keys_signing_public_key_check",
+          "contype": "c",
+          "definition": "CHECK ((octet_length(signing_public_key) = 32))"
+        },
+        {
+          "schema": "core",
+          "table_name": "core.user_keys",
+          "conname": "user_keys_user_id_fkey",
+          "contype": "f",
+          "definition": "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE"
+        },
+        {
+          "schema": "handover",
+          "table_name": "handover.claims",
+          "conname": "claims_check",
+          "contype": "c",
+          "definition": "CHECK (((status = 'open'::text) = (closed_at IS NULL)))"
+        },
+        {
+          "schema": "handover",
+          "table_name": "handover.claims",
+          "conname": "claims_contract_id_fkey",
+          "contype": "f",
+          "definition": "FOREIGN KEY (contract_id) REFERENCES handover.contracts(id) ON DELETE CASCADE"
+        },
+        {
+          "schema": "handover",
+          "table_name": "handover.claims",
+          "conname": "claims_pkey",
+          "contype": "p",
+          "definition": "PRIMARY KEY (id)"
+        },
+        {
+          "schema": "handover",
+          "table_name": "handover.claims",
+          "conname": "claims_sealed_version_check",
+          "contype": "c",
+          "definition": "CHECK ((sealed_version >= 1))"
+        },
+        {
+          "schema": "handover",
+          "table_name": "handover.claims",
+          "conname": "claims_status_check",
+          "contype": "c",
+          "definition": "CHECK ((status = ANY (ARRAY['open'::text, 'cancelled'::text, 'withdrawn'::text, 'rejected'::text, 'expired'::text, 'released'::text])))"
+        },
+        {
+          "schema": "handover",
+          "table_name": "handover.contract_events",
+          "conname": "contract_events_actor_id_check",
+          "contype": "c",
+          "definition": "CHECK ((actor_id !~ '[[:space:]]'::text))"
+        },
+        {
+          "schema": "handover",
+          "table_name": "handover.contract_events",
+          "conname": "contract_events_body_check",
+          "contype": "c",
+          "definition": "CHECK (((body)::jsonb IS NOT NULL))"
+        },
+        {
+          "schema": "handover",
+          "table_name": "handover.contract_events",
+          "conname": "contract_events_contract_id_seq_key",
+          "contype": "u",
+          "definition": "UNIQUE (contract_id, seq)"
+        },
+        {
+          "schema": "handover",
+          "table_name": "handover.contract_events",
+          "conname": "contract_events_hash_check",
+          "contype": "c",
+          "definition": "CHECK ((hash ~ '^[0-9a-f]{64}$'::text))"
+        },
+        {
+          "schema": "handover",
+          "table_name": "handover.contract_events",
+          "conname": "contract_events_hash_key",
+          "contype": "u",
+          "definition": "UNIQUE (hash)"
+        },
+        {
+          "schema": "handover",
+          "table_name": "handover.contract_events",
+          "conname": "contract_events_occurred_at_check",
+          "contype": "c",
+          "definition": "CHECK ((occurred_at ~ '^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{3}Z$'::text))"
+        },
+        {
+          "schema": "handover",
+          "table_name": "handover.contract_events",
+          "conname": "contract_events_pkey",
+          "contype": "p",
+          "definition": "PRIMARY KEY (id)"
+        },
+        {
+          "schema": "handover",
+          "table_name": "handover.contract_events",
+          "conname": "contract_events_prev_hash_check",
+          "contype": "c",
+          "definition": "CHECK ((prev_hash ~ '^[0-9a-f]{64}$'::text))"
+        },
+        {
+          "schema": "handover",
+          "table_name": "handover.contract_events",
+          "conname": "contract_events_seq_check",
+          "contype": "c",
+          "definition": "CHECK ((seq >= 1))"
+        },
+        {
+          "schema": "handover",
+          "table_name": "handover.contract_events",
+          "conname": "contract_events_type_check",
+          "contype": "c",
+          "definition": "CHECK ((type ~ '^[a-z][a-z_]*(\\.[a-z][a-z_]*)+$'::text))"
+        },
+        {
+          "schema": "handover",
+          "table_name": "handover.contracts",
+          "conname": "contracts_category_check",
+          "contype": "c",
+          "definition": "CHECK ((category = ANY (ARRAY['networks'::text, 'devices'::text, 'storage'::text])))"
+        },
+        {
+          "schema": "handover",
+          "table_name": "handover.contracts",
+          "conname": "contracts_contest_days_check",
+          "contype": "c",
+          "definition": "CHECK (((contest_days >= 3) AND (contest_days <= 30)))"
+        },
+        {
+          "schema": "handover",
+          "table_name": "handover.contracts",
+          "conname": "contracts_description_check",
+          "contype": "c",
+          "definition": "CHECK ((char_length(description) <= 280))"
+        },
+        {
+          "schema": "handover",
+          "table_name": "handover.contracts",
+          "conname": "contracts_pkey",
+          "contype": "p",
+          "definition": "PRIMARY KEY (id)"
+        },
+        {
+          "schema": "handover",
+          "table_name": "handover.contracts",
+          "conname": "contracts_sealed_version_check",
+          "contype": "c",
+          "definition": "CHECK ((sealed_version >= 0))"
+        },
+        {
+          "schema": "handover",
+          "table_name": "handover.contracts",
+          "conname": "contracts_status_check",
+          "contype": "c",
+          "definition": "CHECK ((status = ANY (ARRAY['draft'::text, 'active'::text, 'claimed'::text, 'released'::text, 'revoked'::text])))"
+        },
+        {
+          "schema": "handover",
+          "table_name": "handover.decisions",
+          "conname": "decisions_check",
+          "contype": "c",
+          "definition": "CHECK ((approve OR ((share_index IS NULL) AND (accessor_key_version IS NULL) AND (release_wrap IS NULL))))"
+        },
+        {
+          "schema": "handover",
+          "table_name": "handover.decisions",
+          "conname": "decisions_check1",
+          "contype": "c",
+          "definition": "CHECK (((NOT approve) OR ((share_index IS NOT NULL) AND (accessor_key_version IS NOT NULL))))"
+        },
+        {
+          "schema": "handover",
+          "table_name": "handover.decisions",
+          "conname": "decisions_claim_id_fkey",
+          "contype": "f",
+          "definition": "FOREIGN KEY (claim_id) REFERENCES handover.claims(id) ON DELETE CASCADE"
+        },
+        {
+          "schema": "handover",
+          "table_name": "handover.decisions",
+          "conname": "decisions_pkey",
+          "contype": "p",
+          "definition": "PRIMARY KEY (claim_id, validator_id)"
+        },
+        {
+          "schema": "handover",
+          "table_name": "handover.decisions",
+          "conname": "decisions_share_index_check",
+          "contype": "c",
+          "definition": "CHECK (((share_index >= 1) AND (share_index <= 3)))"
+        },
+        {
+          "schema": "handover",
+          "table_name": "handover.envelopes",
+          "conname": "envelopes_contract_id_fkey",
+          "contype": "f",
+          "definition": "FOREIGN KEY (contract_id) REFERENCES handover.contracts(id) ON DELETE CASCADE"
+        },
+        {
+          "schema": "handover",
+          "table_name": "handover.envelopes",
+          "conname": "envelopes_envelope_check",
+          "contype": "c",
+          "definition": "CHECK (((octet_length(envelope) >= 30) AND (octet_length(envelope) <= 65536)))"
+        },
+        {
+          "schema": "handover",
+          "table_name": "handover.envelopes",
+          "conname": "envelopes_envelope_hash_check",
+          "contype": "c",
+          "definition": "CHECK ((envelope_hash ~ '^[0-9a-f]{64}$'::text))"
+        },
+        {
+          "schema": "handover",
+          "table_name": "handover.envelopes",
+          "conname": "envelopes_manifest_check",
+          "contype": "c",
+          "definition": "CHECK (((manifest)::jsonb IS NOT NULL))"
+        },
+        {
+          "schema": "handover",
+          "table_name": "handover.envelopes",
+          "conname": "envelopes_manifest_signature_check",
+          "contype": "c",
+          "definition": "CHECK ((octet_length(manifest_signature) = 64))"
+        },
+        {
+          "schema": "handover",
+          "table_name": "handover.envelopes",
+          "conname": "envelopes_pkey",
+          "contype": "p",
+          "definition": "PRIMARY KEY (contract_id)"
+        },
+        {
+          "schema": "handover",
+          "table_name": "handover.envelopes",
+          "conname": "envelopes_sealed_version_check",
+          "contype": "c",
+          "definition": "CHECK ((sealed_version >= 1))"
+        },
+        {
+          "schema": "handover",
+          "table_name": "handover.key_wraps",
+          "conname": "key_wraps_contract_id_fkey",
+          "contype": "f",
+          "definition": "FOREIGN KEY (contract_id) REFERENCES handover.envelopes(contract_id) ON DELETE CASCADE"
+        },
+        {
+          "schema": "handover",
+          "table_name": "handover.key_wraps",
+          "conname": "key_wraps_contract_id_user_id_key",
+          "contype": "u",
+          "definition": "UNIQUE (contract_id, user_id)"
+        },
+        {
+          "schema": "handover",
+          "table_name": "handover.key_wraps",
+          "conname": "key_wraps_pkey",
+          "contype": "p",
+          "definition": "PRIMARY KEY (contract_id, share_index)"
+        },
+        {
+          "schema": "handover",
+          "table_name": "handover.key_wraps",
+          "conname": "key_wraps_share_index_check",
+          "contype": "c",
+          "definition": "CHECK (((share_index >= 1) AND (share_index <= 3)))"
+        },
+        {
           "schema": "handover",
           "table_name": "handover.outbox",
           "conname": "outbox_event_id_key",
@@ -1370,6 +2606,34 @@
           "conname": "outbox_pkey",
           "contype": "p",
           "definition": "PRIMARY KEY (id)"
+        },
+        {
+          "schema": "handover",
+          "table_name": "handover.participants",
+          "conname": "participants_contract_id_fkey",
+          "contype": "f",
+          "definition": "FOREIGN KEY (contract_id) REFERENCES handover.contracts(id) ON DELETE CASCADE"
+        },
+        {
+          "schema": "handover",
+          "table_name": "handover.participants",
+          "conname": "participants_pkey",
+          "contype": "p",
+          "definition": "PRIMARY KEY (contract_id, user_id)"
+        },
+        {
+          "schema": "handover",
+          "table_name": "handover.participants",
+          "conname": "participants_position_check",
+          "contype": "c",
+          "definition": "CHECK ((\"position\" >= 0))"
+        },
+        {
+          "schema": "handover",
+          "table_name": "handover.participants",
+          "conname": "participants_role_check",
+          "contype": "c",
+          "definition": "CHECK ((role = ANY (ARRAY['accessor'::text, 'validator'::text])))"
         },
         {
           "schema": "handover",
@@ -1615,6 +2879,102 @@
           "indexdef": "CREATE UNIQUE INDEX processed_messages_pkey ON core.processed_messages USING btree (consumer, event_id)"
         },
         {
+          "schemaname": "core",
+          "tablename": "user_key_history",
+          "indexname": "user_key_history_pkey",
+          "indexdef": "CREATE UNIQUE INDEX user_key_history_pkey ON core.user_key_history USING btree (id)"
+        },
+        {
+          "schemaname": "core",
+          "tablename": "user_key_history",
+          "indexname": "user_key_history_user_id_key_version_key",
+          "indexdef": "CREATE UNIQUE INDEX user_key_history_user_id_key_version_key ON core.user_key_history USING btree (user_id, key_version)"
+        },
+        {
+          "schemaname": "core",
+          "tablename": "user_keys",
+          "indexname": "user_keys_pkey",
+          "indexdef": "CREATE UNIQUE INDEX user_keys_pkey ON core.user_keys USING btree (user_id)"
+        },
+        {
+          "schemaname": "handover",
+          "tablename": "claims",
+          "indexname": "claims_by_claimant",
+          "indexdef": "CREATE INDEX claims_by_claimant ON handover.claims USING btree (contract_id, claimant_id, closed_at DESC)"
+        },
+        {
+          "schemaname": "handover",
+          "tablename": "claims",
+          "indexname": "claims_one_open",
+          "indexdef": "CREATE UNIQUE INDEX claims_one_open ON handover.claims USING btree (contract_id) WHERE (status = 'open'::text)"
+        },
+        {
+          "schemaname": "handover",
+          "tablename": "claims",
+          "indexname": "claims_open_due",
+          "indexdef": "CREATE INDEX claims_open_due ON handover.claims USING btree (contest_until) WHERE (status = 'open'::text)"
+        },
+        {
+          "schemaname": "handover",
+          "tablename": "claims",
+          "indexname": "claims_pkey",
+          "indexdef": "CREATE UNIQUE INDEX claims_pkey ON handover.claims USING btree (id)"
+        },
+        {
+          "schemaname": "handover",
+          "tablename": "contract_events",
+          "indexname": "contract_events_contract_id_seq_key",
+          "indexdef": "CREATE UNIQUE INDEX contract_events_contract_id_seq_key ON handover.contract_events USING btree (contract_id, seq)"
+        },
+        {
+          "schemaname": "handover",
+          "tablename": "contract_events",
+          "indexname": "contract_events_hash_key",
+          "indexdef": "CREATE UNIQUE INDEX contract_events_hash_key ON handover.contract_events USING btree (hash)"
+        },
+        {
+          "schemaname": "handover",
+          "tablename": "contract_events",
+          "indexname": "contract_events_pkey",
+          "indexdef": "CREATE UNIQUE INDEX contract_events_pkey ON handover.contract_events USING btree (id)"
+        },
+        {
+          "schemaname": "handover",
+          "tablename": "contracts",
+          "indexname": "contracts_owner_idx",
+          "indexdef": "CREATE INDEX contracts_owner_idx ON handover.contracts USING btree (owner_id)"
+        },
+        {
+          "schemaname": "handover",
+          "tablename": "contracts",
+          "indexname": "contracts_pkey",
+          "indexdef": "CREATE UNIQUE INDEX contracts_pkey ON handover.contracts USING btree (id)"
+        },
+        {
+          "schemaname": "handover",
+          "tablename": "decisions",
+          "indexname": "decisions_pkey",
+          "indexdef": "CREATE UNIQUE INDEX decisions_pkey ON handover.decisions USING btree (claim_id, validator_id)"
+        },
+        {
+          "schemaname": "handover",
+          "tablename": "envelopes",
+          "indexname": "envelopes_pkey",
+          "indexdef": "CREATE UNIQUE INDEX envelopes_pkey ON handover.envelopes USING btree (contract_id)"
+        },
+        {
+          "schemaname": "handover",
+          "tablename": "key_wraps",
+          "indexname": "key_wraps_contract_id_user_id_key",
+          "indexdef": "CREATE UNIQUE INDEX key_wraps_contract_id_user_id_key ON handover.key_wraps USING btree (contract_id, user_id)"
+        },
+        {
+          "schemaname": "handover",
+          "tablename": "key_wraps",
+          "indexname": "key_wraps_pkey",
+          "indexdef": "CREATE UNIQUE INDEX key_wraps_pkey ON handover.key_wraps USING btree (contract_id, share_index)"
+        },
+        {
           "schemaname": "handover",
           "tablename": "outbox",
           "indexname": "outbox_event_id_key",
@@ -1631,6 +2991,24 @@
           "tablename": "outbox",
           "indexname": "outbox_pkey",
           "indexdef": "CREATE UNIQUE INDEX outbox_pkey ON handover.outbox USING btree (id)"
+        },
+        {
+          "schemaname": "handover",
+          "tablename": "participants",
+          "indexname": "participants_one_accessor_idx",
+          "indexdef": "CREATE UNIQUE INDEX participants_one_accessor_idx ON handover.participants USING btree (contract_id) WHERE (role = 'accessor'::text)"
+        },
+        {
+          "schemaname": "handover",
+          "tablename": "participants",
+          "indexname": "participants_pkey",
+          "indexdef": "CREATE UNIQUE INDEX participants_pkey ON handover.participants USING btree (contract_id, user_id)"
+        },
+        {
+          "schemaname": "handover",
+          "tablename": "participants",
+          "indexname": "participants_user_idx",
+          "indexdef": "CREATE INDEX participants_user_idx ON handover.participants USING btree (user_id)"
         },
         {
           "schemaname": "handover",
@@ -1804,6 +3182,27 @@
       "enums": null,
       "functions": [
         {
+          "schema": "core",
+          "proname": "forbid_key_history_update",
+          "args": "",
+          "security_definer": false,
+          "definition": "CREATE OR REPLACE FUNCTION core.forbid_key_history_update()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO ''\nAS $function$\nbegin\n  raise exception 'core.user_key_history rows are never changed' using errcode = 'insufficient_privilege';\nend $function$\n"
+        },
+        {
+          "schema": "handover",
+          "proname": "append_event",
+          "args": "p_contract_id uuid, p_type text, p_actor_id text, p_body text",
+          "security_definer": true,
+          "definition": "CREATE OR REPLACE FUNCTION handover.append_event(p_contract_id uuid, p_type text, p_actor_id text, p_body text)\n RETURNS handover.contract_events\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare\n  last_event handover.contract_events;\n  next_seq integer;\n  previous text;\n  at_text text;\n  appended handover.contract_events;\nbegin\n  perform pg_advisory_xact_lock(hashtextextended('handover.contract_events:' || p_contract_id::text, 0));\n  select * into last_event from handover.contract_events\n    where contract_id = p_contract_id order by seq desc limit 1;\n  next_seq := coalesce(last_event.seq, 0) + 1;\n  previous := coalesce(last_event.hash, repeat('0', 64));\n  at_text := to_char(clock_timestamp() at time zone 'utc', 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"');\n  insert into handover.contract_events\n    (contract_id, seq, type, actor_id, body, occurred_at, prev_hash, hash)\n  values (\n    p_contract_id, next_seq, p_type, p_actor_id, p_body, at_text, previous,\n    encode(sha256(convert_to(\n      previous || E'\\n' || next_seq || E'\\n' || at_text || E'\\n' || p_contract_id || E'\\n' ||\n      p_type || E'\\n' || coalesce(p_actor_id, '') || E'\\n' || p_body, 'UTF8')), 'hex'))\n  returning * into appended;\n  return appended;\nend $function$\n"
+        },
+        {
+          "schema": "handover",
+          "proname": "forbid_event_change",
+          "args": "",
+          "security_definer": false,
+          "definition": "CREATE OR REPLACE FUNCTION handover.forbid_event_change()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO ''\nAS $function$\nbegin\n  raise exception 'handover.contract_events is append-only (% refused)', tg_op\n    using errcode = 'insufficient_privilege';\nend $function$\n"
+        },
+        {
           "schema": "messaging",
           "proname": "send",
           "args": "queue_name text, message jsonb, delay_seconds integer",
@@ -1825,7 +3224,32 @@
           "definition": "CREATE OR REPLACE FUNCTION public.get_trusted_users(owner_uuid text)\n RETURNS SETOF users\n LANGUAGE sql\nAS $function$\n  SELECT u.* \n  FROM trusted t\n  JOIN users u ON t.trusted_id = u.id\n  WHERE t.owner_id = owner_uuid;\n$function$\n"
         }
       ],
-      "triggers": null,
+      "triggers": [
+        {
+          "schema": "core",
+          "table_name": "user_key_history",
+          "trigger_name": "user_key_history_no_update",
+          "action_timing": "BEFORE",
+          "event_manipulation": "UPDATE",
+          "action_statement": "EXECUTE FUNCTION core.forbid_key_history_update()"
+        },
+        {
+          "schema": "handover",
+          "table_name": "contract_events",
+          "trigger_name": "contract_events_no_update_delete",
+          "action_timing": "BEFORE",
+          "event_manipulation": "DELETE",
+          "action_statement": "EXECUTE FUNCTION handover.forbid_event_change()"
+        },
+        {
+          "schema": "handover",
+          "table_name": "contract_events",
+          "trigger_name": "contract_events_no_update_delete",
+          "action_timing": "BEFORE",
+          "event_manipulation": "UPDATE",
+          "action_statement": "EXECUTE FUNCTION handover.forbid_event_change()"
+        }
+      ],
       "rls": [
         {
           "schema": "core",
@@ -1840,8 +3264,62 @@
           "rls_forced": false
         },
         {
+          "schema": "core",
+          "table_name": "user_key_history",
+          "rls_enabled": true,
+          "rls_forced": false
+        },
+        {
+          "schema": "core",
+          "table_name": "user_keys",
+          "rls_enabled": true,
+          "rls_forced": false
+        },
+        {
+          "schema": "handover",
+          "table_name": "claims",
+          "rls_enabled": true,
+          "rls_forced": false
+        },
+        {
+          "schema": "handover",
+          "table_name": "contract_events",
+          "rls_enabled": true,
+          "rls_forced": false
+        },
+        {
+          "schema": "handover",
+          "table_name": "contracts",
+          "rls_enabled": true,
+          "rls_forced": false
+        },
+        {
+          "schema": "handover",
+          "table_name": "decisions",
+          "rls_enabled": true,
+          "rls_forced": false
+        },
+        {
+          "schema": "handover",
+          "table_name": "envelopes",
+          "rls_enabled": true,
+          "rls_forced": false
+        },
+        {
+          "schema": "handover",
+          "table_name": "key_wraps",
+          "rls_enabled": true,
+          "rls_forced": false
+        },
+        {
           "schema": "handover",
           "table_name": "outbox",
+          "rls_enabled": true,
+          "rls_forced": false
+        },
+        {
+          "schema": "handover",
+          "table_name": "participants",
           "rls_enabled": true,
           "rls_forced": false
         },
@@ -2020,8 +3498,107 @@
           "with_check": "true"
         },
         {
+          "schemaname": "core",
+          "tablename": "user_key_history",
+          "policyname": "service_access",
+          "roles": [
+            "svc_gateway"
+          ],
+          "cmd": "ALL",
+          "qual": "true",
+          "with_check": "true"
+        },
+        {
+          "schemaname": "core",
+          "tablename": "user_keys",
+          "policyname": "service_access",
+          "roles": [
+            "svc_gateway"
+          ],
+          "cmd": "ALL",
+          "qual": "true",
+          "with_check": "true"
+        },
+        {
+          "schemaname": "handover",
+          "tablename": "claims",
+          "policyname": "service_access",
+          "roles": [
+            "svc_handover"
+          ],
+          "cmd": "ALL",
+          "qual": "true",
+          "with_check": "true"
+        },
+        {
+          "schemaname": "handover",
+          "tablename": "contract_events",
+          "policyname": "service_read",
+          "roles": [
+            "svc_handover"
+          ],
+          "cmd": "SELECT",
+          "qual": "true",
+          "with_check": null
+        },
+        {
+          "schemaname": "handover",
+          "tablename": "contracts",
+          "policyname": "service_access",
+          "roles": [
+            "svc_handover"
+          ],
+          "cmd": "ALL",
+          "qual": "true",
+          "with_check": "true"
+        },
+        {
+          "schemaname": "handover",
+          "tablename": "decisions",
+          "policyname": "service_access",
+          "roles": [
+            "svc_handover"
+          ],
+          "cmd": "ALL",
+          "qual": "true",
+          "with_check": "true"
+        },
+        {
+          "schemaname": "handover",
+          "tablename": "envelopes",
+          "policyname": "service_access",
+          "roles": [
+            "svc_handover"
+          ],
+          "cmd": "ALL",
+          "qual": "true",
+          "with_check": "true"
+        },
+        {
+          "schemaname": "handover",
+          "tablename": "key_wraps",
+          "policyname": "service_access",
+          "roles": [
+            "svc_handover"
+          ],
+          "cmd": "ALL",
+          "qual": "true",
+          "with_check": "true"
+        },
+        {
           "schemaname": "handover",
           "tablename": "outbox",
+          "policyname": "service_access",
+          "roles": [
+            "svc_handover"
+          ],
+          "cmd": "ALL",
+          "qual": "true",
+          "with_check": "true"
+        },
+        {
+          "schemaname": "handover",
+          "tablename": "participants",
           "policyname": "service_access",
           "roles": [
             "svc_handover"
@@ -2291,6 +3868,102 @@
           "privileges": "DELETE,INSERT,SELECT,UPDATE"
         },
         {
+          "table_schema": "core",
+          "table_name": "user_key_history",
+          "grantee": "postgres",
+          "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "user_key_history",
+          "grantee": "svc_gateway",
+          "privileges": "DELETE,INSERT,SELECT,UPDATE"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "user_keys",
+          "grantee": "postgres",
+          "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "user_keys",
+          "grantee": "svc_gateway",
+          "privileges": "DELETE,INSERT,SELECT,UPDATE"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "claims",
+          "grantee": "postgres",
+          "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "claims",
+          "grantee": "svc_handover",
+          "privileges": "DELETE,INSERT,SELECT,UPDATE"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "contract_events",
+          "grantee": "postgres",
+          "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "contract_events",
+          "grantee": "svc_handover",
+          "privileges": "SELECT"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "contracts",
+          "grantee": "postgres",
+          "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "contracts",
+          "grantee": "svc_handover",
+          "privileges": "DELETE,INSERT,SELECT,UPDATE"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "decisions",
+          "grantee": "postgres",
+          "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "decisions",
+          "grantee": "svc_handover",
+          "privileges": "DELETE,INSERT,SELECT,UPDATE"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "envelopes",
+          "grantee": "postgres",
+          "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "envelopes",
+          "grantee": "svc_handover",
+          "privileges": "DELETE,INSERT,SELECT,UPDATE"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "key_wraps",
+          "grantee": "postgres",
+          "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "key_wraps",
+          "grantee": "svc_handover",
+          "privileges": "DELETE,INSERT,SELECT,UPDATE"
+        },
+        {
           "table_schema": "handover",
           "table_name": "outbox",
           "grantee": "postgres",
@@ -2299,6 +3972,18 @@
         {
           "table_schema": "handover",
           "table_name": "outbox",
+          "grantee": "svc_handover",
+          "privileges": "DELETE,INSERT,SELECT,UPDATE"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "participants",
+          "grantee": "postgres",
+          "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "participants",
           "grantee": "svc_handover",
           "privileges": "DELETE,INSERT,SELECT,UPDATE"
         },
@@ -2682,6 +4367,30 @@
         }
       ],
       "routine_grants": [
+        {
+          "routine_schema": "core",
+          "routine_name": "forbid_key_history_update",
+          "grantee": "postgres",
+          "privileges": "EXECUTE"
+        },
+        {
+          "routine_schema": "handover",
+          "routine_name": "append_event",
+          "grantee": "postgres",
+          "privileges": "EXECUTE"
+        },
+        {
+          "routine_schema": "handover",
+          "routine_name": "append_event",
+          "grantee": "svc_handover",
+          "privileges": "EXECUTE"
+        },
+        {
+          "routine_schema": "handover",
+          "routine_name": "forbid_event_change",
+          "grantee": "postgres",
+          "privileges": "EXECUTE"
+        },
         {
           "routine_schema": "messaging",
           "routine_name": "send",
