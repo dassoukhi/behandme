@@ -125,6 +125,7 @@ must:
 
 ## Known gaps (decided, do not fix piecemeal)
 
+- Owner e-mail alerts (Resend) wait for a verified domain; deployment is set aside for now.
 
 ## Definition of done
 
