@@ -23,6 +23,7 @@ const draft: Contract = {
   status: "draft",
   version: 1,
   sealedVersion: 0,
+  contestDays: 7,
   accessorId: "acc",
   validatorIds: ["v1", "v2"],
   createdAt: "2026-10-14T00:00:00.000Z",
@@ -92,20 +93,56 @@ describe("life cycle", () => {
       "revoke",
     ]);
     expect(allowedActions({ ...draft, status: "active" }, "validator")).toEqual(
-      [],
+      ["claim"],
     );
   });
 
-  it("lets the owner revoke, not re-seal, during a claim", () => {
+  it("lets the owner revoke or cancel the claim, not re-seal, during a claim", () => {
     expect(allowedActions({ ...draft, status: "claimed" }, "owner")).toEqual([
       "revoke",
+      "cancel_claim",
     ]);
   });
 
-  it("leaves no action on a released or revoked contract", () => {
+  it("leaves the owner no action on a released or revoked contract; the accessor opens a released one", () => {
     for (const status of ["released", "revoked"] as const) {
       expect(allowedActions({ ...draft, status }, "owner")).toEqual([]);
     }
+    expect(
+      allowedActions({ ...draft, status: "released" }, "accessor"),
+    ).toEqual(["open"]);
+  });
+
+  it("lets the claimant withdraw, and each validator decide once", () => {
+    const claimed = { ...draft, status: "claimed" as const };
+    const context = (me: string, decidedByMe = false) => ({
+      me,
+      claim: { claimantId: "acc", decidedByMe },
+      cooldownUntil: null,
+    });
+    expect(allowedActions(claimed, "accessor", context("acc"))).toEqual([
+      "withdraw_claim",
+    ]);
+    expect(allowedActions(claimed, "validator", context("v1"))).toEqual([
+      "decide",
+    ]);
+    expect(allowedActions(claimed, "validator", context("v1", true))).toEqual(
+      [],
+    );
+    expect(() =>
+      assertAllowed("withdraw_claim", claimed, "validator", context("v1")),
+    ).toThrow(ConflictError);
+  });
+
+  it("makes a claimant whose claim the owner cancelled wait", () => {
+    const active = { ...draft, status: "active" as const };
+    expect(
+      allowedActions(active, "accessor", {
+        me: "acc",
+        claim: null,
+        cooldownUntil: new Date("2026-10-20T00:00:00Z"),
+      }),
+    ).toEqual([]);
   });
 
   it("answers not found to a role that never may, conflict to a wrong status", () => {

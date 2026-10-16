@@ -36,6 +36,85 @@ export const KeysRotated = defineEvent(
   }),
 );
 
+const contractId = z.uuid();
+const claimId = z.uuid();
+const category = z.enum(["networks", "devices", "storage"]);
+
+/** Handover: someone asks for the release of a contract; the owner may cancel until `contestUntil`. */
+export const ClaimFiled = defineEvent(
+  "claim.filed",
+  1,
+  z.object({
+    contractId,
+    claimId,
+    category,
+    ownerId: userId,
+    claimantId: userId,
+    validatorIds: z.array(userId),
+    contestUntil: z.iso.datetime(),
+  }),
+);
+
+/** Handover: enough validators approved; the release follows at `contestUntil` unless cancelled. */
+export const ClaimQuorumReached = defineEvent(
+  "claim.quorum_reached",
+  1,
+  z.object({
+    contractId,
+    claimId,
+    category,
+    ownerId: userId,
+    contestUntil: z.iso.datetime(),
+  }),
+);
+
+/** Handover: a claim ended without release. */
+export const ClaimClosed = defineEvent(
+  "claim.closed",
+  1,
+  z.object({
+    contractId,
+    claimId,
+    category,
+    reason: z.enum([
+      "cancelled",
+      "withdrawn",
+      "rejected",
+      "expired",
+      "revoked",
+    ]),
+    /** Who closed it; null for the system (rejection count, expiry). */
+    closedBy: userId.nullable(),
+    ownerId: userId,
+    claimantId: userId,
+    validatorIds: z.array(userId),
+  }),
+);
+
+/** Handover: the contract is released; the accessor can open it. */
+export const ContractReleased = defineEvent(
+  "contract.released",
+  1,
+  z.object({
+    contractId,
+    claimId,
+    category,
+    ownerId: userId,
+    accessorId: userId,
+    validatorIds: z.array(userId),
+  }),
+);
+
+/** Handover to itself, delayed to the end of the contest window: release if the quorum is there. */
+export const ClaimDeadlineDue = defineEvent(
+  "claim.deadline_due",
+  1,
+  z.object({ contractId, claimId }),
+);
+
+/** Worker, hourly: handover settles every open claim past its deadline (catch-up for lost messages). */
+export const ClaimsDue = defineEvent("maintenance.claims_due", 1, z.object({}));
+
 /** Gateway: the profile is gone; every service forgets the user's data. */
 export const UserDeleted = defineEvent("user.deleted", 1, z.object({ userId }));
 

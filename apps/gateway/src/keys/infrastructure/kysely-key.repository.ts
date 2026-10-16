@@ -61,6 +61,31 @@ export class KyselyKeyRepository implements KeyRepository {
     return rows.map(toKeys);
   }
 
+  async findVersion(
+    userId: string,
+    keyVersion: number,
+  ): Promise<RegisteredKeys | null> {
+    const current = await this.find(userId);
+    if (current?.keyVersion === keyVersion) return current;
+    const row = await this.db
+      .selectFrom("user_key_history")
+      .selectAll()
+      .where("user_id", "=", userId)
+      .where("key_version", "=", keyVersion)
+      .executeTakeFirst();
+    if (!row) return null;
+    return {
+      userId: row.user_id,
+      keyVersion: row.key_version,
+      kemPublicKey: new Uint8Array(row.kem_public_key),
+      signingPublicKey: new Uint8Array(row.signing_public_key),
+      fingerprint: row.fingerprint,
+      signature: new Uint8Array(row.signature),
+      usableFrom: row.created_at,
+      createdAt: row.created_at,
+    };
+  }
+
   async replace(
     replacedVersion: number,
     keys: RegisteredKeys,

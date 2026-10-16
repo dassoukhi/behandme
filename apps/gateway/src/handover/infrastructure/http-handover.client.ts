@@ -3,10 +3,12 @@ import {
   type ContractChanges,
   type ContractRecord,
   type AuditEvent,
+  type DecisionBody,
   type ChainVerification,
   HANDOVER_AUDIENCE,
   type NewContract,
   type RegisteredKeyRecord,
+  type ReleasePackage,
   type SealedMaterial,
   type SealRequestBody,
 } from "@lib/contracts";
@@ -91,6 +93,67 @@ export class HttpHandoverClient implements HandoverClient {
     );
   }
 
+  fileClaim(userId: string, id: string) {
+    return this.http.call<ContractRecord>(
+      userId,
+      "POST",
+      `${path(id)}/claims`,
+      {
+        idempotent: false,
+      },
+    );
+  }
+
+  cancelClaim(userId: string, id: string, claimId: string) {
+    return this.http.call<ContractRecord>(
+      userId,
+      "POST",
+      `${claimPath(id, claimId)}/cancel`,
+      { idempotent: false },
+    );
+  }
+
+  withdrawClaim(userId: string, id: string, claimId: string) {
+    return this.http.call<ContractRecord>(
+      userId,
+      "POST",
+      `${claimPath(id, claimId)}/withdraw`,
+      { idempotent: false },
+    );
+  }
+
+  decide(
+    userId: string,
+    id: string,
+    claimId: string,
+    decision: DecisionBody,
+    accessorKey: RegisteredKeyRecord | null,
+  ) {
+    return this.http.call<ContractRecord>(
+      userId,
+      "POST",
+      `${claimPath(id, claimId)}/decision`,
+      {
+        body: {
+          ...decision,
+          ...(accessorKey ? { accessor_key: accessorKey } : {}),
+        },
+        idempotent: false,
+      },
+    );
+  }
+
+  release(userId: string, id: string) {
+    return this.http.call<ReleasePackage>(
+      userId,
+      "GET",
+      `${path(id)}/release`,
+      {
+        idempotent: true,
+      },
+    );
+  }
+
   events(userId: string, id: string) {
     return this.http.call<AuditEvent[]>(userId, "GET", `${path(id)}/events`, {
       idempotent: true,
@@ -108,3 +171,5 @@ export class HttpHandoverClient implements HandoverClient {
 }
 
 const path = (id: string) => `/contracts/${encodeURIComponent(id)}`;
+const claimPath = (id: string, claimId: string) =>
+  `${path(id)}/claims/${encodeURIComponent(claimId)}`;

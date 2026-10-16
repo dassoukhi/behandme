@@ -1,4 +1,5 @@
-import type { Executor } from "@lib/messaging";
+import type { Executor, NewEvent } from "@lib/messaging";
+import type { Claim, ClaimStatus, Decision } from "../domain/claims.js";
 import type { AuditEntry } from "../domain/audit-events.js";
 import type { SealCrypto } from "../domain/sealing.js";
 import type { ChainEvent } from "../domain/audit-chain.js";
@@ -6,6 +7,7 @@ import type {
   Contract,
   ContractChanges,
   DraftInput,
+  Status,
 } from "../domain/contract.js";
 
 export interface ContractRepository {
@@ -35,6 +37,48 @@ export interface ContractRepository {
     expectedVersion: number,
   ): Promise<Contract | null>;
   markRevoked(id: string, expectedVersion: number): Promise<Contract | null>;
+  /** Moves a contract from `from` to `to` (claims, release). Null when it is no longer `from`. */
+  transition(id: string, from: Status, to: Status): Promise<Contract | null>;
+}
+
+export interface ClaimRepository {
+  find(claimId: string): Promise<Claim | null>;
+  /** The open claim of each of these contracts that has one. */
+  openFor(contractIds: string[]): Promise<Claim[]>;
+  /** The claim that released the contract. */
+  released(contractId: string): Promise<Claim | null>;
+  /** The last closed claim of `claimantId` on each of these contracts. */
+  lastClosedBy(claimantId: string, contractIds: string[]): Promise<Claim[]>;
+  insert(
+    claim: Pick<
+      Claim,
+      | "contractId"
+      | "claimantId"
+      | "sealedVersion"
+      | "filedAt"
+      | "contestUntil"
+      | "expiresAt"
+    >,
+  ): Promise<Claim>;
+  /** False when the claim is no longer open. `at`: the service's clock, as for every deadline. */
+  close(
+    claimId: string,
+    status: Exclude<ClaimStatus, "open">,
+    closedBy: string | null,
+    at: Date,
+  ): Promise<boolean>;
+  decisions(claimIds: string[]): Promise<Map<string, Decision[]>>;
+  /** False when this validator already decided. */
+  decide(claimId: string, decision: Decision): Promise<boolean>;
+  /** A claim closed without release: the shares re-wrapped to the accessor are erased. */
+  eraseReleaseWraps(claimId: string): Promise<void>;
+  /** Open claims past their contest window or their expiry at `now`. */
+  due(now: Date): Promise<Claim[]>;
+}
+
+/** Events for the other services (and delayed ones for handover itself), committed with the change. */
+export interface EventPublisher {
+  publish(event: NewEvent, options?: { deliverAt?: Date }): Promise<void>;
 }
 
 /** The current sealing of a contract (handover.envelopes and key_wraps). */
@@ -59,6 +103,8 @@ export interface SealingRepository {
   /** Replaces the previous sealing, if any. */
   replace(contractId: string, sealing: Sealing): Promise<void>;
   delete(contractId: string): Promise<void>;
+  /** The signed manifest (canonical JSON) of each of these contracts that is sealed. */
+  manifests(contractIds: string[]): Promise<Map<string, string>>;
 }
 
 export interface AuditLog {
@@ -78,7 +124,9 @@ export interface AuditLog {
 export interface HandoverStore {
   contracts: ContractRepository;
   sealings: SealingRepository;
+  claims: ClaimRepository;
   audit: AuditLog;
+  events: EventPublisher;
 }
 
 export interface HandoverStores {
@@ -99,3 +147,6 @@ export const SEAL_CRYPTO = Symbol("SealCrypto");
 export type { SealCrypto };
 
 export const CLOCK = Symbol("Clock");
+
+/** Development only: replaces every contract's contest window, in milliseconds (null in production). */
+export const CONTEST_OVERRIDE = Symbol("ContestOverride");

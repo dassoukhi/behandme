@@ -8,6 +8,10 @@ import {
 import { ConfigService } from "@nestjs/config";
 import type { Kysely } from "kysely";
 import {
+  ClaimClosed,
+  ClaimFiled,
+  ClaimQuorumReached,
+  ContractReleased,
   KeysRotated,
   on,
   PushReceiptsDue,
@@ -60,6 +64,18 @@ export class NotifierMessaging
         ),
         on(KeysRotated, (payload, _event, tx) =>
           events.keysRotated(stores.bind(tx), payload),
+        ),
+        on(ClaimFiled, (payload, _event, tx) =>
+          events.claimFiled(stores.bind(tx), payload),
+        ),
+        on(ClaimQuorumReached, (payload, _event, tx) =>
+          events.claimQuorumReached(stores.bind(tx), payload),
+        ),
+        on(ClaimClosed, (payload, _event, tx) =>
+          events.claimClosed(stores.bind(tx), payload),
+        ),
+        on(ContractReleased, (payload, _event, tx) =>
+          events.contractReleased(stores.bind(tx), payload),
         ),
         on(UserDeleted, ({ userId }, _event, tx) =>
           events.userDeleted(stores.bind(tx), userId),

@@ -370,6 +370,18 @@ describe("public keys: who may read them", () => {
   });
 });
 
+/** Registers placeholder keys for these users, as if they had activated them in the app. */
+async function withKeys(...ids: string[]) {
+  await sql`reset role`.execute(pg);
+  for (const id of ids) {
+    await sql`insert into core.user_keys (user_id, key_version, kem_public_key, signing_public_key, fingerprint, signature, usable_from)
+      values (${id}, 1, ${new Uint8Array(1216)}, ${new Uint8Array(32).fill(id.length)}, ${"a".repeat(64)}, ${new Uint8Array(64)}, now())`.execute(
+      pg,
+    );
+  }
+  await sql`set role svc_gateway`.execute(pg);
+}
+
 describe("sealing: who may, with whose keys", () => {
   const sealing = (accessor = ACCESSOR) => ({
     expected_version: 1,
@@ -381,17 +393,6 @@ describe("sealing: who may, with whose keys", () => {
     manifest: {},
     manifest_signature: "AA==",
   });
-  /** Registers placeholder keys for these users, as if they had activated them in the app. */
-  async function withKeys(...ids: string[]) {
-    await sql`reset role`.execute(pg);
-    for (const id of ids) {
-      await sql`insert into core.user_keys (user_id, key_version, kem_public_key, signing_public_key, fingerprint, signature, usable_from)
-        values (${id}, 1, ${new Uint8Array(1216)}, ${new Uint8Array(32).fill(id.length)}, ${"a".repeat(64)}, ${new Uint8Array(64)}, now())`.execute(
-        pg,
-      );
-    }
-    await sql`set role svc_gateway`.execute(pg);
-  }
 
   it("passes handover the registered keys of the owner and every participant, from the database", async () => {
     await withKeys(OWNER, ACCESSOR, VALIDATOR);
@@ -431,4 +432,96 @@ describe("sealing: who may, with whose keys", () => {
       expect(handover.sealedWith).toBeNull();
     },
   );
+});
+
+describe("claims and release: who may, with whose keys", () => {
+  const sealing = {
+    expected_version: 1,
+    accessor_id: ACCESSOR,
+    validator_ids: [VALIDATOR],
+    envelope: "AQ==",
+    owner_wrap: "AQ==",
+    shares: [{ user_id: VALIDATOR, index: 1, key_version: 1, wrap: "AQ==" }],
+    manifest: {},
+    manifest_signature: "AA==",
+  };
+  const stored = () => handover.contracts.find((c) => c.id === contractId)!;
+
+  beforeEach(async () => {
+    await withKeys(OWNER, ACCESSOR, VALIDATOR);
+    await contracts.seal(OWNER, contractId, sealing);
+  });
+
+  it("lets the accessor or a validator claim, never a stranger", async () => {
+    await expect(contracts.fileClaim(STRANGER, contractId)).rejects.toThrow(
+      NotFoundError,
+    );
+    const claimed = await contracts.fileClaim(ACCESSOR, contractId);
+    expect(claimed).toMatchObject({ status: "claimed" });
+    await expect(
+      contracts.cancelClaim(ACCESSOR, contractId, claimed.open_claim!.id),
+    ).rejects.toThrow(NotFoundError);
+    expect(
+      await contracts.cancelClaim(OWNER, contractId, claimed.open_claim!.id),
+    ).toMatchObject({ status: "active" });
+  });
+
+  it("passes handover the accessor's current keys with an approval, none with a refusal", async () => {
+    const claimId = (await contracts.fileClaim(ACCESSOR, contractId))
+      .open_claim!.id;
+    await contracts.decide(VALIDATOR, contractId, claimId, {
+      approve: true,
+      release_wrap: "AQ==",
+      accessor_key_version: 1,
+    });
+    expect(handover.decidedWith?.accessorKey).toMatchObject({
+      user_id: ACCESSOR,
+      key_version: 1,
+      fingerprint: "a".repeat(64),
+    });
+    await contracts.decide(VALIDATOR, contractId, claimId, { approve: false });
+    expect(handover.decidedWith?.accessorKey).toBeNull();
+  });
+
+  it("gives everyone the owner's keys that signed, and a validator the accessor's keys", async () => {
+    const forValidator = await contracts.sealed(VALIDATOR, contractId);
+    expect(forValidator.owner_keys?.user_id).toBe(OWNER);
+    expect(forValidator).toHaveProperty("accessor_keys.user_id", ACCESSOR);
+    const forAccessor = await contracts.sealed(ACCESSOR, contractId);
+    expect(forAccessor.owner_keys?.user_id).toBe(OWNER);
+    expect(forAccessor).not.toHaveProperty("accessor_keys");
+    await expect(contracts.sealed(STRANGER, contractId)).rejects.toThrow(
+      NotFoundError,
+    );
+  });
+
+  it("counts the validators whose keys are still those the contract was sealed for", async () => {
+    stored().sealed_validators = [
+      { user_id: VALIDATOR, key_version: 1, fingerprint: "a".repeat(64) },
+    ];
+    expect((await contracts.get(OWNER, contractId)).health).toEqual({
+      usable: 1,
+      total: 1,
+      threshold: 1,
+    });
+    await sql`reset role`.execute(pg);
+    await sql`update core.user_keys set fingerprint = ${"b".repeat(64)} where user_id = ${VALIDATOR}`.execute(
+      pg,
+    );
+    await sql`set role svc_gateway`.execute(pg);
+    const [listed] = await contracts.list(OWNER);
+    expect(listed.health).toMatchObject({ usable: 0, total: 1 });
+    expect(listed).not.toHaveProperty("sealed_validators");
+  });
+
+  it("hands the release package to the accessor only, with the owner's keys", async () => {
+    stored().status = "released";
+    const pack = await contracts.release(ACCESSOR, contractId);
+    expect(pack.owner_keys?.user_id).toBe(OWNER);
+    for (const other of [OWNER, VALIDATOR, STRANGER]) {
+      await expect(contracts.release(other, contractId)).rejects.toThrow(
+        NotFoundError,
+      );
+    }
+  });
 });

@@ -51,3 +51,100 @@ export function contactKeysReset(params: {
     critical: false,
   };
 }
+
+// Claims and release. Lock-screen text names the contract's category only, never its description.
+
+const CATEGORY: Record<string, string> = {
+  networks: "Réseaux sociaux",
+  devices: "Appareils",
+  storage: "Stockage en ligne",
+};
+const contractName = (category: string) =>
+  `« ${CATEGORY[category] ?? "Contrat"} »`;
+
+/** Someone says the owner can no longer act: the owner must be able to stop it at once. */
+export function claimFiledForOwner(params: {
+  ownerId: string;
+  contractId: string;
+  category: string;
+}): NotificationDraft {
+  return {
+    userId: params.ownerId,
+    type: "claim_filed_owner",
+    title: "Demande de transmission",
+    body: `Une transmission de votre contrat ${contractName(params.category)} a été demandée. Si vous êtes là, annulez-la dans l'app.`,
+    data: { url: `/contract/${params.contractId}` },
+    critical: true,
+  };
+}
+
+export function claimFiledForValidator(params: {
+  validatorId: string;
+  contractId: string;
+  category: string;
+}): NotificationDraft {
+  return {
+    userId: params.validatorId,
+    type: "claim_filed_validator",
+    title: "Votre avis est demandé",
+    body: `Une transmission du contrat ${contractName(params.category)} a été demandée : approuvez-la ou refusez-la.`,
+    data: { url: `/contract/${params.contractId}` },
+    critical: false,
+  };
+}
+
+/** Enough validators approved: the owner has until the end of the window to stop it. */
+export function claimQuorumReached(params: {
+  ownerId: string;
+  contractId: string;
+  category: string;
+}): NotificationDraft {
+  return {
+    userId: params.ownerId,
+    type: "claim_quorum_reached",
+    title: "Transmission imminente",
+    body: `Assez de validateurs ont approuvé la transmission de ${contractName(params.category)}. Si vous êtes là, annulez-la avant la fin du délai.`,
+    data: { url: `/contract/${params.contractId}` },
+    critical: true,
+  };
+}
+
+const CLOSED: Record<string, string> = {
+  cancelled: "Le propriétaire a annulé la demande de transmission",
+  withdrawn: "La demande de transmission a été retirée",
+  rejected: "Les validateurs ont refusé la demande de transmission",
+  expired: "La demande de transmission a expiré",
+  revoked: "Le propriétaire a révoqué le contrat",
+};
+
+export function claimClosed(params: {
+  userId: string;
+  contractId: string;
+  category: string;
+  reason: string;
+}): NotificationDraft {
+  return {
+    userId: params.userId,
+    type: "claim_closed",
+    title: "Demande close",
+    body: `${CLOSED[params.reason] ?? "La demande de transmission est close"} (${contractName(params.category)}).`,
+    data: { url: `/contract/${params.contractId}` },
+    critical: false,
+  };
+}
+
+/** The accessor may now open what was entrusted to them. */
+export function contractReleasedForAccessor(params: {
+  accessorId: string;
+  contractId: string;
+  category: string;
+}): NotificationDraft {
+  return {
+    userId: params.accessorId,
+    type: "contract_released",
+    title: "Accès transmis",
+    body: `Le contrat ${contractName(params.category)} vous a été transmis : vous pouvez l'ouvrir dans l'app.`,
+    data: { url: `/contract/${params.contractId}` },
+    critical: true,
+  };
+}

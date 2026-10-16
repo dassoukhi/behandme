@@ -13,20 +13,31 @@ import type {
   AuditEvent,
   ChainVerification,
   ContractRecord,
+  ReleasePackage,
   SealedMaterial,
 } from "@lib/contracts";
 import { ForUser } from "@lib/platform";
+import { ClaimsService } from "../application/claims.service.js";
 import { ContractsService } from "../application/contracts.service.js";
 import { SealingService } from "../application/sealing.service.js";
 import type { RegisteredKey } from "../domain/sealing.js";
 import {
   ContractChangesDto,
+  DecisionDto,
   NewContractDto,
+  RegisteredKeyDto,
   RevokeDto,
   SealDto,
 } from "./dto/inputs.dto.js";
 
 const bytes = (base64: string) => new Uint8Array(Buffer.from(base64, "base64"));
+
+const registeredKey = (k: RegisteredKeyDto): RegisteredKey => ({
+  keyVersion: k.key_version,
+  fingerprint: k.fingerprint,
+  signingPublicKey: bytes(k.signing_public_key),
+  usableFrom: new Date(k.usable_from),
+});
 
 // Internal API, called by the gateway only (internal token, whose subject is the user). The gateway
 // has already checked that the participants of a new contract are people the user trusts.
@@ -36,6 +47,7 @@ export class ContractsController {
   constructor(
     private readonly contracts: ContractsService,
     private readonly sealing: SealingService,
+    private readonly claims: ClaimsService,
   ) {}
 
   @Get()
@@ -53,6 +65,7 @@ export class ContractsController {
       description: body.description ?? null,
       accessorId: body.accessor_id,
       validatorIds: body.validator_ids,
+      contestDays: body.contest_days,
     });
   }
 
@@ -70,7 +83,11 @@ export class ContractsController {
     @Param("id", ParseUUIDPipe) id: string,
     @Body() changes: ContractChangesDto,
   ): Promise<ContractRecord> {
-    return this.contracts.update(me, id, changes);
+    return this.contracts.update(me, id, {
+      category: changes.category,
+      description: changes.description,
+      contestDays: changes.contest_days,
+    });
   }
 
   @Delete(":id")
@@ -90,15 +107,7 @@ export class ContractsController {
     @Body() body: SealDto,
   ): Promise<ContractRecord> {
     const keys = new Map<string, RegisteredKey>(
-      body.registered_keys.map((k) => [
-        k.user_id,
-        {
-          keyVersion: k.key_version,
-          fingerprint: k.fingerprint,
-          signingPublicKey: bytes(k.signing_public_key),
-          usableFrom: new Date(k.usable_from),
-        },
-      ]),
+      body.registered_keys.map((k) => [k.user_id, registeredKey(k)]),
     );
     return this.sealing.seal(
       me,
@@ -138,6 +147,64 @@ export class ContractsController {
     @Body() { expected_version }: RevokeDto,
   ): Promise<ContractRecord> {
     return this.sealing.revoke(me, id, expected_version);
+  }
+
+  @Post(":id/claims")
+  @HttpCode(200)
+  fileClaim(
+    @ForUser() me: string,
+    @Param("id", ParseUUIDPipe) id: string,
+  ): Promise<ContractRecord> {
+    return this.claims.file(me, id);
+  }
+
+  @Post(":id/claims/:claimId/cancel")
+  @HttpCode(200)
+  cancelClaim(
+    @ForUser() me: string,
+    @Param("id", ParseUUIDPipe) id: string,
+    @Param("claimId", ParseUUIDPipe) claimId: string,
+  ): Promise<ContractRecord> {
+    return this.claims.cancel(me, id, claimId);
+  }
+
+  @Post(":id/claims/:claimId/withdraw")
+  @HttpCode(200)
+  withdrawClaim(
+    @ForUser() me: string,
+    @Param("id", ParseUUIDPipe) id: string,
+    @Param("claimId", ParseUUIDPipe) claimId: string,
+  ): Promise<ContractRecord> {
+    return this.claims.withdraw(me, id, claimId);
+  }
+
+  @Post(":id/claims/:claimId/decision")
+  @HttpCode(200)
+  decide(
+    @ForUser() me: string,
+    @Param("id", ParseUUIDPipe) id: string,
+    @Param("claimId", ParseUUIDPipe) claimId: string,
+    @Body() body: DecisionDto,
+  ): Promise<ContractRecord> {
+    return this.claims.decide(
+      me,
+      id,
+      claimId,
+      {
+        approve: body.approve,
+        releaseWrap: body.release_wrap ? bytes(body.release_wrap) : undefined,
+        accessorKeyVersion: body.accessor_key_version,
+      },
+      body.accessor_key ? registeredKey(body.accessor_key) : undefined,
+    );
+  }
+
+  @Get(":id/release")
+  release(
+    @ForUser() me: string,
+    @Param("id", ParseUUIDPipe) id: string,
+  ): Promise<ReleasePackage> {
+    return this.claims.releasePackage(me, id);
   }
 
   @Get(":id/events")

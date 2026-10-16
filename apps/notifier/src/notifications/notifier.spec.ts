@@ -9,7 +9,14 @@ import {
   it,
   vi,
 } from "vitest";
-import { KeysRotated, TrustAdded, UserDeleted } from "@lib/contracts";
+import {
+  ClaimClosed,
+  ClaimFiled,
+  ContractReleased,
+  KeysRotated,
+  TrustAdded,
+  UserDeleted,
+} from "@lib/contracts";
 import { NotFoundError } from "@lib/kernel";
 import { createEnvelope, PgmqBus, QueueConsumer } from "@lib/messaging";
 import { FakeClock, startTestDatabase, type TestDatabase } from "@lib/testing";
@@ -76,6 +83,15 @@ async function receive(...envelopes: ReturnType<typeof createEnvelope>[]) {
       ),
       on(KeysRotated, (payload, _e, tx) =>
         events.keysRotated(stores.bind(tx), payload),
+      ),
+      on(ClaimFiled, (payload, _e, tx) =>
+        events.claimFiled(stores.bind(tx), payload),
+      ),
+      on(ClaimClosed, (payload, _e, tx) =>
+        events.claimClosed(stores.bind(tx), payload),
+      ),
+      on(ContractReleased, (payload, _e, tx) =>
+        events.contractReleased(stores.bind(tx), payload),
       ),
       on(UserDeleted, ({ userId }, _e, tx) =>
         events.userDeleted(stores.bind(tx), userId),
@@ -192,6 +208,88 @@ describe("keys.rotated", () => {
     expect((await deliveries()).map((d) => d.token).sort()).toEqual(
       ["ExponentPushToken[alice]", TOKEN_B1].sort(),
     );
+  });
+});
+
+describe("claims", () => {
+  const CONTRACT = "5d2f7a10-8c3e-4b6a-9f21-0a1b2c3d4e5f";
+  const CLAIM = "9b0c2d4e-6f71-4a83-b5c6-d7e8f9a0b1c2";
+  const CAROL = "user_carol";
+  const envelope = <P>(event: { type: string; version: number; payload: P }) =>
+    createEnvelope(event, { correlationId: "c" }, clock);
+  const types = async (userId: string) =>
+    (await inbox.list(userId)).map((n) => [n.type, n.data.url]);
+
+  it("alerts the owner at once, push off or not, and asks the other validators", async () => {
+    await inbox.registerDevice(ALICE, "ExponentPushToken[alice]");
+    await inbox.updatePreferences(ALICE, { push_enabled: false });
+    await receive(
+      envelope(
+        ClaimFiled.create({
+          contractId: CONTRACT,
+          claimId: CLAIM,
+          category: "devices",
+          ownerId: ALICE,
+          claimantId: BOB,
+          validatorIds: [BOB, CAROL],
+          contestUntil: "2026-10-21T10:00:00.000Z",
+        }),
+      ),
+    );
+    const [owner] = await inbox.list(ALICE);
+    expect(owner).toMatchObject({
+      type: "claim_filed_owner",
+      body: "Une transmission de votre contrat « Appareils » a été demandée. Si vous êtes là, annulez-la dans l'app.",
+      data: { url: `/contract/${CONTRACT}` },
+    });
+    expect((await deliveries()).map((d) => d.token)).toEqual([
+      "ExponentPushToken[alice]",
+    ]);
+    expect(await types(CAROL)).toEqual([
+      ["claim_filed_validator", `/contract/${CONTRACT}`],
+    ]);
+    // The claimant, a validator here, is not asked about their own claim.
+    expect(await inbox.list(BOB)).toEqual([]);
+  });
+
+  it("tells everyone but whoever closed the claim", async () => {
+    await receive(
+      envelope(
+        ClaimClosed.create({
+          contractId: CONTRACT,
+          claimId: CLAIM,
+          category: "networks",
+          reason: "cancelled",
+          closedBy: ALICE,
+          ownerId: ALICE,
+          claimantId: BOB,
+          validatorIds: [CAROL],
+        }),
+      ),
+    );
+    expect(await inbox.list(ALICE)).toEqual([]);
+    expect((await inbox.list(BOB))[0].body).toBe(
+      "Le propriétaire a annulé la demande de transmission (« Réseaux sociaux »).",
+    );
+    expect(await types(CAROL)).toHaveLength(1);
+  });
+
+  it("tells the accessor they can open the contract", async () => {
+    await receive(
+      envelope(
+        ContractReleased.create({
+          contractId: CONTRACT,
+          claimId: CLAIM,
+          category: "storage",
+          ownerId: ALICE,
+          accessorId: BOB,
+          validatorIds: [CAROL],
+        }),
+      ),
+    );
+    expect(await types(BOB)).toEqual([
+      ["contract_released", `/contract/${CONTRACT}`],
+    ]);
   });
 });
 

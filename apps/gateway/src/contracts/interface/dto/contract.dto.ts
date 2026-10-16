@@ -1,19 +1,90 @@
 import { ApiProperty } from "@nestjs/swagger";
 import {
+  CLAIM_STATUSES,
   CONTRACT_CATEGORIES,
   CONTRACT_STATUSES,
   type AuditEvent,
   type ChainVerification,
+  type ClaimRecord,
+  type ClaimStatus,
   type ContractAction,
   type ContractCategory,
   type ContractRole,
   type ContractStatus,
   type SealedMaterial,
 } from "@lib/contracts";
+import { PublicKeysDto } from "../../../keys/interface/dto/keys.dto.js";
 import { UserProfileDto } from "../../../users/interface/dto/user-profile.dto.js";
 
 const ROLES: ContractRole[] = ["owner", "accessor", "validator"];
-const ACTIONS: ContractAction[] = ["update", "delete", "seal", "revoke"];
+const ACTIONS: ContractAction[] = [
+  "update",
+  "delete",
+  "seal",
+  "revoke",
+  "claim",
+  "cancel_claim",
+  "withdraw_claim",
+  "decide",
+  "open",
+];
+
+/** The claim in progress on a contract. */
+export class ClaimDTO implements ClaimRecord {
+  @ApiProperty({ example: "9b0c2d4e-6f71-4a83-b5c6-d7e8f9a0b1c2" })
+  id: string;
+
+  @ApiProperty({ description: "Who asked for the release" })
+  claimant_id: string;
+
+  @ApiProperty({ enum: CLAIM_STATUSES })
+  status: ClaimStatus;
+
+  @ApiProperty({ example: "2026-10-16T09:00:00.000Z" })
+  filed_at: string;
+
+  @ApiProperty({
+    description:
+      "The owner may cancel until then; the release needs this date and enough approvals",
+    example: "2026-10-23T09:00:00.000Z",
+  })
+  contest_until: string;
+
+  @ApiProperty({
+    description: "Without enough approvals, the claim ends then",
+    example: "2026-12-15T09:00:00.000Z",
+  })
+  expires_at: string;
+
+  @ApiProperty({ example: 1 })
+  approvals: number;
+
+  @ApiProperty({ example: 0 })
+  rejections: number;
+
+  @ApiProperty({ description: "Approvals needed (k of n)", example: 2 })
+  threshold: number;
+
+  @ApiProperty({
+    description: "The caller's decision, when they are a validator who decided",
+    enum: ["approve", "reject"],
+    nullable: true,
+    type: String,
+  })
+  my_decision: "approve" | "reject" | null;
+}
+
+/** How many validators could still approve a claim: their keys are those the contract was sealed for. */
+export class HealthDTO {
+  @ApiProperty({ example: 3 })
+  usable: number;
+
+  @ApiProperty({ example: 3 })
+  total: number;
+
+  @ApiProperty({ description: "Approvals needed (k of n)", example: 2 })
+  threshold: number;
+}
 
 // A contract as one of its participants sees it. Secret material is never returned.
 export class ContractDTO {
@@ -76,6 +147,35 @@ export class ContractDTO {
     isArray: true,
   })
   allowed_actions: ContractAction[];
+
+  @ApiProperty({
+    description: "Days the owner has to cancel a claim (3 to 30)",
+    example: 7,
+  })
+  contest_days: number;
+
+  @ApiProperty({
+    description: "The claim in progress; null when there is none",
+    type: () => ClaimDTO,
+    nullable: true,
+  })
+  open_claim: ClaimDTO | null;
+
+  @ApiProperty({
+    description:
+      "After the owner cancelled the caller's last claim, they may claim again only from then; null otherwise",
+    nullable: true,
+    type: String,
+  })
+  claim_cooldown_until: string | null;
+
+  @ApiProperty({
+    description:
+      "Validators whose keys are still those the contract was sealed for; null while never sealed",
+    type: () => HealthDTO,
+    nullable: true,
+  })
+  health: HealthDTO | null;
 
   @ApiProperty({
     description: "Owner profile; null if it no longer exists",
@@ -210,4 +310,70 @@ export class SealedMaterialDTO implements SealedMaterial {
     type: () => SealedShareDTO,
   })
   share?: SealedShareDTO;
+
+  @ApiProperty({
+    description:
+      "The owner's keys that signed the manifest (current or retired): check the signature with them",
+    type: () => PublicKeysDto,
+    nullable: true,
+  })
+  owner_keys: PublicKeysDto | null;
+
+  @ApiProperty({
+    description:
+      "Validator only: the accessor's current keys, to re-wrap the share for them when approving",
+    type: () => PublicKeysDto,
+    nullable: true,
+    required: false,
+  })
+  accessor_keys?: PublicKeysDto | null;
+}
+
+class ReleasedShareDTO {
+  @ApiProperty({ example: 1 })
+  index: number;
+
+  @ApiProperty({
+    description: "The accessor key version it is wrapped to",
+    example: 1,
+  })
+  key_version: number;
+
+  @ApiProperty({ description: "The share wrapped to the accessor, base64" })
+  wrap: string;
+}
+
+/** What the accessor downloads once the contract is released. */
+export class ReleasePackageDTO {
+  @ApiProperty({ example: 1 })
+  sealed_version: number;
+
+  @ApiProperty({
+    description: "The manifest the owner signed",
+    type: "object",
+    additionalProperties: true,
+  })
+  manifest: Record<string, unknown>;
+
+  @ApiProperty({ description: "The owner's signature of the manifest, base64" })
+  manifest_signature: string;
+
+  @ApiProperty({ description: "The encrypted secret, base64" })
+  envelope: string;
+
+  @ApiProperty({ description: "The claim that released the contract" })
+  claim_id: string;
+
+  @ApiProperty({
+    description: "At least k shares, wrapped to the accessor",
+    type: () => [ReleasedShareDTO],
+  })
+  shares: ReleasedShareDTO[];
+
+  @ApiProperty({
+    description: "The owner's keys that signed the manifest",
+    type: () => PublicKeysDto,
+    nullable: true,
+  })
+  owner_keys: PublicKeysDto | null;
 }

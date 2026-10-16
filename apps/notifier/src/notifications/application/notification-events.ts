@@ -1,7 +1,12 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { type Clock } from "@lib/kernel";
 import {
+  claimClosed,
+  claimFiledForOwner,
+  claimFiledForValidator,
+  claimQuorumReached,
   contactKeysReset,
+  contractReleasedForAccessor,
   keysReset,
   trustAdded,
 } from "../domain/templates.js";
@@ -45,6 +50,66 @@ export class NotificationEvents {
         }),
       ),
     ]);
+  }
+
+  /** Alert the owner (they may stop it), ask the other validators for their decision. */
+  async claimFiled(
+    store: NotifierStore,
+    event: {
+      contractId: string;
+      category: string;
+      ownerId: string;
+      claimantId: string;
+      validatorIds: string[];
+    },
+  ): Promise<void> {
+    await this.notifier.notify(store, [
+      claimFiledForOwner(event),
+      ...event.validatorIds
+        .filter((id) => id !== event.claimantId)
+        .map((validatorId) =>
+          claimFiledForValidator({ ...event, validatorId }),
+        ),
+    ]);
+  }
+
+  async claimQuorumReached(
+    store: NotifierStore,
+    event: { contractId: string; category: string; ownerId: string },
+  ): Promise<void> {
+    await this.notifier.notify(store, [claimQuorumReached(event)]);
+  }
+
+  /** Everyone involved but whoever closed it. */
+  async claimClosed(
+    store: NotifierStore,
+    event: {
+      contractId: string;
+      category: string;
+      reason: string;
+      closedBy: string | null;
+      ownerId: string;
+      claimantId: string;
+      validatorIds: string[];
+    },
+  ): Promise<void> {
+    const people = new Set([
+      event.ownerId,
+      event.claimantId,
+      ...event.validatorIds,
+    ]);
+    if (event.closedBy) people.delete(event.closedBy);
+    await this.notifier.notify(
+      store,
+      [...people].map((userId) => claimClosed({ ...event, userId })),
+    );
+  }
+
+  async contractReleased(
+    store: NotifierStore,
+    event: { contractId: string; category: string; accessorId: string },
+  ): Promise<void> {
+    await this.notifier.notify(store, [contractReleasedForAccessor(event)]);
   }
 
   /** The account is gone: forget its notifications, devices and settings. */

@@ -5,6 +5,7 @@ import {
   ArrayUnique,
   IsArray,
   IsBase64,
+  IsBoolean,
   IsIn,
   IsInt,
   IsISO8601,
@@ -39,6 +40,12 @@ export class NewContractDto {
   @IsString({ each: true })
   @IsNotEmpty({ each: true })
   validator_ids: string[];
+
+  @IsOptional()
+  @IsInt()
+  @Min(3)
+  @Max(30)
+  contest_days?: number;
 }
 
 export class ContractChangesDto {
@@ -50,6 +57,12 @@ export class ContractChangesDto {
   @IsString()
   @MaxLength(280)
   description?: string | null;
+
+  @IsOptional()
+  @IsInt()
+  @Min(3)
+  @Max(30)
+  contest_days?: number;
 }
 
 class ShareDto {
@@ -71,7 +84,7 @@ class ShareDto {
   wrap: string;
 }
 
-class RegisteredKeyDto {
+export class RegisteredKeyDto {
   @IsString()
   @IsNotEmpty()
   user_id: string;
@@ -142,4 +155,25 @@ export class RevokeDto {
   @IsInt()
   @Min(1)
   expected_version: number;
+}
+
+/** A validator's decision, and the accessor's current keys (from the gateway) to check an approval. */
+export class DecisionDto {
+  @IsBoolean()
+  approve: boolean;
+
+  @IsOptional()
+  @IsBase64()
+  @MaxLength(2000)
+  release_wrap?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  accessor_key_version?: number;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => RegisteredKeyDto)
+  accessor_key?: RegisteredKeyDto;
 }

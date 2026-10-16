@@ -22,10 +22,12 @@ import {
   ContractDetailDTO,
   ContractDTO,
   ContractEventDTO,
+  ReleasePackageDTO,
   SealedMaterialDTO,
 } from "./dto/contract.dto.js";
 import {
   CreateContractDTO,
+  DecisionDTO,
   RevokeContractDTO,
   SealContractDTO,
   UpdateContractDTO,
@@ -159,6 +161,98 @@ export class ContractsController {
     @Body() { expected_version }: RevokeContractDTO,
   ): Promise<ContractDetailDTO> {
     return this.contracts.revoke(me, id, expected_version);
+  }
+
+  @Post(":id/claims")
+  @HttpCode(200)
+  @ApiOperation({
+    summary:
+      "Ask for the release (accessor or validator): the owner is alerted and may cancel during the contest window",
+  })
+  @ApiResponse({ status: 200, type: ContractDetailDTO })
+  @ApiResponse({ status: 404, description: "Contract not found" })
+  @ApiResponse({
+    status: 409,
+    description:
+      "Not possible now: not active, a claim already open, or within the pause after the owner cancelled your last claim",
+  })
+  fileClaim(
+    @CurrentUserId() me: string,
+    @Param("id", ParseUUIDPipe) id: string,
+  ): Promise<ContractDetailDTO> {
+    return this.contracts.fileClaim(me, id);
+  }
+
+  @Post(":id/claims/:claimId/cancel")
+  @HttpCode(200)
+  @ApiOperation({ summary: '"I\'m here": the owner cancels the open claim' })
+  @ApiResponse({ status: 200, type: ContractDetailDTO })
+  @ApiResponse({ status: 404, description: "Contract not found" })
+  @ApiResponse({ status: 409, description: "This claim is no longer open" })
+  cancelClaim(
+    @CurrentUserId() me: string,
+    @Param("id", ParseUUIDPipe) id: string,
+    @Param("claimId", ParseUUIDPipe) claimId: string,
+  ): Promise<ContractDetailDTO> {
+    return this.contracts.cancelClaim(me, id, claimId);
+  }
+
+  @Post(":id/claims/:claimId/withdraw")
+  @HttpCode(200)
+  @ApiOperation({ summary: "The claimant takes their claim back" })
+  @ApiResponse({ status: 200, type: ContractDetailDTO })
+  @ApiResponse({ status: 404, description: "Contract not found" })
+  @ApiResponse({
+    status: 409,
+    description: "Not your claim, or no longer open",
+  })
+  withdrawClaim(
+    @CurrentUserId() me: string,
+    @Param("id", ParseUUIDPipe) id: string,
+    @Param("claimId", ParseUUIDPipe) claimId: string,
+  ): Promise<ContractDetailDTO> {
+    return this.contracts.withdrawClaim(me, id, claimId);
+  }
+
+  @Post(":id/claims/:claimId/decision")
+  @HttpCode(200)
+  @ApiOperation({
+    summary:
+      "A validator approves (with their share re-wrapped to the accessor) or refuses the open claim, once",
+  })
+  @ApiResponse({ status: 200, type: ContractDetailDTO })
+  @ApiResponse({
+    status: 400,
+    description: "An approval without a well-formed re-wrapped share",
+  })
+  @ApiResponse({ status: 404, description: "Contract not found" })
+  @ApiResponse({
+    status: 409,
+    description:
+      "Already decided, claim closed, or the accessor's keys changed or are in quarantine",
+  })
+  decide(
+    @CurrentUserId() me: string,
+    @Param("id", ParseUUIDPipe) id: string,
+    @Param("claimId", ParseUUIDPipe) claimId: string,
+    @Body() body: DecisionDTO,
+  ): Promise<ContractDetailDTO> {
+    return this.contracts.decide(me, id, claimId, body);
+  }
+
+  @Get(":id/release")
+  @ApiOperation({
+    summary:
+      "The accessor's download once released: the encrypted secret and the shares re-wrapped to them",
+  })
+  @ApiResponse({ status: 200, type: ReleasePackageDTO })
+  @ApiResponse({ status: 404, description: "Contract not found" })
+  @ApiResponse({ status: 409, description: "Not released" })
+  release(
+    @CurrentUserId() me: string,
+    @Param("id", ParseUUIDPipe) id: string,
+  ): Promise<ReleasePackageDTO> {
+    return this.contracts.release(me, id);
   }
 
   @Get(":id/events")

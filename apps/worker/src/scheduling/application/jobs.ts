@@ -1,6 +1,11 @@
-import { AuditVerifyDue, PushReceiptsDue, RetentionDue } from "@lib/contracts";
+import {
+  AuditVerifyDue,
+  ClaimsDue,
+  PushReceiptsDue,
+  RetentionDue,
+} from "@lib/contracts";
 import type { NewEvent } from "@lib/messaging";
-import { DAY, MINUTE } from "../domain/schedule.js";
+import { DAY, HOUR, MINUTE } from "../domain/schedule.js";
 
 /** A recurring job: once per period, the worker publishes an event that the owning service handles. */
 export interface ScheduledJob {
@@ -16,6 +21,8 @@ export const JOBS: ScheduledJob[] = [
     everyMs: 15 * MINUTE,
     event: () => PushReceiptsDue.create({}),
   },
+  // Handover settles open claims past their deadline, in case a delayed message went missing.
+  { name: "claims-due", everyMs: HOUR, event: () => ClaimsDue.create({}) },
   // Handover checks the hash chain of every contract's audit log.
   {
     name: "audit-verify",

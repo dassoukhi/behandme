@@ -99,9 +99,12 @@ must:
   and return **404** (not 403) for resources the caller cannot see.
 - Rules: contracts readable by owner/accessor/validators; what each may do is handover's
   `allowedActions` (`apps/handover/src/contracts/domain/lifecycle.ts`: the owner edits a draft or an active
-  contract, deletes a draft, seals a draft or re-seals an active one, revokes until release); sealed
-  material by role (`GET /contracts/:id/sealed`): the owner gets the envelope and their wrapped key, a
-  validator their own share, the accessor only the signed manifest until release; handover checks every
+  contract, deletes a draft, seals a draft or re-seals an active one, revokes until release; the accessor or a
+  validator claims, the owner cancels, the claimant withdraws, each validator decides once, the accessor opens
+  a released contract); sealed material by role (`GET /contracts/:id/sealed`, with the owner's keys that
+  signed it, and the accessor's current keys for a validator): the owner gets the envelope and their wrapped
+  key, a validator their own share, the accessor only the signed manifest until release, then the release
+  package (`GET /contracts/:id/release`) and nobody else; handover checks every
   sealing (`domain/sealing.ts`: signature, participants, registered keys, hashes, sizes, version) against
   the keys the gateway passes, never keys from the client; `status` and participants never client-writable, no secret material
   ever returned; participants must be distinct and trusted by the owner (trust checked by the gateway,

@@ -3,12 +3,14 @@ import type {
   ChainVerification,
   ContractChanges,
   ContractRecord,
+  DecisionBody,
   NewContract,
   RegisteredKeyRecord,
+  ReleasePackage,
   SealedMaterial,
   SealRequestBody,
 } from "@lib/contracts";
-import { InvalidInputError, NotFoundError } from "@lib/kernel";
+import { ConflictError, InvalidInputError, NotFoundError } from "@lib/kernel";
 import type { HandoverClient } from "../application/handover-client.js";
 
 type Stored = Omit<ContractRecord, "my_role" | "allowed_actions">;
@@ -51,6 +53,10 @@ export class InMemoryHandover implements HandoverClient {
       validator_ids: contract.validator_ids,
       created_at: "2026-10-14T00:00:00.000Z",
       updated_at: "2026-10-14T00:00:00.000Z",
+      contest_days: contract.contest_days ?? 7,
+      open_claim: null,
+      sealed_validators: [],
+      claim_cooldown_until: null,
     };
     this.contracts.push(stored);
     return record(stored, userId);
@@ -93,10 +99,16 @@ export class InMemoryHandover implements HandoverClient {
     const contract = this.visible(userId, id);
     if (contract.sealed_version === 0)
       throw new NotFoundError("This contract is not sealed");
+    const index = contract.validator_ids.indexOf(userId) + 1;
     return {
       sealed_version: contract.sealed_version,
-      manifest: {},
+      manifest: {
+        owner: { user_id: contract.owner_id, key_version: 1 },
+        accessor: { user_id: contract.accessor_id, key_version: 1 },
+      },
       manifest_signature: "",
+      // As handover: a validator gets their own share.
+      ...(index > 0 ? { share: { index, key_version: 1, wrap: "" } } : {}),
     };
   }
 
@@ -104,6 +116,91 @@ export class InMemoryHandover implements HandoverClient {
     const contract = this.owned(userId, id);
     contract.status = "revoked";
     return record(contract, userId);
+  }
+
+  async fileClaim(userId: string, id: string) {
+    const contract = this.visible(userId, id);
+    if (contract.owner_id === userId)
+      throw new NotFoundError("Contract not found");
+    if (contract.status !== "active")
+      throw new ConflictError("Not possible now: claim");
+    contract.status = "claimed";
+    contract.open_claim = {
+      id: `claim-${contract.id}`,
+      claimant_id: userId,
+      status: "open",
+      filed_at: "2026-10-16T00:00:00.000Z",
+      contest_until: "2026-10-23T00:00:00.000Z",
+      expires_at: "2026-12-15T00:00:00.000Z",
+      approvals: 0,
+      rejections: 0,
+      threshold: Math.floor(contract.validator_ids.length / 2) + 1,
+      my_decision: null,
+    };
+    return record(contract, userId);
+  }
+
+  async cancelClaim(userId: string, id: string, claimId: string) {
+    const contract = this.owned(userId, id);
+    this.openClaim(contract, claimId);
+    Object.assign(contract, { status: "active", open_claim: null });
+    return record(contract, userId);
+  }
+
+  async withdrawClaim(userId: string, id: string, claimId: string) {
+    const contract = this.visible(userId, id);
+    if (this.openClaim(contract, claimId).claimant_id !== userId) {
+      throw new ConflictError("Not possible now: withdraw_claim");
+    }
+    Object.assign(contract, { status: "active", open_claim: null });
+    return record(contract, userId);
+  }
+
+  /** Records what the gateway passed; the decision rules are tested in apps/handover. */
+  decidedWith: {
+    decision: DecisionBody;
+    accessorKey: RegisteredKeyRecord | null;
+  } | null = null;
+
+  async decide(
+    userId: string,
+    id: string,
+    claimId: string,
+    decision: DecisionBody,
+    accessorKey: RegisteredKeyRecord | null,
+  ) {
+    const contract = this.visible(userId, id);
+    if (!contract.validator_ids.includes(userId)) {
+      throw new NotFoundError("Contract not found");
+    }
+    const claim = this.openClaim(contract, claimId);
+    this.decidedWith = { decision, accessorKey };
+    if (decision.approve) claim.approvals += 1;
+    else claim.rejections += 1;
+    return record(contract, userId);
+  }
+
+  async release(userId: string, id: string): Promise<ReleasePackage> {
+    const contract = this.visible(userId, id);
+    if (contract.accessor_id !== userId)
+      throw new NotFoundError("Contract not found");
+    if (contract.status !== "released")
+      throw new ConflictError("Not possible now: open");
+    return {
+      sealed_version: contract.sealed_version,
+      manifest: { owner: { user_id: contract.owner_id, key_version: 1 } },
+      manifest_signature: "",
+      envelope: "",
+      claim_id: `claim-${contract.id}`,
+      shares: [],
+    };
+  }
+
+  private openClaim(contract: Stored, claimId: string) {
+    if (!contract.open_claim || contract.open_claim.id !== claimId) {
+      throw new ConflictError("This claim is no longer open");
+    }
+    return contract.open_claim;
   }
 
   async events(userId: string, id: string): Promise<AuditEvent[]> {
@@ -141,12 +238,17 @@ function roleOf(c: Stored, userId: string): ContractRecord["my_role"] | null {
 
 function record(c: Stored, userId: string): ContractRecord {
   const role = roleOf(c, userId)!;
+  const actions: Record<string, ContractRecord["allowed_actions"]> = {
+    "owner:draft": ["update", "delete", "seal"],
+    "owner:claimed": ["cancel_claim"],
+    "accessor:active": ["claim"],
+    "validator:active": ["claim"],
+    "validator:claimed": ["decide"],
+    "accessor:released": ["open"],
+  };
   return {
     ...c,
     my_role: role,
-    allowed_actions:
-      role === "owner" && c.status === "draft"
-        ? ["update", "delete", "seal"]
-        : [],
+    allowed_actions: actions[`${role}:${c.status}`] ?? [],
   };
 }

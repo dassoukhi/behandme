@@ -4,6 +4,11 @@ import type { RegisteredKeys } from "../domain/keys.js";
 export interface KeyRepository {
   find(userId: string): Promise<RegisteredKeys | null>;
   findMany(userIds: string[]): Promise<RegisteredKeys[]>;
+  /** The user's keys of that version: the current ones, or retired ones from the history. */
+  findVersion(
+    userId: string,
+    keyVersion: number,
+  ): Promise<RegisteredKeys | null>;
   /** False when the user already has keys. */
   insert(keys: Omit<RegisteredKeys, "createdAt">): Promise<boolean>;
   /**

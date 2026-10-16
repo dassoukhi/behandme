@@ -52,3 +52,47 @@ export function contractDeleted(
 ): AuditEntry {
   return { type: "contract.deleted", body: { reason } };
 }
+
+export function claimFiled(claim: {
+  claimId: string;
+  contestUntil: Date;
+}): AuditEntry {
+  return {
+    type: "claim.filed",
+    body: {
+      claim_id: claim.claimId,
+      contest_until: claim.contestUntil.toISOString(),
+    },
+  };
+}
+
+/** A validator's decision; an approval's re-wrapped share stays out of the log. */
+export function claimDecided(decision: {
+  claimId: string;
+  approve: boolean;
+}): AuditEntry {
+  return {
+    type: "claim.decided",
+    body: { claim_id: decision.claimId, approve: decision.approve },
+  };
+}
+
+export function claimClosed(closing: {
+  claimId: string;
+  reason: "cancelled" | "withdrawn" | "rejected" | "expired" | "revoked";
+}): AuditEntry {
+  return {
+    type: "claim.closed",
+    body: { claim_id: closing.claimId, reason: closing.reason },
+  };
+}
+
+export function contractReleased(release: {
+  claimId: string;
+  approvals: number;
+}): AuditEntry {
+  return {
+    type: "contract.released",
+    body: { claim_id: release.claimId, approvals: release.approvals },
+  };
+}

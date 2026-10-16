@@ -146,6 +146,22 @@ export class KeysService {
   }
 
   /**
+   * The current keys of a contract's participants, for the contracts facade only: taking part in the
+   * same contract (which handover checked) is reason enough to see them. Users without keys are absent.
+   */
+  participants(ids: string[]): Promise<RegisteredKeys[]> {
+    return this.keys.findMany([...new Set(ids)]);
+  }
+
+  /** The keys a user had at `keyVersion` (e.g. the owner's keys that signed a manifest). */
+  atVersion(
+    userId: string,
+    keyVersion: number,
+  ): Promise<RegisteredKeys | null> {
+    return this.keys.findVersion(userId, keyVersion);
+  }
+
+  /**
    * Public keys of the users among `ids` that `me` may encrypt to or check: themselves, the users they
    * trust and those who trust them. Users without keys are left out.
    */

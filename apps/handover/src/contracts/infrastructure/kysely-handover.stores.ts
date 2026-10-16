@@ -1,8 +1,10 @@
 import { Inject, Injectable } from "@nestjs/common";
 import canonicalize from "canonicalize";
 import { type Kysely, type Selectable, sql } from "kysely";
-import type { Executor } from "@lib/messaging";
+import { currentCorrelationId, newId, systemClock } from "@lib/kernel";
+import { type Executor, TransactionalOutbox } from "@lib/messaging";
 import { DATABASE } from "@lib/platform";
+import type { Claim, ClaimStatus, Decision } from "../domain/claims.js";
 import type { AuditEntry } from "../domain/audit-events.js";
 import type { ChainEvent } from "../domain/audit-chain.js";
 import type {
@@ -14,13 +16,19 @@ import type {
 } from "../domain/contract.js";
 import type {
   AuditLog,
+  ClaimRepository,
   ContractRepository,
+  EventPublisher,
   HandoverStore,
   HandoverStores,
   Sealing,
   SealingRepository,
 } from "../application/ports.js";
-import type { ContractsTable, HandoverDatabase } from "./tables.js";
+import type {
+  ClaimsTable,
+  ContractsTable,
+  HandoverDatabase,
+} from "./tables.js";
 
 type Db = Kysely<HandoverDatabase>;
 
@@ -70,6 +78,7 @@ class KyselyContracts implements ContractRepository {
         owner_id: ownerId,
         category: input.category,
         description: input.description,
+        contest_days: input.contestDays,
       })
       .returningAll()
       .executeTakeFirstOrThrow();
@@ -98,10 +107,12 @@ class KyselyContracts implements ContractRepository {
     changes: ContractChanges,
     expectedVersion: number,
   ): Promise<Contract | null> {
+    const { contestDays, ...fields } = changes;
     const row = await this.db
       .updateTable("contracts")
       .set({
-        ...changes,
+        ...fields,
+        ...(contestDays !== undefined ? { contest_days: contestDays } : {}),
         version: sql<number>`version + 1`,
         updated_at: sql<Date>`now()`,
       })
@@ -177,6 +188,26 @@ class KyselyContracts implements ContractRepository {
       })
       .where("id", "=", id)
       .where("version", "=", expectedVersion)
+      .returningAll()
+      .executeTakeFirst();
+    return row ? (await this.withParticipants([row]))[0] : null;
+  }
+
+  async transition(
+    id: string,
+    from: Status,
+    to: Status,
+  ): Promise<Contract | null> {
+    const row = await this.db
+      .updateTable("contracts")
+      .set({
+        status: to,
+        ...(to === "released" ? { released_at: sql<Date>`now()` } : {}),
+        version: sql<number>`version + 1`,
+        updated_at: sql<Date>`now()`,
+      })
+      .where("id", "=", id)
+      .where("status", "=", from)
       .returningAll()
       .executeTakeFirst();
     return row ? (await this.withParticipants([row]))[0] : null;
@@ -286,6 +317,184 @@ class KyselySealings implements SealingRepository {
       .where("contract_id", "=", contractId)
       .execute();
   }
+
+  async manifests(contractIds: string[]): Promise<Map<string, string>> {
+    if (contractIds.length === 0) return new Map();
+    const rows = await this.db
+      .selectFrom("envelopes")
+      .select(["contract_id", "manifest"])
+      .where("contract_id", "in", contractIds)
+      .execute();
+    return new Map(rows.map((r) => [r.contract_id, r.manifest]));
+  }
+}
+
+class KyselyClaims implements ClaimRepository {
+  constructor(private readonly db: Db) {}
+
+  async find(claimId: string): Promise<Claim | null> {
+    const row = await this.db
+      .selectFrom("claims")
+      .selectAll()
+      .where("id", "=", claimId)
+      .executeTakeFirst();
+    return row ? toClaim(row) : null;
+  }
+
+  async openFor(contractIds: string[]): Promise<Claim[]> {
+    if (contractIds.length === 0) return [];
+    const rows = await this.db
+      .selectFrom("claims")
+      .selectAll()
+      .where("contract_id", "in", contractIds)
+      .where("status", "=", "open")
+      .execute();
+    return rows.map(toClaim);
+  }
+
+  async released(contractId: string): Promise<Claim | null> {
+    const row = await this.db
+      .selectFrom("claims")
+      .selectAll()
+      .where("contract_id", "=", contractId)
+      .where("status", "=", "released")
+      .executeTakeFirst();
+    return row ? toClaim(row) : null;
+  }
+
+  async lastClosedBy(
+    claimantId: string,
+    contractIds: string[],
+  ): Promise<Claim[]> {
+    if (contractIds.length === 0) return [];
+    const rows = await this.db
+      .selectFrom("claims")
+      .selectAll()
+      .distinctOn("contract_id")
+      .where("claimant_id", "=", claimantId)
+      .where("contract_id", "in", contractIds)
+      .where("status", "!=", "open")
+      .orderBy("contract_id")
+      .orderBy("closed_at", "desc")
+      .execute();
+    return rows.map(toClaim);
+  }
+
+  async insert(
+    claim: Pick<
+      Claim,
+      | "contractId"
+      | "claimantId"
+      | "sealedVersion"
+      | "filedAt"
+      | "contestUntil"
+      | "expiresAt"
+    >,
+  ): Promise<Claim> {
+    const row = await this.db
+      .insertInto("claims")
+      .values({
+        contract_id: claim.contractId,
+        claimant_id: claim.claimantId,
+        sealed_version: claim.sealedVersion,
+        filed_at: claim.filedAt,
+        contest_until: claim.contestUntil,
+        expires_at: claim.expiresAt,
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+    return toClaim(row);
+  }
+
+  async close(
+    claimId: string,
+    status: Exclude<ClaimStatus, "open">,
+    closedBy: string | null,
+    at: Date,
+  ): Promise<boolean> {
+    const row = await this.db
+      .updateTable("claims")
+      .set({ status, closed_by: closedBy, closed_at: at })
+      .where("id", "=", claimId)
+      .where("status", "=", "open")
+      .returning("id")
+      .executeTakeFirst();
+    return row !== undefined;
+  }
+
+  async decisions(claimIds: string[]): Promise<Map<string, Decision[]>> {
+    const result = new Map<string, Decision[]>(claimIds.map((id) => [id, []]));
+    if (claimIds.length === 0) return result;
+    const rows = await this.db
+      .selectFrom("decisions")
+      .selectAll()
+      .where("claim_id", "in", claimIds)
+      .orderBy("decided_at")
+      .execute();
+    for (const row of rows) {
+      result.get(row.claim_id)!.push({
+        validatorId: row.validator_id,
+        approve: row.approve,
+        shareIndex: row.share_index,
+        accessorKeyVersion: row.accessor_key_version,
+        releaseWrap: row.release_wrap ? new Uint8Array(row.release_wrap) : null,
+      });
+    }
+    return result;
+  }
+
+  async decide(claimId: string, decision: Decision): Promise<boolean> {
+    const row = await this.db
+      .insertInto("decisions")
+      .values({
+        claim_id: claimId,
+        validator_id: decision.validatorId,
+        approve: decision.approve,
+        share_index: decision.shareIndex,
+        accessor_key_version: decision.accessorKeyVersion,
+        release_wrap: decision.releaseWrap,
+      })
+      .onConflict((oc) => oc.columns(["claim_id", "validator_id"]).doNothing())
+      .returning("claim_id")
+      .executeTakeFirst();
+    return row !== undefined;
+  }
+
+  async eraseReleaseWraps(claimId: string): Promise<void> {
+    await this.db
+      .updateTable("decisions")
+      .set({ release_wrap: null })
+      .where("claim_id", "=", claimId)
+      .execute();
+  }
+
+  async due(now: Date): Promise<Claim[]> {
+    const rows = await this.db
+      .selectFrom("claims")
+      .selectAll()
+      .where("status", "=", "open")
+      .where((eb) =>
+        eb.or([eb("contest_until", "<=", now), eb("expires_at", "<=", now)]),
+      )
+      .orderBy("contest_until")
+      .execute();
+    return rows.map(toClaim);
+  }
+}
+
+function toClaim(row: Selectable<ClaimsTable>): Claim {
+  return {
+    id: row.id,
+    contractId: row.contract_id,
+    claimantId: row.claimant_id,
+    sealedVersion: row.sealed_version,
+    status: row.status as ClaimStatus,
+    filedAt: row.filed_at,
+    contestUntil: row.contest_until,
+    expiresAt: row.expires_at,
+    closedAt: row.closed_at,
+    closedBy: row.closed_by,
+  };
 }
 
 class KyselyAuditLog implements AuditLog {
@@ -335,10 +544,22 @@ class KyselyAuditLog implements AuditLog {
 
 function store(db: Executor): HandoverStore {
   const scoped = handover(db);
+  const outbox = new TransactionalOutbox(db, {
+    schema: "handover",
+    context: { correlationId: currentCorrelationId() ?? newId() },
+    clock: systemClock,
+  });
+  const events: EventPublisher = {
+    publish: async (event, options) => {
+      await outbox.publish(event, options);
+    },
+  };
   return {
     contracts: new KyselyContracts(scoped),
     sealings: new KyselySealings(scoped),
+    claims: new KyselyClaims(scoped),
     audit: new KyselyAuditLog(scoped),
+    events,
   };
 }
 
@@ -373,6 +594,7 @@ function toContract(
     status: row.status as Status,
     version: row.version,
     sealedVersion: row.sealed_version,
+    contestDays: row.contest_days,
     accessorId,
     validatorIds,
     createdAt: row.created_at.toISOString(),

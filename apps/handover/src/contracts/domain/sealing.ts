@@ -17,6 +17,12 @@ const SHAMIR_SHARE_LENGTH = 33; // 32 bytes + the share's x coordinate
 export const wrapLength = (secretLength: number) =>
   1 + ENC_LENGTH + secretLength + TAG_LENGTH;
 
+/** A wrapped key share of a contract with `validators` validators (n = 1: the share is K itself). */
+export function isShareWrap(wrap: Uint8Array, validators: number): boolean {
+  const shareLength = validators === 1 ? KEY_LENGTH : SHAMIR_SHARE_LENGTH;
+  return wrap[0] === FORMAT && wrap.length === wrapLength(shareLength);
+}
+
 export interface ManifestParty {
   user_id: string;
   key_version: number;

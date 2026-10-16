@@ -1,7 +1,15 @@
 import { Inject, Injectable } from "@nestjs/common";
-import type { ContractRecord, SealedMaterial } from "@lib/contracts";
+import {
+  ClaimClosed,
+  type ContractRecord,
+  type SealedMaterial,
+} from "@lib/contracts";
 import { type Clock, ConflictError, NotFoundError } from "@lib/kernel";
-import { contractRevoked, contractSealed } from "../domain/audit-events.js";
+import {
+  claimClosed,
+  contractRevoked,
+  contractSealed,
+} from "../domain/audit-events.js";
 import { type Contract, type Role, roleOf } from "../domain/contract.js";
 import { assertAllowed } from "../domain/lifecycle.js";
 import {
@@ -9,7 +17,7 @@ import {
   type RegisteredKey,
   type SealRequest,
 } from "../domain/sealing.js";
-import { toRecord } from "./contracts.service.js";
+import { recordsFor } from "./records.js";
 import {
   CLOCK,
   HANDOVER_STORES,
@@ -88,7 +96,7 @@ export class SealingService {
           validatorIds: request.validatorIds,
         }),
       );
-      return toRecord(updated, "owner");
+      return (await recordsFor(store, me, [updated], this.clock.now()))[0];
     });
   }
 
@@ -137,8 +145,31 @@ export class SealingService {
           "The contract changed meanwhile: reload it and try again",
         );
       await store.sealings.delete(id);
+      // A claim in progress ends with the contract: its re-wrapped shares go too.
+      const [claim] = await store.claims.openFor([id]);
+      if (claim) {
+        await store.claims.close(claim.id, "cancelled", me, this.clock.now());
+        await store.claims.eraseReleaseWraps(claim.id);
+        await store.audit.append(
+          id,
+          me,
+          claimClosed({ claimId: claim.id, reason: "revoked" }),
+        );
+        await store.events.publish(
+          ClaimClosed.create({
+            contractId: id,
+            claimId: claim.id,
+            category: contract.category,
+            reason: "revoked",
+            closedBy: me,
+            ownerId: contract.ownerId,
+            claimantId: claim.claimantId,
+            validatorIds: contract.validatorIds,
+          }),
+        );
+      }
       await store.audit.append(id, me, contractRevoked());
-      return toRecord(updated, role);
+      return (await recordsFor(store, me, [updated], this.clock.now()))[0];
     });
   }
 }

@@ -57,7 +57,7 @@ beforeEach(async () => {
   clock = new FakeClock(new Date("2026-10-15T12:00:00Z"));
   const stores = new KyselyHandoverStores(db);
   sealing = new SealingService(stores, nodeSealCrypto, clock);
-  contracts = new ContractsService(stores, nodeSha256);
+  contracts = new ContractsService(stores, nodeSha256, clock);
 });
 afterEach(() => sql`reset role`.execute(db));
 

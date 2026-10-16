@@ -3,8 +3,10 @@ import type {
   ChainVerification,
   ContractChanges,
   ContractRecord,
+  DecisionBody,
   NewContract,
   RegisteredKeyRecord,
+  ReleasePackage,
   SealedMaterial,
   SealRequestBody,
 } from "@lib/contracts";
@@ -38,6 +40,28 @@ export interface HandoverClient {
     id: string,
     expectedVersion: number,
   ): Promise<ContractRecord>;
+  /** The accessor or a validator asks for the release. */
+  fileClaim(userId: string, id: string): Promise<ContractRecord>;
+  cancelClaim(
+    userId: string,
+    id: string,
+    claimId: string,
+  ): Promise<ContractRecord>;
+  withdrawClaim(
+    userId: string,
+    id: string,
+    claimId: string,
+  ): Promise<ContractRecord>;
+  /** `accessorKey`: the accessor's current registered keys, to check an approval against. */
+  decide(
+    userId: string,
+    id: string,
+    claimId: string,
+    decision: DecisionBody,
+    accessorKey: RegisteredKeyRecord | null,
+  ): Promise<ContractRecord>;
+  /** The accessor's download once released. */
+  release(userId: string, id: string): Promise<ReleasePackage>;
   events(userId: string, id: string): Promise<AuditEvent[]>;
   verify(userId: string, id: string): Promise<ChainVerification>;
 }

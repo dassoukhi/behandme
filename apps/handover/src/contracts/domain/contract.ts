@@ -29,6 +29,8 @@ export interface Contract {
   version: number;
   /** Number of the current sealing; 0 while never sealed. */
   sealedVersion: number;
+  /** Days the owner has to cancel a claim. */
+  contestDays: number;
   accessorId: string;
   validatorIds: string[];
   createdAt: string;
@@ -40,11 +42,14 @@ export interface DraftInput {
   description: string | null;
   accessorId: string;
   validatorIds: string[];
+  /** 7 when left out. */
+  contestDays?: number;
 }
 
 export interface ContractChanges {
   category?: Category;
   description?: string | null;
+  contestDays?: number;
 }
 
 /**
@@ -84,6 +89,13 @@ export function assertValidFields(fields: ContractChanges): void {
     throw new InvalidInputError(
       `The description is longer than ${MAX_DESCRIPTION} characters`,
     );
+  }
+  const days = fields.contestDays;
+  if (
+    days !== undefined &&
+    (!Number.isInteger(days) || days < 3 || days > 30)
+  ) {
+    throw new InvalidInputError("contest_days must be 3 to 30");
   }
 }
 

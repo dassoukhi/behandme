@@ -9,7 +9,12 @@ import {
   it,
   vi,
 } from "vitest";
-import { ConflictError, InvalidInputError, NotFoundError } from "@lib/kernel";
+import {
+  ConflictError,
+  InvalidInputError,
+  NotFoundError,
+  systemClock,
+} from "@lib/kernel";
 import { startTestDatabase, type TestDatabase } from "@lib/testing";
 import { ContractsService } from "./application/contracts.service.js";
 import { HandoverEvents } from "./application/handover-events.js";
@@ -46,7 +51,7 @@ beforeEach(async () => {
     set role svc_handover;
   `.execute(db);
   stores = new KyselyHandoverStores(db);
-  contracts = new ContractsService(stores, nodeSha256);
+  contracts = new ContractsService(stores, nodeSha256, systemClock);
   events = new HandoverEvents(nodeSha256);
   logger.error.mockReset();
 });

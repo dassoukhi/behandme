@@ -1,4 +1,5 @@
 export const MINUTE = 60_000;
+export const HOUR = 60 * MINUTE;
 export const DAY = 1440 * MINUTE;
 
 /** Start of the period that contains `now` (periods are aligned on the Unix epoch, UTC). */

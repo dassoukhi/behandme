@@ -687,6 +687,268 @@
         ]
       }
     },
+    "/api/v1/contracts/{id}/claims": {
+      "post": {
+        "operationId": "ContractsController_fileClaim",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractDetailDTO"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Contract not found"
+          },
+          "409": {
+            "description": "Not possible now: not active, a claim already open, or within the pause after the owner cancelled your last claim"
+          },
+          "503": {
+            "description": "The handover service is unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Ask for the release (accessor or validator): the owner is alerted and may cancel during the contest window",
+        "tags": [
+          "contracts"
+        ]
+      }
+    },
+    "/api/v1/contracts/{id}/claims/{claimId}/cancel": {
+      "post": {
+        "operationId": "ContractsController_cancelClaim",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "claimId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractDetailDTO"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Contract not found"
+          },
+          "409": {
+            "description": "This claim is no longer open"
+          },
+          "503": {
+            "description": "The handover service is unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "\"I'm here\": the owner cancels the open claim",
+        "tags": [
+          "contracts"
+        ]
+      }
+    },
+    "/api/v1/contracts/{id}/claims/{claimId}/withdraw": {
+      "post": {
+        "operationId": "ContractsController_withdrawClaim",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "claimId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractDetailDTO"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Contract not found"
+          },
+          "409": {
+            "description": "Not your claim, or no longer open"
+          },
+          "503": {
+            "description": "The handover service is unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The claimant takes their claim back",
+        "tags": [
+          "contracts"
+        ]
+      }
+    },
+    "/api/v1/contracts/{id}/claims/{claimId}/decision": {
+      "post": {
+        "operationId": "ContractsController_decide",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "claimId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecisionDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractDetailDTO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An approval without a well-formed re-wrapped share"
+          },
+          "404": {
+            "description": "Contract not found"
+          },
+          "409": {
+            "description": "Already decided, claim closed, or the accessor's keys changed or are in quarantine"
+          },
+          "503": {
+            "description": "The handover service is unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A validator approves (with their share re-wrapped to the accessor) or refuses the open claim, once",
+        "tags": [
+          "contracts"
+        ]
+      }
+    },
+    "/api/v1/contracts/{id}/release": {
+      "get": {
+        "operationId": "ContractsController_release",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReleasePackageDTO"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Contract not found"
+          },
+          "409": {
+            "description": "Not released"
+          },
+          "503": {
+            "description": "The handover service is unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The accessor's download once released: the encrypted secret and the shares re-wrapped to them",
+        "tags": [
+          "contracts"
+        ]
+      }
+    },
     "/api/v1/contracts/{id}/events": {
       "get": {
         "operationId": "ContractsController_events",
@@ -1465,12 +1727,114 @@
             "items": {
               "type": "string"
             }
+          },
+          "contest_days": {
+            "type": "number",
+            "minimum": 3,
+            "maximum": 30,
+            "description": "Days the owner has to cancel a claim before a release (3 to 30, 7 by default)",
+            "example": 7
           }
         },
         "required": [
           "category",
           "accessor_id",
           "validator_ids"
+        ]
+      },
+      "ClaimDTO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "9b0c2d4e-6f71-4a83-b5c6-d7e8f9a0b1c2"
+          },
+          "claimant_id": {
+            "type": "string",
+            "description": "Who asked for the release"
+          },
+          "status": {
+            "enum": [
+              "open",
+              "cancelled",
+              "withdrawn",
+              "rejected",
+              "expired",
+              "released"
+            ],
+            "type": "string"
+          },
+          "filed_at": {
+            "type": "string",
+            "example": "2026-10-16T09:00:00.000Z"
+          },
+          "contest_until": {
+            "type": "string",
+            "description": "The owner may cancel until then; the release needs this date and enough approvals",
+            "example": "2026-10-23T09:00:00.000Z"
+          },
+          "expires_at": {
+            "type": "string",
+            "description": "Without enough approvals, the claim ends then",
+            "example": "2026-12-15T09:00:00.000Z"
+          },
+          "approvals": {
+            "type": "number",
+            "example": 1
+          },
+          "rejections": {
+            "type": "number",
+            "example": 0
+          },
+          "threshold": {
+            "type": "number",
+            "description": "Approvals needed (k of n)",
+            "example": 2
+          },
+          "my_decision": {
+            "nullable": true,
+            "enum": [
+              "approve",
+              "reject"
+            ],
+            "type": "string",
+            "description": "The caller's decision, when they are a validator who decided"
+          }
+        },
+        "required": [
+          "id",
+          "claimant_id",
+          "status",
+          "filed_at",
+          "contest_until",
+          "expires_at",
+          "approvals",
+          "rejections",
+          "threshold",
+          "my_decision"
+        ]
+      },
+      "HealthDTO": {
+        "type": "object",
+        "properties": {
+          "usable": {
+            "type": "number",
+            "example": 3
+          },
+          "total": {
+            "type": "number",
+            "example": 3
+          },
+          "threshold": {
+            "type": "number",
+            "description": "Approvals needed (k of n)",
+            "example": 2
+          }
+        },
+        "required": [
+          "usable",
+          "total",
+          "threshold"
         ]
       },
       "UserProfileDto": {
@@ -1613,10 +1977,45 @@
                 "update",
                 "delete",
                 "seal",
-                "revoke"
+                "revoke",
+                "claim",
+                "cancel_claim",
+                "withdraw_claim",
+                "decide",
+                "open"
               ]
             },
             "description": "What the caller may do now; the app shows only these actions (rules live in the backend)"
+          },
+          "contest_days": {
+            "type": "number",
+            "description": "Days the owner has to cancel a claim (3 to 30)",
+            "example": 7
+          },
+          "open_claim": {
+            "nullable": true,
+            "description": "The claim in progress; null when there is none",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ClaimDTO"
+              }
+            ]
+          },
+          "claim_cooldown_until": {
+            "type": "string",
+            "nullable": true,
+            "description": "After the owner cancelled the caller's last claim, they may claim again only from then; null otherwise"
+          },
+          "health": {
+            "nullable": true,
+            "description": "Validators whose keys are still those the contract was sealed for; null while never sealed",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/HealthDTO"
+              }
+            ]
           },
           "owner": {
             "nullable": true,
@@ -1660,6 +2059,10 @@
           "updated_at",
           "my_role",
           "allowed_actions",
+          "contest_days",
+          "open_claim",
+          "claim_cooldown_until",
+          "health",
           "owner",
           "accessor",
           "validators_list"
@@ -1751,10 +2154,45 @@
                 "update",
                 "delete",
                 "seal",
-                "revoke"
+                "revoke",
+                "claim",
+                "cancel_claim",
+                "withdraw_claim",
+                "decide",
+                "open"
               ]
             },
             "description": "What the caller may do now; the app shows only these actions (rules live in the backend)"
+          },
+          "contest_days": {
+            "type": "number",
+            "description": "Days the owner has to cancel a claim (3 to 30)",
+            "example": 7
+          },
+          "open_claim": {
+            "nullable": true,
+            "description": "The claim in progress; null when there is none",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ClaimDTO"
+              }
+            ]
+          },
+          "claim_cooldown_until": {
+            "type": "string",
+            "nullable": true,
+            "description": "After the owner cancelled the caller's last claim, they may claim again only from then; null otherwise"
+          },
+          "health": {
+            "nullable": true,
+            "description": "Validators whose keys are still those the contract was sealed for; null while never sealed",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/HealthDTO"
+              }
+            ]
           },
           "owner": {
             "nullable": true,
@@ -1791,6 +2229,10 @@
           "updated_at",
           "my_role",
           "allowed_actions",
+          "contest_days",
+          "open_claim",
+          "claim_cooldown_until",
+          "health",
           "owner",
           "accessor"
         ]
@@ -1810,6 +2252,13 @@
             "type": "string",
             "nullable": true,
             "maxLength": 280
+          },
+          "contest_days": {
+            "type": "number",
+            "minimum": 3,
+            "maximum": 30,
+            "description": "Days the owner has to cancel a claim before a release (3 to 30, 7 by default)",
+            "example": 7
           }
         }
       },
@@ -1933,6 +2382,54 @@
           "wrap"
         ]
       },
+      "PublicKeysDto": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "example": "user_2abcdefghijklmnop"
+          },
+          "key_version": {
+            "type": "number",
+            "example": 1
+          },
+          "kem_public_key": {
+            "type": "string",
+            "description": "X-Wing public key, base64"
+          },
+          "signing_public_key": {
+            "type": "string",
+            "description": "Ed25519 public key, base64"
+          },
+          "fingerprint": {
+            "type": "string",
+            "description": "hex SHA-256 of both keys; its first 30 digits are the security code"
+          },
+          "signature": {
+            "type": "string",
+            "description": "The user's signature of these keys, base64"
+          },
+          "usable_from": {
+            "type": "string",
+            "description": "Others may encrypt to these keys from this time (later than created_at after a reset)",
+            "example": "2026-10-15T09:00:00.000Z"
+          },
+          "created_at": {
+            "type": "string",
+            "example": "2026-10-15T09:00:00.000Z"
+          }
+        },
+        "required": [
+          "user_id",
+          "key_version",
+          "kem_public_key",
+          "signing_public_key",
+          "fingerprint",
+          "signature",
+          "usable_from",
+          "created_at"
+        ]
+      },
       "SealedMaterialDTO": {
         "type": "object",
         "properties": {
@@ -1964,12 +2461,33 @@
                 "$ref": "#/components/schemas/SealedShareDTO"
               }
             ]
+          },
+          "owner_keys": {
+            "nullable": true,
+            "description": "The owner's keys that signed the manifest (current or retired): check the signature with them",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PublicKeysDto"
+              }
+            ]
+          },
+          "accessor_keys": {
+            "nullable": true,
+            "description": "Validator only: the accessor's current keys, to re-wrap the share for them when approving",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PublicKeysDto"
+              }
+            ]
           }
         },
         "required": [
           "sealed_version",
           "manifest",
-          "manifest_signature"
+          "manifest_signature",
+          "owner_keys"
         ]
       },
       "RevokeContractDTO": {
@@ -1984,6 +2502,105 @@
         },
         "required": [
           "expected_version"
+        ]
+      },
+      "DecisionDTO": {
+        "type": "object",
+        "properties": {
+          "approve": {
+            "type": "boolean",
+            "description": "true to approve the release, false to refuse it"
+          },
+          "release_wrap": {
+            "type": "string",
+            "maxLength": 2000,
+            "format": "base64",
+            "description": "Approve only: the validator's share, wrapped to the accessor's current key for this claim (HPKE X-Wing), base64"
+          },
+          "accessor_key_version": {
+            "type": "number",
+            "minimum": 1,
+            "description": "Approve only: the accessor key version the share was wrapped to",
+            "example": 1
+          }
+        },
+        "required": [
+          "approve"
+        ]
+      },
+      "ReleasedShareDTO": {
+        "type": "object",
+        "properties": {
+          "index": {
+            "type": "number",
+            "example": 1
+          },
+          "key_version": {
+            "type": "number",
+            "description": "The accessor key version it is wrapped to",
+            "example": 1
+          },
+          "wrap": {
+            "type": "string",
+            "description": "The share wrapped to the accessor, base64"
+          }
+        },
+        "required": [
+          "index",
+          "key_version",
+          "wrap"
+        ]
+      },
+      "ReleasePackageDTO": {
+        "type": "object",
+        "properties": {
+          "sealed_version": {
+            "type": "number",
+            "example": 1
+          },
+          "manifest": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "The manifest the owner signed"
+          },
+          "manifest_signature": {
+            "type": "string",
+            "description": "The owner's signature of the manifest, base64"
+          },
+          "envelope": {
+            "type": "string",
+            "description": "The encrypted secret, base64"
+          },
+          "claim_id": {
+            "type": "string",
+            "description": "The claim that released the contract"
+          },
+          "shares": {
+            "description": "At least k shares, wrapped to the accessor",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReleasedShareDTO"
+            }
+          },
+          "owner_keys": {
+            "nullable": true,
+            "description": "The owner's keys that signed the manifest",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PublicKeysDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "sealed_version",
+          "manifest",
+          "manifest_signature",
+          "envelope",
+          "claim_id",
+          "shares",
+          "owner_keys"
         ]
       },
       "ContractEventDTO": {
@@ -2126,54 +2743,6 @@
           "id",
           "owner_id",
           "trusted_id",
-          "created_at"
-        ]
-      },
-      "PublicKeysDto": {
-        "type": "object",
-        "properties": {
-          "user_id": {
-            "type": "string",
-            "example": "user_2abcdefghijklmnop"
-          },
-          "key_version": {
-            "type": "number",
-            "example": 1
-          },
-          "kem_public_key": {
-            "type": "string",
-            "description": "X-Wing public key, base64"
-          },
-          "signing_public_key": {
-            "type": "string",
-            "description": "Ed25519 public key, base64"
-          },
-          "fingerprint": {
-            "type": "string",
-            "description": "hex SHA-256 of both keys; its first 30 digits are the security code"
-          },
-          "signature": {
-            "type": "string",
-            "description": "The user's signature of these keys, base64"
-          },
-          "usable_from": {
-            "type": "string",
-            "description": "Others may encrypt to these keys from this time (later than created_at after a reset)",
-            "example": "2026-10-15T09:00:00.000Z"
-          },
-          "created_at": {
-            "type": "string",
-            "example": "2026-10-15T09:00:00.000Z"
-          }
-        },
-        "required": [
-          "user_id",
-          "key_version",
-          "kem_public_key",
-          "signing_public_key",
-          "fingerprint",
-          "signature",
-          "usable_from",
           "created_at"
         ]
       },

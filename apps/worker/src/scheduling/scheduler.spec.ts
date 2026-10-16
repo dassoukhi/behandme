@@ -51,12 +51,14 @@ describe("scheduler", () => {
   it("fires every job once on the first tick, caused by the tick", async () => {
     expect(await tick()).toEqual([
       "push-receipts",
+      "claims-due",
       "audit-verify",
       "retention",
     ]);
     const events = await published();
     expect(events.map((e) => e.type)).toEqual([
       "maintenance.push_receipts_due",
+      "maintenance.claims_due",
       "maintenance.audit_verify_due",
       "maintenance.retention_due",
     ]);
@@ -71,8 +73,10 @@ describe("scheduler", () => {
     await tick();
     clock.advance(60_000);
     expect(await tick()).toEqual([]);
-    clock.advance(8 * 60_000); // 10:16: next 15-minute period, same day
+    clock.advance(8 * 60_000); // 10:16: next 15-minute period, same hour
     expect(await tick()).toEqual(["push-receipts"]);
+    clock.advance(45 * 60_000); // 11:01: next hour
+    expect(await tick()).toEqual(["push-receipts", "claims-due"]);
     expect(await tick()).toEqual([]);
   });
 
@@ -81,6 +85,7 @@ describe("scheduler", () => {
     clock.advance(3 * 86_400_000);
     expect(await tick()).toEqual([
       "push-receipts",
+      "claims-due",
       "audit-verify",
       "retention",
     ]);
@@ -98,6 +103,7 @@ describe("scheduler", () => {
     expect(await published()).toEqual([]);
     expect(await tick()).toEqual([
       "push-receipts",
+      "claims-due",
       "audit-verify",
       "retention",
     ]);
@@ -109,6 +115,6 @@ describe("scheduler", () => {
     const purged = await t.asRole("svc_worker", (d) =>
       scheduler.purge(stores.bind(d, cause)),
     );
-    expect(purged).toBe(3);
+    expect(purged).toBe(4);
   });
 });

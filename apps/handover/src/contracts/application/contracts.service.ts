@@ -4,7 +4,7 @@ import type {
   ChainVerification,
   ContractRecord,
 } from "@lib/contracts";
-import { ConflictError, NotFoundError } from "@lib/kernel";
+import { type Clock, ConflictError, NotFoundError } from "@lib/kernel";
 import {
   contractCreated,
   contractDeleted,
@@ -21,8 +21,10 @@ import {
   type Role,
   roleOf,
 } from "../domain/contract.js";
-import { allowedActions, assertAllowed } from "../domain/lifecycle.js";
+import { assertAllowed } from "../domain/lifecycle.js";
+import { recordsFor } from "./records.js";
 import {
+  CLOCK,
   HANDOVER_STORES,
   type HandoverStore,
   type HandoverStores,
@@ -39,18 +41,17 @@ export class ContractsService {
   constructor(
     @Inject(HANDOVER_STORES) private readonly stores: HandoverStores,
     @Inject(SHA256) private readonly sha256: Sha256Hex,
+    @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
   async list(me: string): Promise<ContractRecord[]> {
     const contracts = await this.stores.root.contracts.listFor(me);
-    return contracts.map((contract) =>
-      toRecord(contract, roleOf(contract, me)!),
-    );
+    return recordsFor(this.stores.root, me, contracts, this.clock.now());
   }
 
   async get(me: string, id: string): Promise<ContractRecord> {
-    const { contract, role } = await this.visible(this.stores.root, me, id);
-    return toRecord(contract, role);
+    const { contract } = await this.visible(this.stores.root, me, id);
+    return this.record(this.stores.root, me, contract);
   }
 
   async create(me: string, input: DraftInput): Promise<ContractRecord> {
@@ -58,7 +59,7 @@ export class ContractsService {
     return this.stores.transaction(async (store) => {
       const contract = await store.contracts.insert(me, input);
       await store.audit.append(contract.id, me, contractCreated(contract));
-      return toRecord(contract, "owner");
+      return this.record(store, me, contract);
     });
   }
 
@@ -72,7 +73,7 @@ export class ContractsService {
       const { contract, role } = await this.visible(store, me, id);
       assertAllowed("update", contract, role);
       const fields = changedFields(contract, changes);
-      if (fields.length === 0) return toRecord(contract, role);
+      if (fields.length === 0) return this.record(store, me, contract);
       const updated = await store.contracts.update(
         id,
         Object.fromEntries(fields.map((f) => [f, changes[f]])),
@@ -82,7 +83,7 @@ export class ContractsService {
         throw new ConflictError("The contract changed meanwhile: try again");
       }
       await store.audit.append(id, me, contractUpdated(fields));
-      return toRecord(updated, role);
+      return this.record(store, me, updated);
     });
   }
 
@@ -124,6 +125,14 @@ export class ContractsService {
     };
   }
 
+  private async record(
+    store: HandoverStore,
+    me: string,
+    contract: Contract,
+  ): Promise<ContractRecord> {
+    return (await recordsFor(store, me, [contract], this.clock.now()))[0];
+  }
+
   private async visible(
     store: HandoverStore,
     me: string,
@@ -134,22 +143,4 @@ export class ContractsService {
     if (!contract || !role) throw new NotFoundError("Contract not found");
     return { contract, role };
   }
-}
-
-export function toRecord(contract: Contract, role: Role): ContractRecord {
-  return {
-    id: contract.id,
-    owner_id: contract.ownerId,
-    category: contract.category,
-    description: contract.description,
-    status: contract.status,
-    version: contract.version,
-    sealed_version: contract.sealedVersion,
-    accessor_id: contract.accessorId,
-    validator_ids: contract.validatorIds,
-    created_at: contract.createdAt,
-    updated_at: contract.updatedAt,
-    my_role: role,
-    allowed_actions: allowedActions(contract, role),
-  };
 }

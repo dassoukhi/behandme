@@ -1,6 +1,12 @@
 export { defineEvent, on, type EventDefinition } from "./event-definition.js";
 export {
   AuditVerifyDue,
+  ClaimClosed,
+  ClaimDeadlineDue,
+  ClaimFiled,
+  ClaimQuorumReached,
+  ClaimsDue,
+  ContractReleased,
   KeysRotated,
   PushReceiptsDue,
   RetentionDue,
@@ -18,19 +24,25 @@ export {
   type UnreadCount,
 } from "./notifier-api.js";
 export {
+  CLAIM_STATUSES,
   CONTRACT_CATEGORIES,
   CONTRACT_STATUSES,
   HANDOVER_AUDIENCE,
   type AuditEvent,
   type ChainVerification,
+  type ClaimRecord,
+  type ClaimStatus,
   type ContractAction,
   type ContractCategory,
   type ContractChanges,
   type ContractRecord,
   type ContractRole,
   type ContractStatus,
+  type DecisionBody,
   type NewContract,
   type RegisteredKeyRecord,
+  type ReleasePackage,
+  type SealedKey,
   type SealedMaterial,
   type SealRequestBody,
 } from "./handover-api.js";

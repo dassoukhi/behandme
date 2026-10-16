@@ -7,14 +7,22 @@ import {
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import type { Kysely } from "kysely";
-import { AuditVerifyDue, on, RetentionDue, UserDeleted } from "@lib/contracts";
+import {
+  AuditVerifyDue,
+  ClaimDeadlineDue,
+  ClaimsDue,
+  on,
+  RetentionDue,
+  UserDeleted,
+} from "@lib/contracts";
 import { systemClock } from "@lib/kernel";
 import { purgeMessagingTables } from "@lib/messaging";
 import { DATABASE, MessagingRuntime } from "@lib/platform";
+import { ClaimsService } from "../application/claims.service.js";
 import { HandoverEvents } from "../application/handover-events.js";
 import { HANDOVER_STORES, type HandoverStores } from "../application/ports.js";
 
-/** Consumes handover's queue. Handover publishes no event yet (phase 4: contract.sealed…). */
+/** Relays handover.outbox (claims, release) and consumes handover's queue. */
 @Injectable()
 export class HandoverMessaging
   implements OnApplicationBootstrap, OnModuleDestroy
@@ -26,6 +34,7 @@ export class HandoverMessaging
     @Inject(DATABASE) db: Kysely<any>,
     @Inject(HANDOVER_STORES) stores: HandoverStores,
     events: HandoverEvents,
+    claims: ClaimsService,
     private readonly config: ConfigService,
   ) {
     const logger = this.logger;
@@ -34,8 +43,15 @@ export class HandoverMessaging
       schema: "handover",
       queue: "handover",
       logger,
-      relay: false,
       handlers: Object.fromEntries([
+        on(ClaimDeadlineDue, async ({ claimId }, _event, tx) => {
+          const outcome = await claims.settle(stores.bind(tx), claimId);
+          logger.log(`Claim ${claimId} at its deadline: ${outcome}`);
+        }),
+        on(ClaimsDue, async (_payload, _event, tx) => {
+          const { released, expired } = await claims.settleDue(stores.bind(tx));
+          logger.log(`Due claims: ${released} released, ${expired} expired`);
+        }),
         on(UserDeleted, async ({ userId }, _event, tx) => {
           const deleted = await events.userDeleted(stores.bind(tx), userId);
           if (deleted)

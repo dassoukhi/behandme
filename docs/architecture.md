@@ -54,9 +54,10 @@ shared through `libs/contracts` (e.g. `notifier-api.ts`); the gateway keeps its 
 - **Envelope.** `{ id, type, version, occurredAt, correlationId, causationId, payload }`. Event types and their
   payload schemas (zod) are versioned in `libs/contracts` (`events.ts`), checked when publishing
   (`TrustAdded.create`) and when consuming (`on(TrustAdded, handler)`); a payload that does not match is
-  dead-lettered at once. Today: `trust.added`, `keys.rotated`, `user.deleted`, `scheduler.tick`,
-  `maintenance.push_receipts_due`, `maintenance.retention_due`. Later: `contract.sealed`, `claim.filed`,
-  `claim.decision_recorded`, `claim.quorum_reached`, `contract.released`, `contract.revoked`.
+  dead-lettered at once. Today: `trust.added`, `keys.rotated`, `user.deleted`, `claim.filed`,
+  `claim.quorum_reached`, `claim.closed`, `contract.released`, `claim.deadline_due` (handover to itself,
+  delayed), `scheduler.tick`, `maintenance.push_receipts_due`, `maintenance.claims_due`,
+  `maintenance.retention_due`. Later: `contract.sealed`, `contract.revoked`.
 - **Correlation.** The gateway gives each request a correlation id (`x-correlation-id`, kept from the caller
   when valid); it travels in internal calls and in every event's envelope, consumers run with it, and every
   log line carries it (`ServiceLogger`, JSON in production).
@@ -118,11 +119,27 @@ Claim: `open | cancelled | withdrawn | rejected | expired | released`.
 k = ⌊n/2⌋ + 1 for n validators. The gateway returns `my_role` and `allowed_actions` (then `open_claim`,
 `threshold` and `health`) so the app implements no rule itself. Today: create (draft), update (owner; draft
 or active), delete (owner; draft only, its log stays), seal (owner; draft, or active to re-seal), revoke
-(owner; active or claimed), in `apps/handover/src/contracts/domain/lifecycle.ts`. Sealing stores the
+(owner; active or claimed, which also closes the claim), claim (accessor or validator; active, not within 72 h
+of the owner cancelling their last claim), cancel_claim (owner), withdraw_claim (the claimant), decide
+(each validator once), open (accessor; released), in `apps/handover/src/contracts/domain/lifecycle.ts` and
+`domain/claims.ts`. `health` (gateway) counts the validators whose current keys are still those of the
+sealing: a share wrapped to reset keys is lost until the owner re-seals. Sealing stores the
 envelope, the owner's wrapped key, one wrapped share per validator and the signed manifest
 (`handover.envelopes`, `handover.key_wraps`); handover checks them against the registered keys the gateway
 passes along (`domain/sealing.ts`) and keeps only the current sealing. Revocation and cancellation are always decided by
 handover, the single authority on the life cycle, which removes "revoke vs release" races.
+
+**Claims and release** (`apps/handover/src/contracts/application/claims.service.ts`). A claim moves the
+contract to `claimed` and publishes `claim.filed` (the owner's alert is critical) and `claim.deadline_due`,
+delayed to the end of the contest window (`contest_days`, 7 by default; `CLAIM_CONTEST_SECONDS_OVERRIDE`
+shortens it outside production). An approval stores the validator's share re-wrapped to the accessor's current
+keys, which must be out of quarantine (the server checks its size and the key version, not its content).
+Rejections beyond n − k close the claim; k approvals publish `claim.quorum_reached`, and the release happens
+once both quorum and deadline are there (on the delayed message, on the approval that completes the quorum
+after the deadline, or at the worker's hourly `maintenance.claims_due`). An open claim without quorum expires
+after 60 days. Closing without release erases the re-wrapped shares; after a release only the accessor gets
+the package (`GET /contracts/:id/release`: envelope, signed manifest, k re-wrapped shares). Times come from the
+service clock.
 
 **Key reset.** A user who lost their recovery phrase (or fears their keys leaked) registers new keys with the
 next `key_version` (`POST /users/me/keys/reset`, gateway `keys/`). A stolen session must not be enough: the
@@ -168,4 +185,4 @@ The full protocol goes to `docs/crypto-protocol.md` (phase 4) and is audited ext
 0A backend foundations (monorepo, libs, schemas, messaging) → 0B app hygiene → 1 app design system →
 2 notifier, worker and deployment → 3 handover and audit log → 4 keys and sealing → 5 claims and release →
 6 polish and external crypto audit. Done: 0A, 0B, 1, 2 (deployment prepared: `Dockerfile`, `railway/`,
-`docs/deploy.md`; email deferred to phase 5, it needs a verified domain), 3.
+`docs/deploy.md`; email still deferred: it needs a verified domain), 3, 4, 5 (without email).

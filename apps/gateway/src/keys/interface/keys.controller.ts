@@ -20,6 +20,7 @@ import {
   CurrentVerificationAge,
 } from "../../auth/current-user.decorator.js";
 import { KeysService } from "../application/keys.service.js";
+import { toPublicKeys } from "../application/public-keys.js";
 import {
   type KeySubmission,
   type RegisteredKeys,
@@ -38,19 +39,7 @@ const toSubmission = (body: RegisterKeysDto): KeySubmission => ({
   signature: fromBase64(body.signature),
 });
 
-function toDto(keys: RegisteredKeys): PublicKeysDto {
-  const b64 = (bytes: Uint8Array) => Buffer.from(bytes).toString("base64");
-  return {
-    user_id: keys.userId,
-    key_version: keys.keyVersion,
-    kem_public_key: b64(keys.kemPublicKey),
-    signing_public_key: b64(keys.signingPublicKey),
-    fingerprint: keys.fingerprint,
-    signature: b64(keys.signature),
-    usable_from: keys.usableFrom.toISOString(),
-    created_at: keys.createdAt.toISOString(),
-  };
-}
+const toDto = (keys: RegisteredKeys): PublicKeysDto => toPublicKeys(keys);
 
 // Public end-to-end keys. Private keys never reach the server (docs/crypto-protocol.md in the app).
 @ApiTags("keys")

@@ -6,6 +6,7 @@ import {
   ArrayUnique,
   IsArray,
   IsBase64,
+  IsBoolean,
   IsIn,
   IsInt,
   IsNotEmpty,
@@ -62,9 +63,22 @@ export class CreateContractDTO {
   @IsString({ each: true })
   @IsNotEmpty({ each: true })
   validator_ids: string[];
+
+  @ApiPropertyOptional({
+    description:
+      "Days the owner has to cancel a claim before a release (3 to 30, 7 by default)",
+    minimum: 3,
+    maximum: 30,
+    example: 7,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(3)
+  @Max(30)
+  contest_days?: number;
 }
 
-// Only descriptive fields; participants change by re-sealing (phase 4).
+// Descriptive fields and the contest window; participants change by re-sealing.
 export class UpdateContractDTO {
   @ApiPropertyOptional({ enum: CONTRACT_CATEGORIES })
   @IsOptional()
@@ -76,6 +90,19 @@ export class UpdateContractDTO {
   @IsString()
   @MaxLength(280)
   description?: string | null;
+
+  @ApiPropertyOptional({
+    description:
+      "Days the owner has to cancel a claim before a release (3 to 30, 7 by default)",
+    minimum: 3,
+    maximum: 30,
+    example: 7,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(3)
+  @Max(30)
+  contest_days?: number;
 }
 
 class ShareWrapDTO {
@@ -173,4 +200,35 @@ export class RevokeContractDTO {
   @IsInt()
   @Min(1)
   expected_version: number;
+}
+
+/**
+ * A validator's decision on the open claim. Approving is re-wrapping their share to the accessor on
+ * their phone (the app's docs/crypto-protocol.md, "Reading and release").
+ */
+export class DecisionDTO {
+  @ApiProperty({
+    description: "true to approve the release, false to refuse it",
+  })
+  @IsBoolean()
+  approve: boolean;
+
+  @ApiPropertyOptional({
+    description:
+      "Approve only: the validator's share, wrapped to the accessor's current key for this claim (HPKE X-Wing), base64",
+  })
+  @IsOptional()
+  @IsBase64()
+  @MaxLength(2000)
+  release_wrap?: string;
+
+  @ApiPropertyOptional({
+    description:
+      "Approve only: the accessor key version the share was wrapped to",
+    example: 1,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  accessor_key_version?: number;
 }
