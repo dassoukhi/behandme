@@ -43,6 +43,11 @@ export interface ContractRepository {
 
 export interface ClaimRepository {
   find(claimId: string): Promise<Claim | null>;
+  /**
+   * The claim if it is still open, locked until the transaction ends: two decisions (or a decision and
+   * the deadline) on one claim run one after the other, each seeing the other's result.
+   */
+  lockOpen(claimId: string): Promise<Claim | null>;
   /** The open claim of each of these contracts that has one. */
   openFor(contractIds: string[]): Promise<Claim[]>;
   /** The claim that released the contract. */

@@ -216,8 +216,8 @@ export class ClaimsService {
 
   /** The end of a claim's contest window (delayed message): release, expire, or keep waiting. */
   async settle(store: HandoverStore, claimId: string): Promise<string> {
-    const claim = await store.claims.find(claimId);
-    if (!claim || claim.status !== "open") return "closed";
+    const claim = await store.claims.lockOpen(claimId);
+    if (!claim) return "closed";
     const contract = await store.contracts.find(claim.contractId);
     if (!contract) return "closed";
     const decisions =
@@ -390,8 +390,9 @@ export class ClaimsService {
     decisions: Decision[];
   }> {
     const { contract, role } = await visible(store, me, id);
-    const [claim] = await store.claims.openFor([id]);
-    if (!claim || claim.id !== claimId) {
+    // Locked: concurrent decisions on this claim wait for each other.
+    const claim = await store.claims.lockOpen(claimId);
+    if (!claim || claim.contractId !== id) {
       throw new ConflictError("This claim is no longer open");
     }
     const decisions =

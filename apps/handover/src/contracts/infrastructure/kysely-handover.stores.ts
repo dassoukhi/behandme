@@ -341,6 +341,17 @@ class KyselyClaims implements ClaimRepository {
     return row ? toClaim(row) : null;
   }
 
+  async lockOpen(claimId: string): Promise<Claim | null> {
+    const row = await this.db
+      .selectFrom("claims")
+      .selectAll()
+      .where("id", "=", claimId)
+      .where("status", "=", "open")
+      .forUpdate()
+      .executeTakeFirst();
+    return row ? toClaim(row) : null;
+  }
+
   async openFor(contractIds: string[]): Promise<Claim[]> {
     if (contractIds.length === 0) return [];
     const rows = await this.db
