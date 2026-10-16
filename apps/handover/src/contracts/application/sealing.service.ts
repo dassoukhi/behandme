@@ -1,15 +1,7 @@
 import { Inject, Injectable } from "@nestjs/common";
-import {
-  ClaimClosed,
-  type ContractRecord,
-  type SealedMaterial,
-} from "@lib/contracts";
+import type { ContractRecord, SealedMaterial } from "@lib/contracts";
 import { type Clock, ConflictError, NotFoundError } from "@lib/kernel";
-import {
-  claimClosed,
-  contractRevoked,
-  contractSealed,
-} from "../domain/audit-events.js";
+import { contractSealed } from "../domain/audit-events.js";
 import { type Contract, type Role, roleOf } from "../domain/contract.js";
 import { assertAllowed } from "../domain/lifecycle.js";
 import {
@@ -17,6 +9,7 @@ import {
   type RegisteredKey,
   type SealRequest,
 } from "../domain/sealing.js";
+import { revokeContract } from "./endings.js";
 import { recordsFor } from "./records.js";
 import {
   CLOCK,
@@ -139,36 +132,16 @@ export class SealingService {
     return this.stores.transaction(async (store) => {
       const { contract, role } = await visible(store, me, id);
       assertAllowed("revoke", contract, role);
-      const updated = await store.contracts.markRevoked(id, expectedVersion);
-      if (!updated)
+      if (contract.version !== expectedVersion) {
         throw new ConflictError(
           "The contract changed meanwhile: reload it and try again",
         );
-      await store.sealings.delete(id);
-      // A claim in progress ends with the contract: its re-wrapped shares go too.
-      const [claim] = await store.claims.openFor([id]);
-      if (claim) {
-        await store.claims.close(claim.id, "cancelled", me, this.clock.now());
-        await store.claims.eraseReleaseWraps(claim.id);
-        await store.audit.append(
-          id,
-          me,
-          claimClosed({ claimId: claim.id, reason: "revoked" }),
-        );
-        await store.events.publish(
-          ClaimClosed.create({
-            contractId: id,
-            claimId: claim.id,
-            category: contract.category,
-            reason: "revoked",
-            closedBy: me,
-            ownerId: contract.ownerId,
-            claimantId: claim.claimantId,
-            validatorIds: contract.validatorIds,
-          }),
-        );
       }
-      await store.audit.append(id, me, contractRevoked());
+      const updated = await revokeContract(store, contract, {
+        actor: me,
+        reason: "owner",
+        at: this.clock.now(),
+      });
       return (await recordsFor(store, me, [updated], this.clock.now()))[0];
     });
   }

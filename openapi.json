@@ -1156,13 +1156,10 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "Profile deleted successfully"
+            "description": "Account deleted"
           },
-          "404": {
-            "description": "Profile not found"
-          },
-          "409": {
-            "description": "The caller is the accessor or a validator of someone else's contract"
+          "403": {
+            "description": "Reverification needed: the body is Clerk's reverification hint (clerk_error), handled by useReverification"
           }
         },
         "security": [
@@ -1170,7 +1167,7 @@
             "bearer": []
           }
         ],
-        "summary": "Delete the caller's profile",
+        "summary": "Delete the caller's account: needs a Clerk reverification less than 10 minutes old. Their contracts are revoked, their claims closed, the owners of the contracts they take part in are told, then the Clerk account is deleted.",
         "tags": [
           "users"
         ]

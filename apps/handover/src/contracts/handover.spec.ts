@@ -52,7 +52,7 @@ beforeEach(async () => {
   `.execute(db);
   stores = new KyselyHandoverStores(db);
   contracts = new ContractsService(stores, nodeSha256, systemClock);
-  events = new HandoverEvents(nodeSha256);
+  events = new HandoverEvents(nodeSha256, systemClock);
   logger.error.mockReset();
 });
 afterEach(() => sql`reset role`.execute(db));
@@ -225,7 +225,7 @@ describe("events from other services", () => {
     const deleted = await stores.transaction((s) =>
       events.userDeleted(s, OWNER),
     );
-    expect(deleted).toBe(1);
+    expect(deleted).toMatchObject({ deleted: 1, revoked: 0 });
     await expect(contracts.get(OWNER, mine.id)).rejects.toThrow(NotFoundError);
     expect((await stores.root.audit.list(mine.id)).at(-1)).toMatchObject({
       type: "contract.deleted",

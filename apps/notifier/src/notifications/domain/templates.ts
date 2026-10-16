@@ -115,6 +115,8 @@ const CLOSED: Record<string, string> = {
   rejected: "Les validateurs ont refusé la demande de transmission",
   expired: "La demande de transmission a expiré",
   revoked: "Le propriétaire a révoqué le contrat",
+  participant_left:
+    "Un participant a supprimé son compte : la demande de transmission est close",
 };
 
 export function claimClosed(params: {
@@ -178,6 +180,46 @@ export function claimReminderForValidator(params: {
     type: "claim_reminder_validator",
     title: "Votre avis est attendu",
     body: `La transmission de ${contractName(params.category)} attend toujours votre décision.`,
+    data: { url: `/contract/${params.contractId}` },
+    critical: false,
+  };
+}
+
+/** Nobody can open the contract any more: its accessor and validators are told why. */
+export function contractRevoked(params: {
+  userId: string;
+  contractId: string;
+  category: string;
+  reason: string;
+}): NotificationDraft {
+  return {
+    userId: params.userId,
+    type: "contract_revoked",
+    title: "Contrat révoqué",
+    body:
+      params.reason === "account_deleted"
+        ? `Le propriétaire a supprimé son compte : le contrat ${contractName(params.category)} est révoqué.`
+        : `Le propriétaire a révoqué le contrat ${contractName(params.category)}.`,
+    data: { url: `/contract/${params.contractId}` },
+    critical: false,
+  };
+}
+
+/** A participant deleted their account: the owner should choose someone else and re-seal. */
+export function participantLeft(params: {
+  ownerId: string;
+  contractId: string;
+  category: string;
+  role: string;
+}): NotificationDraft {
+  return {
+    userId: params.ownerId,
+    type: "participant_left",
+    title: params.role === "accessor" ? "Accesseur parti" : "Validateur parti",
+    body:
+      params.role === "accessor"
+        ? `L'accesseur de votre contrat ${contractName(params.category)} a supprimé son compte : choisissez-en un autre et scellez à nouveau.`
+        : `Un validateur de votre contrat ${contractName(params.category)} a supprimé son compte : sa part est perdue. Scellez à nouveau pour en choisir un autre.`,
     data: { url: `/contract/${params.contractId}` },
     critical: false,
   };

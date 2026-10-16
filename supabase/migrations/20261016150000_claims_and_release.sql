@@ -59,6 +59,8 @@ insert into messaging.subscriptions (event_type, queue) values
   ('claim.closed', 'notifier'),
   ('claim.reminder', 'notifier'),
   ('contract.released', 'notifier'),
+  ('contract.revoked', 'notifier'),
+  ('participant.left', 'notifier'),
   ('claim.deadline_due', 'handover'),
   ('claim.reminder_due', 'handover'),
   ('maintenance.claims_due', 'handover')

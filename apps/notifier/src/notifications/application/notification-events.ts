@@ -9,7 +9,9 @@ import {
   claimReminderForValidator,
   contactKeysReset,
   contractReleasedForAccessor,
+  contractRevoked,
   keysReset,
+  participantLeft,
   trustAdded,
 } from "../domain/templates.js";
 import { NotifyService } from "./notify.service.js";
@@ -131,6 +133,37 @@ export class NotificationEvents {
     event: { contractId: string; category: string; accessorId: string },
   ): Promise<void> {
     await this.notifier.notify(store, [contractReleasedForAccessor(event)]);
+  }
+
+  /** The accessor and validators: nobody can open the contract any more. */
+  async contractRevoked(
+    store: NotifierStore,
+    event: {
+      contractId: string;
+      category: string;
+      reason: string;
+      accessorId: string;
+      validatorIds: string[];
+    },
+  ): Promise<void> {
+    await this.notifier.notify(
+      store,
+      [event.accessorId, ...event.validatorIds].map((userId) =>
+        contractRevoked({ ...event, userId }),
+      ),
+    );
+  }
+
+  async participantLeft(
+    store: NotifierStore,
+    event: {
+      contractId: string;
+      category: string;
+      ownerId: string;
+      role: string;
+    },
+  ): Promise<void> {
+    await this.notifier.notify(store, [participantLeft(event)]);
   }
 
   /** The account is gone: forget its notifications, devices and settings. */

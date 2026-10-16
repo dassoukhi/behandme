@@ -14,7 +14,9 @@ import {
   ClaimFiled,
   ClaimReminder,
   ContractReleased,
+  ContractRevoked,
   KeysRotated,
+  ParticipantLeft,
   TrustAdded,
   UserDeleted,
 } from "@lib/contracts";
@@ -96,6 +98,12 @@ async function receive(...envelopes: ReturnType<typeof createEnvelope>[]) {
       ),
       on(ContractReleased, (payload, _e, tx) =>
         events.contractReleased(stores.bind(tx), payload),
+      ),
+      on(ContractRevoked, (payload, _e, tx) =>
+        events.contractRevoked(stores.bind(tx), payload),
+      ),
+      on(ParticipantLeft, (payload, _e, tx) =>
+        events.participantLeft(stores.bind(tx), payload),
       ),
       on(UserDeleted, ({ userId }, _e, tx) =>
         events.userDeleted(stores.bind(tx), userId),
@@ -299,6 +307,43 @@ describe("claims", () => {
       ["claim_reminder_validator", `/contract/${CONTRACT}`],
     ]);
     expect(await inbox.list(BOB)).toEqual([]);
+  });
+
+  it("tells the accessor and the validators when the owner's account is gone", async () => {
+    await receive(
+      envelope(
+        ContractRevoked.create({
+          contractId: CONTRACT,
+          category: "networks",
+          reason: "account_deleted",
+          ownerId: ALICE,
+          accessorId: BOB,
+          validatorIds: [CAROL],
+        }),
+      ),
+    );
+    expect((await inbox.list(BOB))[0].body).toBe(
+      "Le propriétaire a supprimé son compte : le contrat « Réseaux sociaux » est révoqué.",
+    );
+    expect(await types(CAROL)).toEqual([
+      ["contract_revoked", `/contract/${CONTRACT}`],
+    ]);
+  });
+
+  it("tells the owner to re-seal when the accessor deleted their account", async () => {
+    await receive(
+      envelope(
+        ParticipantLeft.create({
+          contractId: CONTRACT,
+          category: "devices",
+          ownerId: ALICE,
+          role: "accessor",
+        }),
+      ),
+    );
+    expect(await inbox.list(ALICE)).toMatchObject([
+      { type: "participant_left", title: "Accesseur parti" },
+    ]);
   });
 
   it("tells the accessor they can open the contract", async () => {

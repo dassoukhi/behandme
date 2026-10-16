@@ -1,5 +1,12 @@
 import { InvalidInputError } from "@lib/kernel";
 
+export {
+  type FactorVerificationAge,
+  recentlyVerified,
+  RESET_REVERIFICATION,
+  ReverificationRequired,
+} from "../../auth/domain/reverification.js";
+
 // Public end-to-end keys (the app's docs/crypto-protocol.md, "Identity keys"). The server stores them and
 // checks that the user signed them; it never sees a private key.
 
@@ -87,39 +94,6 @@ export function fingerprintInput(
  * account's owner (stolen session), who is alerted and has this long to react.
  */
 export const KEY_QUARANTINE_MS = 72 * 3_600_000;
-
-/**
- * Minutes since the session last verified its first and second factor (Clerk's `fva` claim), -1 for a
- * factor never verified (no MFA).
- */
-export type FactorVerificationAge = [number, number];
-
-/**
- * Clerk's "strict" reverification: the second factor verified less than 10 minutes ago, or the first
- * one for an account without MFA. Same rule as Clerk's own check (keys.spec.ts compares them).
- */
-export const RESET_REVERIFICATION = {
-  level: "second_factor",
-  afterMinutes: 10,
-} as const;
-
-export function recentlyVerified(
-  fva: FactorVerificationAge | null | undefined,
-): boolean {
-  if (!Array.isArray(fva) || fva.length !== 2) return false;
-  const [first, second] = fva;
-  const recent = (age: number) =>
-    age !== -1 && age < RESET_REVERIFICATION.afterMinutes;
-  return second !== -1 ? recent(second) : recent(first);
-}
-
-/** The session must verify again (Clerk reverification) before this action. */
-export class ReverificationRequired extends Error {
-  constructor() {
-    super("Verify your identity again to reset your keys");
-    this.name = "ReverificationRequired";
-  }
-}
 
 /**
  * The quarantine, from KEY_QUARANTINE_SECONDS_OVERRIDE (to test resets without waiting 72 h): refused in

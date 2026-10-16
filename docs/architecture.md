@@ -11,12 +11,12 @@ with phases 4 and 5 (see "Delivery order"). Running and deploying them: `docs/de
 
 One NestJS app per service in `apps/`, each deployed separately. The mobile app talks to the gateway only.
 
-| Service    | Responsibility                                                                                                                                             | Owns (Postgres schema)                                                          | Exposes                                                         |
-| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| `gateway`  | Clerk authentication, access control, response composition, public OpenAPI (`openapi.json`). Identity domain: profiles, trust links, public E2E keys       | `core`: users, trusted, user_keys (+ history)                                   | Public REST API `/api/v1/*`                                     |
-| `handover` | Whole contract life cycle: draft, sealing (encrypted vault), claims, votes, deadlines, release, revocation; hash-chained audit log                         | `handover`: contracts, envelopes, key_wraps, claims, decisions, contract_events | Internal API (commands and queries from the gateway) and events |
-| `notifier` | In-app notifications, Expo push (and Resend email, phase 5), preferences, push tokens, deliveries and their receipts                                       | `notify`: notifications, push_tokens, preferences, deliveries                   | Internal API (inbox, devices, settings) and event consumers     |
-| `worker`   | Schedules recurring jobs (push receipts, retention; later deadline catch-up, reminders, audit-log verification) and runs long jobs (account deletion saga) | `ops`: job_runs                                                                 | Nothing public; driven by pg_cron ticks and its queue           |
+| Service    | Responsibility                                                                                                                                       | Owns (Postgres schema)                                                          | Exposes                                                         |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| `gateway`  | Clerk authentication, access control, response composition, public OpenAPI (`openapi.json`). Identity domain: profiles, trust links, public E2E keys | `core`: users, trusted, user_keys (+ history)                                   | Public REST API `/api/v1/*`                                     |
+| `handover` | Whole contract life cycle: draft, sealing (encrypted vault), claims, votes, deadlines, release, revocation; hash-chained audit log                   | `handover`: contracts, envelopes, key_wraps, claims, decisions, contract_events | Internal API (commands and queries from the gateway) and events |
+| `notifier` | In-app notifications, Expo push (and Resend email, phase 5), preferences, push tokens, deliveries and their receipts                                 | `notify`: notifications, push_tokens, preferences, deliveries                   | Internal API (inbox, devices, settings) and event consumers     |
+| `worker`   | Schedules recurring jobs (push receipts, claims catch-up, audit-log verification, retention)                                                         | `ops`: job_runs                                                                 | Nothing public; driven by pg_cron ticks and its queue           |
 
 A service reads and writes **its own schema only**. Data owned by another service is obtained through that
 service's API or kept as a local copy fed by its events.
@@ -56,8 +56,8 @@ shared through `libs/contracts` (e.g. `notifier-api.ts`); the gateway keeps its 
   (`TrustAdded.create`) and when consuming (`on(TrustAdded, handler)`); a payload that does not match is
   dead-lettered at once. Today: `trust.added`, `keys.rotated`, `user.deleted`, `claim.filed`,
   `claim.quorum_reached`, `claim.reminder`, `claim.closed`, `contract.released`, `claim.reminder_due` and
-  `claim.deadline_due` (handover to itself, delayed), `scheduler.tick`, `maintenance.push_receipts_due`, `maintenance.claims_due`,
-  `maintenance.retention_due`. Later: `contract.sealed`, `contract.revoked`.
+  `claim.deadline_due` (handover to itself, delayed), `contract.revoked`, `participant.left`, `scheduler.tick`, `maintenance.push_receipts_due`, `maintenance.claims_due`,
+  `maintenance.retention_due`. Later: `contract.sealed`.
 - **Correlation.** The gateway gives each request a correlation id (`x-correlation-id`, kept from the caller
   when valid); it travels in internal calls and in every event's envelope, consumers run with it, and every
   log line carries it (`ServiceLogger`, JSON in production).
@@ -151,6 +151,15 @@ The old keys go to `core.user_key_history`; the new ones are usable by others on
 (`usable_from`; handover refuses a sealing with keys in quarantine, the owner's included), and `keys.rotated`
 alerts the user (critical push) and the people who trust them (compare the new security code). Contracts sealed
 with the old keys stay as they are: the owner can no longer read them and re-seals them with the secret.
+
+**Account deletion.** `DELETE /users/me` needs a recent Clerk reverification, like a key reset. The gateway
+deletes the profile (keys and trust links go with it) and publishes `user.deleted` in the same transaction, then
+deletes the Clerk account (a retry after a failure at Clerk finishes the job). Handover deletes the user's drafts
+and revokes their sealed contracts (`contract.revoked`: the accessor and validators are told); released ones
+stay, for their accessor. In other people's contracts the user stays named, but their keys are gone: a claim
+they filed, or that would release to them as accessor, is closed (`participant_left`), and `participant.left`
+asks the owner to re-seal with someone else. A departed validator is not removed: the threshold belongs to the
+sealing, and the gateway's `health` shows the share as lost. The notifier forgets the user's notifications.
 
 **Audit log.** `handover.contract_events` is append-only: triggers reject UPDATE, DELETE and TRUNCATE for every
 role, and `svc_handover` can only read it and call `handover.append_event`, which numbers the event and computes

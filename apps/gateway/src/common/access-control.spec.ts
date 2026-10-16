@@ -1,6 +1,5 @@
 import { type Kysely, sql } from "kysely";
 import {
-  ConflictError,
   InvalidInputError,
   NotFoundError,
   UnprocessableError,
@@ -26,7 +25,6 @@ import { InMemoryHandover } from "../handover/testing/in-memory-handover.js";
 import type { IdentityProfile } from "../users/application/ports.js";
 import { ProfileService } from "../users/application/profile.service.js";
 import { TrustService } from "../users/application/trust.service.js";
-import { HandoverParticipation } from "../users/infrastructure/handover-participation.js";
 import { KyselyProfileRepository } from "../users/infrastructure/kysely-profile.repository.js";
 import { KyselyTrustRepository } from "../users/infrastructure/kysely-trust.repository.js";
 import { KyselyUsersUnitOfWork } from "../users/infrastructure/kysely-users.unit-of-work.js";
@@ -99,10 +97,10 @@ beforeEach(async () => {
         if (!identities[id]) throw new Error(`unknown identity ${id}`);
         return identities[id];
       },
+      deleteUser: async () => undefined,
     },
     trust,
     unitOfWork,
-    new HandoverParticipation(handover),
   );
   keys = new KeysService(
     new KyselyKeyRepository(pg),
@@ -249,14 +247,8 @@ describe("users: profile visibility", () => {
     expect((await users.findMe(OWNER)).phone_number).toBe("+33600000000");
   });
 
-  it("refuses to delete someone who takes part in another's contract", async () => {
-    await expect(users.removeMe(VALIDATOR)).rejects.toThrow(ConflictError);
-    expect((await users.findMe(VALIDATOR)).id).toBe(VALIDATOR);
-    expect(await outboxTypes()).toEqual([]);
-  });
-
   it("only deletes the caller's own profile, and tells the other services", async () => {
-    await users.removeMe(STRANGER);
+    await users.removeMe(STRANGER, [1, -1]);
     await expect(users.findMe(STRANGER)).rejects.toBeInstanceOf(NotFoundError);
     expect((await users.findMe(OWNER)).id).toBe(OWNER);
     expect(await outboxTypes()).toEqual(["user.deleted"]);

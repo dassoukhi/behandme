@@ -1,6 +1,5 @@
 import { Inject, Injectable } from "@nestjs/common";
 import {
-  ClaimClosed,
   ClaimDeadlineDue,
   ClaimFiled,
   ClaimQuorumReached,
@@ -17,7 +16,6 @@ import {
   NotFoundError,
 } from "@lib/kernel";
 import {
-  claimClosed,
   claimDecided,
   claimFiled,
   contractReleased,
@@ -43,6 +41,7 @@ import {
   type HandoverStore,
   type HandoverStores,
 } from "./ports.js";
+import { closeClaim } from "./endings.js";
 import { recordsFor } from "./records.js";
 
 const b64 = (bytes: Uint8Array) => Buffer.from(bytes).toString("base64");
@@ -328,35 +327,18 @@ export class ClaimsService {
     reason: EndReason,
     closedBy: string | null,
   ): Promise<Contract> {
-    if (
-      !(await store.claims.close(claim.id, reason, closedBy, this.clock.now()))
-    ) {
-      throw new ConflictError("This claim is no longer open");
-    }
-    await store.claims.eraseReleaseWraps(claim.id);
+    await closeClaim(store, contract, claim, {
+      status: reason,
+      reason,
+      closedBy,
+      at: this.clock.now(),
+    });
     const active = await store.contracts.transition(
       contract.id,
       "claimed",
       "active",
     );
     if (!active) throw new ConflictError("The contract changed meanwhile");
-    await store.audit.append(
-      contract.id,
-      closedBy,
-      claimClosed({ claimId: claim.id, reason }),
-    );
-    await store.events.publish(
-      ClaimClosed.create({
-        contractId: contract.id,
-        claimId: claim.id,
-        category: contract.category,
-        reason,
-        closedBy,
-        ownerId: contract.ownerId,
-        claimantId: claim.claimantId,
-        validatorIds: contract.validatorIds,
-      }),
-    );
     return active;
   }
 

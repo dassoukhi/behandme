@@ -57,9 +57,13 @@ export class HandoverMessaging
           logger.log(`Due claims: ${released} released, ${expired} expired`);
         }),
         on(UserDeleted, async ({ userId }, _event, tx) => {
-          const deleted = await events.userDeleted(stores.bind(tx), userId);
-          if (deleted)
-            logger.log(`Deleted ${deleted} drafts of a deleted account`);
+          const { deleted, revoked, left } = await events.userDeleted(
+            stores.bind(tx),
+            userId,
+          );
+          logger.log(
+            `Deleted account: ${deleted} drafts deleted, ${revoked} contracts revoked, left ${left} others'`,
+          );
         }),
         on(AuditVerifyDue, async (_payload, _event, tx) => {
           const { checked, broken } = await events.verifyAll(

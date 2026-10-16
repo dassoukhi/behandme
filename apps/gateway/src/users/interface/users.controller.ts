@@ -1,5 +1,7 @@
+import { reverificationError } from "@clerk/backend/internal";
 import {
   Controller,
+  ForbiddenException,
   Get,
   Post,
   Body,
@@ -23,7 +25,14 @@ import { EnsureProfileDto } from "./dto/create-user.dto.js";
 import { UpdateUserDto } from "./dto/update-user.dto.js";
 import { UserProfileDto } from "./dto/user-profile.dto.js";
 import { AddTrustedDto, TrustedLinkDto } from "./dto/add-trusted.dto.js";
-import { CurrentUserId } from "../../auth/current-user.decorator.js";
+import {
+  CurrentUserId,
+  CurrentVerificationAge,
+} from "../../auth/current-user.decorator.js";
+import {
+  RESET_REVERIFICATION,
+  ReverificationRequired,
+} from "../../auth/domain/reverification.js";
 
 @ApiTags("users")
 @ApiBearerAuth()
@@ -88,17 +97,29 @@ export class UsersController {
   }
 
   @Delete("me")
-  @ApiOperation({ summary: "Delete the caller's profile" })
-  @ApiResponse({ status: 200, description: "Profile deleted successfully" })
-  @ApiResponse({ status: 404, description: "Profile not found" })
-  @ApiResponse({
-    status: 409,
-    description:
-      "The caller is the accessor or a validator of someone else's contract",
+  @ApiOperation({
+    summary:
+      "Delete the caller's account: needs a Clerk reverification less than 10 minutes old. Their contracts are revoked, their claims closed, the owners of the contracts they take part in are told, then the Clerk account is deleted.",
   })
-  async removeMe(@CurrentUserId() me: string): Promise<{ message: string }> {
-    await this.profiles.removeMe(me);
-    return { message: "Profile deleted successfully" };
+  @ApiResponse({ status: 200, description: "Account deleted" })
+  @ApiResponse({
+    status: 403,
+    description:
+      "Reverification needed: the body is Clerk's reverification hint (clerk_error), handled by useReverification",
+  })
+  async removeMe(
+    @CurrentUserId() me: string,
+    @CurrentVerificationAge() fva: [number, number] | null,
+  ): Promise<{ message: string }> {
+    try {
+      await this.profiles.removeMe(me, fva);
+    } catch (error) {
+      if (error instanceof ReverificationRequired) {
+        throw new ForbiddenException(reverificationError(RESET_REVERIFICATION));
+      }
+      throw error;
+    }
+    return { message: "Account deleted" };
   }
 
   @Get("me/trusteds")

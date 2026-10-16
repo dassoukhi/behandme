@@ -1,18 +1,20 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { UserDeleted } from "@lib/contracts";
 import {
-  ConflictError,
   InvalidInputError,
   NotFoundError,
   UnprocessableError,
 } from "@lib/kernel";
 import type { Profile } from "../domain/profile.js";
 import {
-  CONTRACT_PARTICIPATION,
+  type FactorVerificationAge,
+  recentlyVerified,
+  ReverificationRequired,
+} from "../../auth/domain/reverification.js";
+import {
   IDENTITY_PROVIDER,
   PROFILE_REPOSITORY,
   USERS_UNIT_OF_WORK,
-  type ContractParticipation,
   type IdentityProvider,
   type ProfileRepository,
   type UsersUnitOfWork,
@@ -28,8 +30,6 @@ export class ProfileService {
     @Inject(IDENTITY_PROVIDER) private readonly identity: IdentityProvider,
     private readonly trust: TrustService,
     @Inject(USERS_UNIT_OF_WORK) private readonly unitOfWork: UsersUnitOfWork,
-    @Inject(CONTRACT_PARTICIPATION)
-    private readonly participation: ContractParticipation,
   ) {}
 
   /**
@@ -102,22 +102,20 @@ export class ProfileService {
   }
 
   /**
-   * Deletes the profile; the other services then forget the user (event user.deleted), and handover
-   * deletes their drafts. Refused while they take part in someone else's contract: that needs the
-   * account-deletion saga (phase 6), which tells the owners.
+   * Deletes the account, after a recent Clerk reverification (a stolen session must not be enough).
+   * The profile goes (its keys and trust links with it) and user.deleted tells the other services:
+   * handover revokes the user's contracts and closes the claims they filed or would receive, the
+   * notifier forgets their notifications. Then the Clerk account goes. A second call after a failure
+   * at Clerk finishes the job without publishing twice.
    */
-  async removeMe(me: string): Promise<void> {
-    if (await this.participation.takesPartInOthersContracts(me)) {
-      throw new ConflictError(
-        "You are the accessor or a validator of someone else's contract: ask them to remove you first",
-      );
-    }
+  async removeMe(me: string, fva: FactorVerificationAge | null): Promise<void> {
+    if (!recentlyVerified(fva)) throw new ReverificationRequired();
     await this.unitOfWork.run(async ({ profiles, events }) => {
-      if (!(await profiles.delete(me))) {
-        throw new NotFoundError("Profile not found");
+      if (await profiles.delete(me)) {
+        await events.publish(UserDeleted.create({ userId: me }));
       }
-      await events.publish(UserDeleted.create({ userId: me }));
     });
+    await this.identity.deleteUser(me);
   }
 
   /**

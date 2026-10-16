@@ -13,6 +13,8 @@ export interface IdentityProfile {
 /** Where the verified identity of a user comes from. */
 export interface IdentityProvider {
   getProfile(userId: string): Promise<IdentityProfile>;
+  /** Deletes the account at the provider (Clerk); done when it is already gone. */
+  deleteUser(userId: string): Promise<void>;
 }
 export const IDENTITY_PROVIDER = Symbol("IdentityProvider");
 
@@ -60,13 +62,6 @@ export interface TrustRepository {
   trusters(trustedId: string, ownerIds: string[]): Promise<string[]>;
 }
 export const TRUST_REPOSITORY = Symbol("TrustRepository");
-
-/** What the handover service knows of a user's part in other people's contracts. */
-export interface ContractParticipation {
-  /** True when the user is the accessor or a validator of a contract they do not own. */
-  takesPartInOthersContracts(userId: string): Promise<boolean>;
-}
-export const CONTRACT_PARTICIPATION = Symbol("ContractParticipation");
 
 /** Events for the other services, published only if the transaction commits. */
 export interface EventPublisher {

@@ -1,3 +1,4 @@
+import { ReverificationRequired } from "../../auth/domain/reverification.js";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   ConflictError,
@@ -16,7 +17,7 @@ let trust: TrustService;
 beforeEach(() => {
   store = new InMemoryUsers();
   trust = new TrustService(store, store);
-  profiles = new ProfileService(store, store, trust, store, store);
+  profiles = new ProfileService(store, store, trust, store);
 });
 
 describe("TrustService", () => {
@@ -143,28 +144,41 @@ describe("ProfileService", () => {
     await expect(
       profiles.updateMe("me", { phone_number: "+1" }),
     ).rejects.toThrow(NotFoundError);
-    await expect(profiles.removeMe("me")).rejects.toThrow(NotFoundError);
     expect(store.published).toEqual([]);
     await expect(profiles.findOne("me", "ghost")).rejects.toThrow(
       new NotFoundError("User with ID ghost not found"),
     );
   });
 
-  it("refuses to delete someone who takes part in another's contract", async () => {
+  const FRESH: [number, number] = [2, -1];
+
+  it("asks Clerk's reverification before deleting anything", async () => {
     store.person("me");
-    store.participants.add("me");
-    await expect(profiles.removeMe("me")).rejects.toThrow(ConflictError);
+    await expect(profiles.removeMe("me", null)).rejects.toThrow(
+      ReverificationRequired,
+    );
+    await expect(profiles.removeMe("me", [11, -1])).rejects.toThrow(
+      ReverificationRequired,
+    );
     expect(store.profiles.has("me")).toBe(true);
     expect(store.published).toEqual([]);
+    expect(store.deletedUsers).toEqual([]);
   });
 
-  it("deletes the caller's profile and tells the other services", async () => {
+  it("deletes the profile, tells the other services, then deletes the Clerk account", async () => {
     store.person("me");
-    await profiles.removeMe("me");
+    await profiles.removeMe("me", FRESH);
     expect(store.profiles.has("me")).toBe(false);
     expect(store.published).toEqual([
       { type: "user.deleted", version: 1, payload: { userId: "me" } },
     ]);
+    expect(store.deletedUsers).toEqual(["me"]);
+  });
+
+  it("finishes a deletion interrupted at Clerk without telling the services twice", async () => {
+    await profiles.removeMe("me", FRESH);
+    expect(store.published).toEqual([]);
+    expect(store.deletedUsers).toEqual(["me"]);
   });
 
   describe("search", () => {

@@ -43,8 +43,13 @@ export function contractSealed(sealing: {
   };
 }
 
-export function contractRevoked(): AuditEntry {
-  return { type: "contract.revoked", body: {} };
+/** By the owner (empty body), or because they deleted their account. */
+export function contractRevoked(reason?: "account_deleted"): AuditEntry {
+  return { type: "contract.revoked", body: reason ? { reason } : {} };
+}
+
+export function participantLeft(role: "accessor" | "validator"): AuditEntry {
+  return { type: "participant.left", body: { role } };
 }
 
 export function contractDeleted(
@@ -52,6 +57,14 @@ export function contractDeleted(
 ): AuditEntry {
   return { type: "contract.deleted", body: { reason } };
 }
+
+export type ClosedReason =
+  | "cancelled"
+  | "withdrawn"
+  | "rejected"
+  | "expired"
+  | "revoked"
+  | "participant_left";
 
 export function claimFiled(claim: {
   claimId: string;
@@ -79,7 +92,7 @@ export function claimDecided(decision: {
 
 export function claimClosed(closing: {
   claimId: string;
-  reason: "cancelled" | "withdrawn" | "rejected" | "expired" | "revoked";
+  reason: ClosedReason;
 }): AuditEntry {
   return {
     type: "claim.closed",

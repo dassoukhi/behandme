@@ -13,7 +13,9 @@ import {
   ClaimQuorumReached,
   ClaimReminder,
   ContractReleased,
+  ContractRevoked,
   KeysRotated,
+  ParticipantLeft,
   on,
   PushReceiptsDue,
   RetentionDue,
@@ -80,6 +82,12 @@ export class NotifierMessaging
         ),
         on(ContractReleased, (payload, _event, tx) =>
           events.contractReleased(stores.bind(tx), payload),
+        ),
+        on(ContractRevoked, (payload, _event, tx) =>
+          events.contractRevoked(stores.bind(tx), payload),
+        ),
+        on(ParticipantLeft, (payload, _event, tx) =>
+          events.participantLeft(stores.bind(tx), payload),
         ),
         on(UserDeleted, ({ userId }, _event, tx) =>
           events.userDeleted(stores.bind(tx), userId),

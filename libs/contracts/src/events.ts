@@ -82,8 +82,9 @@ export const ClaimClosed = defineEvent(
       "rejected",
       "expired",
       "revoked",
+      "participant_left",
     ]),
-    /** Who closed it; null for the system (rejection count, expiry). */
+    /** Who closed it; null for the system (rejection count, expiry, departure). */
     closedBy: userId.nullable(),
     ownerId: userId,
     claimantId: userId,
@@ -102,6 +103,32 @@ export const ContractReleased = defineEvent(
     ownerId: userId,
     accessorId: userId,
     validatorIds: z.array(userId),
+  }),
+);
+
+/** Handover: nobody can open the contract any more (the owner revoked it or deleted their account). */
+export const ContractRevoked = defineEvent(
+  "contract.revoked",
+  1,
+  z.object({
+    contractId,
+    category,
+    reason: z.enum(["owner", "account_deleted"]),
+    ownerId: userId,
+    accessorId: userId,
+    validatorIds: z.array(userId),
+  }),
+);
+
+/** Handover: a participant deleted their account; the owner should re-seal with someone else. */
+export const ParticipantLeft = defineEvent(
+  "participant.left",
+  1,
+  z.object({
+    contractId,
+    category,
+    ownerId: userId,
+    role: z.enum(["accessor", "validator"]),
   }),
 );
 

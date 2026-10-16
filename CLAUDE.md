@@ -111,6 +111,7 @@ must:
   distinctness by handover); a contract's audit log is append-only and readable by its participants; profiles expose
   email/phone only to yourself and to users who trust you (`apps/gateway/src/users/domain/profile.ts`);
   a profile's email comes from Clerk, never from the client; a trust link is removed by its owner only;
+  an account is deleted by its owner only, after a Clerk reverification (docs/architecture.md, "Account deletion");
   a user's public keys are readable by them, the people they trust and the people who trust them, and replaced
   only by them after a Clerk reverification (`POST /users/me/keys/reset`), usable by others after a quarantine;
   notifications are recipient-only and created by services from events (no client create/send route).
@@ -124,10 +125,6 @@ must:
 
 ## Known gaps (decided, do not fix piecemeal)
 
-- `DELETE /users/me` is refused (409) while the caller is the accessor or a validator of someone else's
-  contract; their own drafts are deleted by handover (event `user.deleted`). Removing them from other people's
-  contracts waits for the account-deletion saga (phase 6, `docs/architecture.md`), by the user's choice
-  (2026-10-14).
 - `public.contracts`, `public.notifications`, `public.push_tokens`, `public.orphan_tokens` and the RPCs
   `get_trusted_users` / `get_contract_with_validators` are no longer used; a later migration drops them
   (needs the user's confirmation).

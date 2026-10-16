@@ -22,4 +22,14 @@ export class ClerkIdentityProvider implements IdentityProvider {
       avatar_url: user.imageUrl || null,
     };
   }
+
+  async deleteUser(userId: string): Promise<void> {
+    try {
+      await this.clerk.users.deleteUser(userId);
+    } catch (error) {
+      // A first attempt already deleted it.
+      if ((error as { status?: number }).status === 404) return;
+      throw error;
+    }
+  }
 }

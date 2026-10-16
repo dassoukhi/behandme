@@ -2,7 +2,6 @@ import type { NewEvent } from "@lib/messaging";
 import type { Profile } from "../domain/profile.js";
 import type { TrustLink } from "../domain/trust.js";
 import type {
-  ContractParticipation,
   IdentityProfile,
   IdentityProvider,
   ProfileFields,
@@ -21,20 +20,14 @@ export class InMemoryUsers
     ProfileRepository,
     TrustRepository,
     IdentityProvider,
-    UsersUnitOfWork,
-    ContractParticipation
+    UsersUnitOfWork
 {
   profiles = new Map<string, Profile>();
   links: TrustLink[] = [];
   identities = new Map<string, IdentityProfile>();
   published: NewEvent[] = [];
-  /** Users who are accessor or validator of someone else's contract. */
-  participants = new Set<string>();
-
-  // ContractParticipation
-  async takesPartInOthersContracts(userId: string) {
-    return this.participants.has(userId);
-  }
+  /** Accounts deleted at the identity provider. */
+  deletedUsers: string[] = [];
 
   // UsersUnitOfWork
   async run<T>(work: (tx: UsersTransaction) => Promise<T>): Promise<T> {
@@ -146,6 +139,10 @@ export class InMemoryUsers
     const identity = this.identities.get(userId);
     if (!identity) throw new Error(`unknown identity ${userId}`);
     return identity;
+  }
+
+  async deleteUser(userId: string) {
+    this.deletedUsers.push(userId);
   }
 
   /** Adds a profile with contact details. */
