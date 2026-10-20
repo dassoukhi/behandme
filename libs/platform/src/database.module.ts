@@ -2,6 +2,7 @@ import {
   type DynamicModule,
   Inject,
   Injectable,
+  Logger,
   Module,
   type OnApplicationShutdown,
 } from "@nestjs/common";
@@ -39,6 +40,11 @@ export class DatabaseModule {
             createDatabase<any>({
               connectionString: config.getOrThrow<string>("DATABASE_URL"),
               applicationName: options.applicationName,
+              // The pool replaces the connection; the service keeps running.
+              onConnectionError: (error) =>
+                new Logger("Database").warn(
+                  `Connection lost: ${error.message}`,
+                ),
             }),
           inject: [ConfigService],
         },
