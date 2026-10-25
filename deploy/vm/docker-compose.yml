@@ -1,0 +1,90 @@
+# The four services and Caddy (HTTPS) on one server (Oracle Cloud, see docs/deploy.md, "One server").
+# Only Caddy listens on the internet; the services reach each other on the internal network, by name.
+# Run from this directory: docker compose up -d (update.sh does it after a git pull).
+name: behindme
+
+x-service: &service
+  restart: unless-stopped
+  networks: [internal]
+  logging:
+    driver: json-file
+    options: { max-size: "10m", max-file: "5" }
+
+services:
+  gateway:
+    <<: *service
+    build: { context: ../.., args: { SERVICE: gateway } }
+    image: behindme-gateway
+    env_file: [env/shared.env, env/gateway.env]
+    environment:
+      PORT: "3000"
+      NOTIFIER_URL: http://notifier:3001
+      HANDOVER_URL: http://handover:3003
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+    depends_on: [notifier, handover]
+
+  notifier:
+    <<: *service
+    build: { context: ../.., args: { SERVICE: notifier } }
+    image: behindme-notifier
+    env_file: [env/shared.env, env/notifier.env]
+    environment: { PORT: "3001" }
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3001/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+
+  handover:
+    <<: *service
+    build: { context: ../.., args: { SERVICE: handover } }
+    image: behindme-handover
+    env_file: [env/shared.env, env/handover.env]
+    environment: { PORT: "3003" }
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3003/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+
+  worker:
+    <<: *service
+    build: { context: ../.., args: { SERVICE: worker } }
+    image: behindme-worker
+    env_file: [env/shared.env, env/worker.env]
+    environment: { PORT: "3002" }
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3002/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+
+  caddy:
+    <<: *service
+    image: caddy:2.10.2-alpine
+    ports: ["80:80", "443:443"]
+    environment:
+      API_DOMAIN: ${API_DOMAIN:?set API_DOMAIN in deploy/vm/.env}
+      ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL in deploy/vm/.env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      gateway: { condition: service_healthy }
+
+networks:
+  internal: {}
+
+volumes:
+  # Caddy's certificates: kept across restarts, so Let's Encrypt is not asked again.
+  caddy_data: {}
+  caddy_config: {}

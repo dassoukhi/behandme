@@ -42,3 +42,6 @@ lerna-debug.log*
 
 # Fabric
 fabric-network/
+
+# server env files of deploy/vm (secrets)
+deploy/vm/env/

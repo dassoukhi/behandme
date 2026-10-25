@@ -40,7 +40,45 @@ npm run dev                 # the four services in watch mode
 
 `MESSAGING_ENABLED=false` stops a service's background loops (outbox relay, queue consumer, push sending).
 
-## Railway
+## One server (Oracle Cloud): the current target
+
+Everything on one Ubuntu machine, from `deploy/vm/`: the four services and Caddy, which serves the gateway
+on `https://api.behindme.fr` with a Let's Encrypt certificate it renews by itself. Only Caddy listens on the
+internet (80, 443); the services reach each other on Docker's internal network, by name.
+
+1. **Account**: cloud.oracle.com/free, home region **France Central (Paris)**: Always Free resources exist
+   only in the home region, and it cannot be changed later.
+2. **Instance**: Ubuntu 24.04, shape `VM.Standard.A1.Flex` with **1 OCPU and 3 GB** (Always Free: 2 OCPUs and
+   12 GB in all), a public IPv4 address, your SSH public key. Keep it small: Oracle reclaims an Always Free
+   instance as idle when CPU, network **and** memory all stay under 20 % for 7 days, and the services use
+   about 1 GB. On "Out of capacity", try again later or in another availability domain.
+3. **Network**: in the subnet's security list, add ingress rules for TCP 80 and 443 from `0.0.0.0/0`.
+4. **DNS**: at the registrar of `behindme.fr`, an `A` record `api` → the instance's public IP.
+5. **On the server** (`ssh ubuntu@<ip>`), a read-only deploy key for the private repo, then the clone and the
+   one-time setup (Docker, firewall, security updates, swap):
+
+   ```bash
+   ssh-keygen -t ed25519 -f ~/.ssh/behandme -N "" && cat ~/.ssh/behandme.pub
+   # GitHub → dassoukhi/behandme → Settings → Deploy keys → Add (read only), paste the key
+   printf 'Host github.com\n  IdentityFile ~/.ssh/behandme\n' >> ~/.ssh/config
+   git clone -b develop git@github.com:dassoukhi/behandme.git ~/behandme
+   bash ~/behandme/deploy/vm/setup-server.sh   # then log out and back in
+   ```
+
+   The server follows `develop` until launch, then `main`.
+6. **Variables**: copy `deploy/vm/env-example/compose.env` to `deploy/vm/.env`, the other files of
+   `env-example/` to `deploy/vm/env/`, fill them in (the `svc_*` URLs of "Database, once" above), then
+   `chmod 600 deploy/vm/.env deploy/vm/env/*`. They are ignored by git.
+7. **Start**: `~/behandme/deploy/vm/update.sh` builds the images and starts everything; Caddy gets the
+   certificate once the DNS record points to the server. Check `curl https://api.behindme.fr/health`.
+8. **The app**: `EXPO_PUBLIC_API_URL=https://api.behindme.fr/api/v1`.
+
+Day to day, from `~/behandme/deploy/vm`: `./update.sh` deploys what was pushed (pull, build, restart what
+changed); `docker compose logs -f gateway` shows a service's logs (5 × 10 MB kept per service);
+`docker compose ps` their health. Containers restart on failure and with the machine; security updates
+install every day, and a kernel update needs a reboot now and then (`sudo reboot`).
+
+## Railway (alternative)
 
 1. New project → four services from the GitHub repo `dassoukhi/behandme`, each with its config file
    (Settings → Config-as-code): `railway/gateway.json`, `railway/notifier.json`, `railway/handover.json`,
