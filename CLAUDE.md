@@ -1,7 +1,7 @@
 # behandme — backend (NestJS)
 
 NestJS 12 (ESM) monorepo backed by Supabase Postgres and Clerk auth. Its client is the Expo app in a
-**separate repo**: `../behindMe` (GitHub `dassoukhi/behindMe`). This repo is `rachadia/behandme`.
+**separate repo**: `../behindMe` (GitHub `dassoukhi/behindMe`). This repo is `dassoukhi/behandme`.
 The target architecture (microservices, messaging, contract life cycle, end-to-end encryption) and the
 delivery order are in `docs/architecture.md`.
 

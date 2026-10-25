@@ -42,7 +42,7 @@ npm run dev                 # the four services in watch mode
 
 ## Railway
 
-1. New project → four services from the GitHub repo `rachadia/behandme`, each with its config file
+1. New project → four services from the GitHub repo `dassoukhi/behandme`, each with its config file
    (Settings → Config-as-code): `railway/gateway.json`, `railway/notifier.json`, `railway/handover.json`,
    `railway/worker.json` (Dockerfile build, health check on `/health`, restart on failure).
 2. Variables:
