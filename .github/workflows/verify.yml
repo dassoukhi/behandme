@@ -1,0 +1,21 @@
+# The push gate (npm run verify) on GitHub, for every push to main or develop and every pull request.
+# Needs no secret: the tests run on PGlite, in process.
+name: verify
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run verify

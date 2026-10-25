@@ -58,12 +58,20 @@ npm run dev                 # the four services in watch mode
    | `NOTIFIER_URL`        | `http://${{notifier.RAILWAY_PRIVATE_DOMAIN}}:3001` |                    |                    |                  |
    | `HANDOVER_URL`        | `http://${{handover.RAILWAY_PRIVATE_DOMAIN}}:3003` |                    |                    |                  |
    | `EXPO_ACCESS_TOKEN`   |                                                    | optional           |                    |                  |
+   | `SWAGGER_ENABLED`     | optional: `true` serves `/api/docs` in production  |                    |                    |                  |
 
    The services never get the Supabase service-role key: each reaches the database with its own role.
 
 3. Networking: generate a public domain for the gateway only. The notifier and handover are reached on the
    private network; the worker needs no domain.
 4. The app: `EXPO_PUBLIC_API_URL=https://<gateway domain>/api/v1`.
+
+The gateway counts requests per signed-in user (else per client address, read from the proxy's
+`X-Forwarded-For`): 120 a minute, 30 for the user search, then 429 with a `Retry-After` header. Counts are
+kept per instance, in memory. `/health` is never limited, and `/api/docs` is off in production unless
+`SWAGGER_ENABLED=true`.
+
+Every push to `main` or `develop` runs `npm run verify` on GitHub Actions (`.github/workflows/verify.yml`).
 
 Several instances of a service can run side by side: outbox rows and pending pushes are locked with
 `SKIP LOCKED`, queue messages are hidden while handled, and the worker's scheduled jobs are recorded once per

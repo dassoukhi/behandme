@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { APP_FILTER, APP_GUARD } from "@nestjs/core";
+import { ThrottlerModule } from "@nestjs/throttler";
 import {
   DatabaseModule,
   GlobalExceptionFilter,
@@ -15,6 +16,10 @@ import { NotificationsModule } from "./notifications/notifications.module.js";
 import { ContractsModule } from "./contracts/contracts.module.js";
 import { KeysModule } from "./keys/keys.module.js";
 import { MessagingModule } from "./messaging/messaging.module.js";
+import {
+  RATE_LIMIT,
+  UserThrottlerGuard,
+} from "./common/throttle/user-throttler.guard.js";
 
 @Module({
   imports: [
@@ -25,6 +30,11 @@ import { MessagingModule } from "./messaging/messaging.module.js";
       envFilePath: [".env.gateway", ".env"],
     }),
     DatabaseModule.forRoot({ applicationName: "gateway" }),
+    // Per instance: several gateway instances each count their own share.
+    ThrottlerModule.forRoot({
+      throttlers: [{ ttl: RATE_LIMIT.windowMs, limit: RATE_LIMIT.perMinute }],
+      errorMessage: "Trop de requêtes : réessayez dans une minute.",
+    }),
     NotificationsModule,
     ContractsModule,
     KeysModule,
@@ -42,6 +52,11 @@ import { MessagingModule } from "./messaging/messaging.module.js";
     {
       provide: APP_GUARD,
       useClass: ClerkAuthGuard,
+    },
+    // After ClerkAuthGuard, which sets the user the limit counts by.
+    {
+      provide: APP_GUARD,
+      useClass: UserThrottlerGuard,
     },
   ],
 })

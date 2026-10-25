@@ -1,44 +1,32 @@
 import { NestFactory } from "@nestjs/core";
-import { ValidationPipe } from "@nestjs/common";
+import type { NestExpressApplication } from "@nestjs/platform-express";
 import { SwaggerModule } from "@nestjs/swagger";
 import { ConfigService } from "@nestjs/config";
-import { correlationMiddleware, ServiceLogger } from "@lib/platform";
+import { ServiceLogger } from "@lib/platform";
 import { AppModule } from "./app.module.js";
-import { LoggingInterceptor } from "./common/interceptors/logging.interceptor.js";
+import { configureGateway, docsEnabled } from "./setup.js";
 import { createOpenApiDocument } from "./swagger.js";
 
 async function bootstrap() {
   const logger = new ServiceLogger("gateway");
-  const app = await NestFactory.create(AppModule, { logger });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    logger,
+  });
   const configService = app.get(ConfigService);
 
-  // Every request (and what it logs or publishes) carries a correlation id.
-  app.use(correlationMiddleware);
-
-  // Every route under /api/v1, except the host's health check.
-  app.setGlobalPrefix("api/v1", { exclude: ["health"] });
-
-  // Enable validation pipe globally
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-    }),
-  );
-
-  // Apply logging interceptor
-  app.useGlobalInterceptors(new LoggingInterceptor());
-
-  // Enable CORS
-  app.enableCors();
+  configureGateway(app);
 
   // Stop the background loops and close the database pool on SIGTERM (deploys).
   app.enableShutdownHooks();
 
-  // Setup Swagger documentation
-  const document = createOpenApiDocument(app);
-  SwaggerModule.setup("api/docs", app, document);
+  if (
+    docsEnabled(
+      configService.get<string>("NODE_ENV"),
+      configService.get<string>("SWAGGER_ENABLED"),
+    )
+  ) {
+    SwaggerModule.setup("api/docs", app, createOpenApiDocument(app));
+  }
 
   // Get port from environment variables or use default
   const port = configService.get<number>("PORT", 3000);

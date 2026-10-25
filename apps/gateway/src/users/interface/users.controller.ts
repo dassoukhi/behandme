@@ -12,6 +12,7 @@ import {
   Res,
 } from "@nestjs/common";
 import type { Response } from "express";
+import { Throttle } from "@nestjs/throttler";
 import {
   ApiTags,
   ApiOperation,
@@ -33,6 +34,7 @@ import {
   RESET_REVERIFICATION,
   ReverificationRequired,
 } from "../../auth/domain/reverification.js";
+import { RATE_LIMIT } from "../../common/throttle/user-throttler.guard.js";
 
 @ApiTags("users")
 @ApiBearerAuth()
@@ -162,6 +164,10 @@ export class UsersController {
     return this.trust.listTrustedBy(me);
   }
 
+  // Tighter: a search by exact email tells whether someone has an account.
+  @Throttle({
+    default: { limit: RATE_LIMIT.searchPerMinute, ttl: RATE_LIMIT.windowMs },
+  })
   @Get("search")
   @ApiOperation({
     summary:
@@ -169,6 +175,7 @@ export class UsersController {
   })
   @ApiQuery({ name: "q", required: true, description: "Search query" })
   @ApiResponse({ status: 200, type: [UserProfileDto] })
+  @ApiResponse({ status: 429, description: "Too many searches in a minute" })
   searchUsers(
     @CurrentUserId() me: string,
     @Query("q") query: string,

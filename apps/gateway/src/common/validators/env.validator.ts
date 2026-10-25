@@ -63,6 +63,11 @@ class EnvironmentVariables {
   @IsString()
   KEY_QUARANTINE_SECONDS_OVERRIDE?: string;
 
+  // "true" serves /api/docs in production too (off by default there).
+  @IsOptional()
+  @IsIn(["true", "false"])
+  SWAGGER_ENABLED?: string;
+
   // "false" stops the outbox relay and the queue consumer (tooling, tests).
   @IsOptional()
   @IsIn(["true", "false"])

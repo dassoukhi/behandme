@@ -1333,6 +1333,9 @@
                 }
               }
             }
+          },
+          "429": {
+            "description": "Too many searches in a minute"
           }
         },
         "security": [
