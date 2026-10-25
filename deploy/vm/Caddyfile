@@ -1,9 +1,6 @@
 # HTTPS in front of the gateway: Caddy gets and renews the Let's Encrypt certificate of API_DOMAIN by
-# itself, and passes the client's address on (X-Forwarded-For, which the gateway's rate limit reads).
-{
-	email {$ACME_EMAIL}
-}
-
+# itself (no account e-mail needed), and passes the client's address on (X-Forwarded-For, which the
+# gateway's rate limit reads).
 {$API_DOMAIN} {
 	encode zstd gzip
 	reverse_proxy gateway:3000

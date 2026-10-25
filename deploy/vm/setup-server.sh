@@ -4,8 +4,13 @@
 # Run as the default user (ubuntu): bash setup-server.sh, then log out and in (docker group).
 set -euo pipefail
 
-sudo apt-get update
-sudo apt-get install -y ca-certificates curl git unattended-upgrades netfilter-persistent iptables-persistent
+# No question asked: keep the current firewall rules when iptables-persistent installs.
+apt() { sudo DEBIAN_FRONTEND=noninteractive apt-get "$@"; }
+echo 'iptables-persistent iptables-persistent/autosave_v4 boolean true' | sudo debconf-set-selections
+echo 'iptables-persistent iptables-persistent/autosave_v6 boolean true' | sudo debconf-set-selections
+
+apt update
+apt install -y ca-certificates curl git unattended-upgrades netfilter-persistent iptables-persistent
 
 # Docker Engine and the Compose plugin, from Docker's repository.
 if ! command -v docker >/dev/null; then
@@ -14,8 +19,8 @@ if ! command -v docker >/dev/null; then
   sudo chmod a+r /etc/apt/keyrings/docker.asc
   echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" |
     sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
-  sudo apt-get update
-  sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+  apt update
+  apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 fi
 sudo usermod -aG docker "$USER"
 

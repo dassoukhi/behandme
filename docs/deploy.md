@@ -48,8 +48,10 @@ internet (80, 443); the services reach each other on Docker's internal network, 
 
 1. **Account**: cloud.oracle.com/free, home region **France Central (Paris)**: Always Free resources exist
    only in the home region, and it cannot be changed later.
-2. **Instance**: Ubuntu 24.04, shape `VM.Standard.A1.Flex` with **1 OCPU and 3 GB** (Always Free: 2 OCPUs and
-   12 GB in all), a public IPv4 address, your SSH public key. Keep it small: Oracle reclaims an Always Free
+2. **Instance**: Ubuntu 24.04 (the aarch64 image), shape **`VM.Standard.A1.Flex`** (Ampere, Arm) with
+   **1 OCPU and 3 GB** (Always Free: 2 OCPUs and 12 GB in all), a public IPv4 address, your SSH public key.
+   Only A1.Flex (and the tiny E2.1.Micro) is free: an AMD `E3/E4/E5.Flex` of the same size costs about
+   $21 a month once the trial credits are spent. Keep it small: Oracle reclaims an Always Free
    instance as idle when CPU, network **and** memory all stay under 20 % for 7 days, and the services use
    about 1 GB. On "Out of capacity", try again later or in another availability domain.
 3. **Network**: in the subnet's security list, add ingress rules for TCP 80 and 443 from `0.0.0.0/0`.
