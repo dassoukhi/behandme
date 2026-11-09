@@ -1,7 +1,7 @@
-import type { NotificationDraft } from "./notification.js";
+import type { Language, NotificationDraft } from "./notification.js";
 
-// French copy of every notification. Lock-screen text is the title and body: they must never hold a
-// secret or a contract description (see push.ts).
+// The copy of every notification, in each language of the app. Lock-screen text is the title and
+// body: they must never hold a secret or a contract description (see push.ts).
 
 /** `ownerName` trusts `userId`, who may now be chosen for their contracts. */
 export function trustAdded(params: {
@@ -9,12 +9,19 @@ export function trustAdded(params: {
   ownerId: string;
   ownerName: string | null;
 }): NotificationDraft {
-  const who = params.ownerName ?? "Quelqu'un";
   return {
     userId: params.userId,
     type: "trust_added",
-    title: "Nouveau proche",
-    body: `${who} vous a ajouté à ses proches.`,
+    copy: {
+      fr: {
+        title: "Nouveau proche",
+        body: `${params.ownerName ?? "Quelqu'un"} vous a ajouté à ses proches.`,
+      },
+      en: {
+        title: "New trusted contact",
+        body: `${params.ownerName ?? "Someone"} added you as a trusted contact.`,
+      },
+    },
     data: { url: `/people/${params.ownerId}` },
     critical: false,
   };
@@ -28,8 +35,16 @@ export function keysReset(params: { userId: string }): NotificationDraft {
   return {
     userId: params.userId,
     type: "keys_reset",
-    title: "Vos clés ont été réinitialisées",
-    body: "Si ce n'est pas vous, changez votre mot de passe tout de suite et prévenez vos proches.",
+    copy: {
+      fr: {
+        title: "Vos clés ont été réinitialisées",
+        body: "Si ce n'est pas vous, changez votre mot de passe tout de suite et prévenez vos proches.",
+      },
+      en: {
+        title: "Your keys were reset",
+        body: "If this wasn't you, change your password right away and warn your trusted contacts.",
+      },
+    },
     data: { url: "/settings/security" },
     critical: true,
   };
@@ -41,12 +56,19 @@ export function contactKeysReset(params: {
   userId: string;
   userName: string | null;
 }): NotificationDraft {
-  const who = params.userName ?? "Un de vos proches";
   return {
     userId: params.trusterId,
     type: "contact_keys_reset",
-    title: "Clés réinitialisées",
-    body: `${who} a réinitialisé ses clés. Comparez son nouveau code de sécurité avant de lui confier un accès.`,
+    copy: {
+      fr: {
+        title: "Clés réinitialisées",
+        body: `${params.userName ?? "Un de vos proches"} a réinitialisé ses clés. Comparez son nouveau code de sécurité avant de lui confier un accès.`,
+      },
+      en: {
+        title: "Keys reset",
+        body: `${params.userName ?? "One of your trusted contacts"} reset their keys. Compare their new security code before entrusting them with access.`,
+      },
+    },
     data: { url: `/people/${params.userId}` },
     critical: false,
   };
@@ -54,13 +76,22 @@ export function contactKeysReset(params: {
 
 // Claims and release. Lock-screen text names the contract's category only, never its description.
 
-const CATEGORY: Record<string, string> = {
-  networks: "Réseaux sociaux",
-  devices: "Appareils",
-  storage: "Stockage en ligne",
+const CATEGORY: Record<Language, Record<string, string>> = {
+  fr: {
+    networks: "Réseaux sociaux",
+    devices: "Appareils",
+    storage: "Stockage en ligne",
+  },
+  en: {
+    networks: "Social media",
+    devices: "Devices",
+    storage: "Online storage",
+  },
 };
-const contractName = (category: string) =>
-  `« ${CATEGORY[category] ?? "Contrat"} »`;
+const contractName = (category: string) => ({
+  fr: `« ${CATEGORY.fr[category] ?? "Contrat"} »`,
+  en: `“${CATEGORY.en[category] ?? "Contract"}”`,
+});
 
 /** Someone says the owner can no longer act: the owner must be able to stop it at once. */
 export function claimFiledForOwner(params: {
@@ -68,11 +99,20 @@ export function claimFiledForOwner(params: {
   contractId: string;
   category: string;
 }): NotificationDraft {
+  const name = contractName(params.category);
   return {
     userId: params.ownerId,
     type: "claim_filed_owner",
-    title: "Demande de transmission",
-    body: `Une transmission de votre contrat ${contractName(params.category)} a été demandée. Si vous êtes là, annulez-la dans l'app.`,
+    copy: {
+      fr: {
+        title: "Demande de transmission",
+        body: `Une transmission de votre contrat ${name.fr} a été demandée. Si vous êtes là, annulez-la dans l'app.`,
+      },
+      en: {
+        title: "Handover request",
+        body: `A handover of your contract ${name.en} was requested. If you're still here, cancel it in the app.`,
+      },
+    },
     data: { url: `/contract/${params.contractId}` },
     critical: true,
   };
@@ -83,11 +123,20 @@ export function claimFiledForValidator(params: {
   contractId: string;
   category: string;
 }): NotificationDraft {
+  const name = contractName(params.category);
   return {
     userId: params.validatorId,
     type: "claim_filed_validator",
-    title: "Votre avis est demandé",
-    body: `Une transmission du contrat ${contractName(params.category)} a été demandée : approuvez-la ou refusez-la.`,
+    copy: {
+      fr: {
+        title: "Votre avis est demandé",
+        body: `Une transmission du contrat ${name.fr} a été demandée : approuvez-la ou refusez-la.`,
+      },
+      en: {
+        title: "Your decision is needed",
+        body: `A handover of the contract ${name.en} was requested: approve or refuse it.`,
+      },
+    },
     data: { url: `/contract/${params.contractId}` },
     critical: false,
   };
@@ -99,24 +148,44 @@ export function claimQuorumReached(params: {
   contractId: string;
   category: string;
 }): NotificationDraft {
+  const name = contractName(params.category);
   return {
     userId: params.ownerId,
     type: "claim_quorum_reached",
-    title: "Transmission imminente",
-    body: `Assez de validateurs ont approuvé la transmission de ${contractName(params.category)}. Si vous êtes là, annulez-la avant la fin du délai.`,
+    copy: {
+      fr: {
+        title: "Transmission imminente",
+        body: `Assez de validateurs ont approuvé la transmission de ${name.fr}. Si vous êtes là, annulez-la avant la fin du délai.`,
+      },
+      en: {
+        title: "Handover coming soon",
+        body: `Enough validators approved the handover of ${name.en}. If you're still here, cancel it before the waiting period ends.`,
+      },
+    },
     data: { url: `/contract/${params.contractId}` },
     critical: true,
   };
 }
 
-const CLOSED: Record<string, string> = {
-  cancelled: "Le propriétaire a annulé la demande de transmission",
-  withdrawn: "La demande de transmission a été retirée",
-  rejected: "Les validateurs ont refusé la demande de transmission",
-  expired: "La demande de transmission a expiré",
-  revoked: "Le propriétaire a révoqué le contrat",
-  participant_left:
-    "Un participant a supprimé son compte : la demande de transmission est close",
+const CLOSED: Record<Language, Record<string, string>> = {
+  fr: {
+    cancelled: "Le propriétaire a annulé la demande de transmission",
+    withdrawn: "La demande de transmission a été retirée",
+    rejected: "Les validateurs ont refusé la demande de transmission",
+    expired: "La demande de transmission a expiré",
+    revoked: "Le propriétaire a révoqué le contrat",
+    participant_left:
+      "Un participant a supprimé son compte : la demande de transmission est close",
+  },
+  en: {
+    cancelled: "The owner cancelled the handover request",
+    withdrawn: "The handover request was withdrawn",
+    rejected: "The validators refused the handover request",
+    expired: "The handover request expired",
+    revoked: "The owner revoked the contract",
+    participant_left:
+      "A participant deleted their account: the handover request is closed",
+  },
 };
 
 export function claimClosed(params: {
@@ -125,11 +194,20 @@ export function claimClosed(params: {
   category: string;
   reason: string;
 }): NotificationDraft {
+  const name = contractName(params.category);
   return {
     userId: params.userId,
     type: "claim_closed",
-    title: "Demande close",
-    body: `${CLOSED[params.reason] ?? "La demande de transmission est close"} (${contractName(params.category)}).`,
+    copy: {
+      fr: {
+        title: "Demande close",
+        body: `${CLOSED.fr[params.reason] ?? "La demande de transmission est close"} (${name.fr}).`,
+      },
+      en: {
+        title: "Request closed",
+        body: `${CLOSED.en[params.reason] ?? "The handover request is closed"} (${name.en}).`,
+      },
+    },
     data: { url: `/contract/${params.contractId}` },
     critical: false,
   };
@@ -141,11 +219,20 @@ export function contractReleasedForAccessor(params: {
   contractId: string;
   category: string;
 }): NotificationDraft {
+  const name = contractName(params.category);
   return {
     userId: params.accessorId,
     type: "contract_released",
-    title: "Accès transmis",
-    body: `Le contrat ${contractName(params.category)} vous a été transmis : vous pouvez l'ouvrir dans l'app.`,
+    copy: {
+      fr: {
+        title: "Accès transmis",
+        body: `Le contrat ${name.fr} vous a été transmis : vous pouvez l'ouvrir dans l'app.`,
+      },
+      en: {
+        title: "Access handed over",
+        body: `The contract ${name.en} has been handed over to you: you can open it in the app.`,
+      },
+    },
     data: { url: `/contract/${params.contractId}` },
     critical: true,
   };
@@ -158,13 +245,24 @@ export function claimReminderForOwner(params: {
   category: string;
   quorum: boolean;
 }): NotificationDraft {
+  const name = contractName(params.category);
   return {
     userId: params.ownerId,
     type: "claim_reminder_owner",
-    title: "Dernier rappel",
-    body: params.quorum
-      ? `La transmission de ${contractName(params.category)} a lieu à la fin du délai, bientôt. Si vous êtes là, annulez-la maintenant.`
-      : `Une transmission de ${contractName(params.category)} est toujours demandée. Si vous êtes là, annulez-la maintenant.`,
+    copy: {
+      fr: {
+        title: "Dernier rappel",
+        body: params.quorum
+          ? `La transmission de ${name.fr} a lieu à la fin du délai, bientôt. Si vous êtes là, annulez-la maintenant.`
+          : `Une transmission de ${name.fr} est toujours demandée. Si vous êtes là, annulez-la maintenant.`,
+      },
+      en: {
+        title: "Last reminder",
+        body: params.quorum
+          ? `The handover of ${name.en} will take place soon, at the end of the waiting period. If you're still here, cancel it now.`
+          : `A handover of ${name.en} is still requested. If you're still here, cancel it now.`,
+      },
+    },
     data: { url: `/contract/${params.contractId}` },
     critical: true,
   };
@@ -175,11 +273,20 @@ export function claimReminderForValidator(params: {
   contractId: string;
   category: string;
 }): NotificationDraft {
+  const name = contractName(params.category);
   return {
     userId: params.validatorId,
     type: "claim_reminder_validator",
-    title: "Votre avis est attendu",
-    body: `La transmission de ${contractName(params.category)} attend toujours votre décision.`,
+    copy: {
+      fr: {
+        title: "Votre avis est attendu",
+        body: `La transmission de ${name.fr} attend toujours votre décision.`,
+      },
+      en: {
+        title: "Your decision is awaited",
+        body: `The handover of ${name.en} is still waiting for your decision.`,
+      },
+    },
     data: { url: `/contract/${params.contractId}` },
     critical: false,
   };
@@ -192,14 +299,25 @@ export function contractRevoked(params: {
   category: string;
   reason: string;
 }): NotificationDraft {
+  const name = contractName(params.category);
+  const ownerLeft = params.reason === "account_deleted";
   return {
     userId: params.userId,
     type: "contract_revoked",
-    title: "Contrat révoqué",
-    body:
-      params.reason === "account_deleted"
-        ? `Le propriétaire a supprimé son compte : le contrat ${contractName(params.category)} est révoqué.`
-        : `Le propriétaire a révoqué le contrat ${contractName(params.category)}.`,
+    copy: {
+      fr: {
+        title: "Contrat révoqué",
+        body: ownerLeft
+          ? `Le propriétaire a supprimé son compte : le contrat ${name.fr} est révoqué.`
+          : `Le propriétaire a révoqué le contrat ${name.fr}.`,
+      },
+      en: {
+        title: "Contract revoked",
+        body: ownerLeft
+          ? `The owner deleted their account: the contract ${name.en} is revoked.`
+          : `The owner revoked the contract ${name.en}.`,
+      },
+    },
     data: { url: `/contract/${params.contractId}` },
     critical: false,
   };
@@ -212,14 +330,25 @@ export function participantLeft(params: {
   category: string;
   role: string;
 }): NotificationDraft {
+  const name = contractName(params.category);
+  const accessor = params.role === "accessor";
   return {
     userId: params.ownerId,
     type: "participant_left",
-    title: params.role === "accessor" ? "Accesseur parti" : "Validateur parti",
-    body:
-      params.role === "accessor"
-        ? `L'accesseur de votre contrat ${contractName(params.category)} a supprimé son compte : choisissez-en un autre et scellez à nouveau.`
-        : `Un validateur de votre contrat ${contractName(params.category)} a supprimé son compte : sa part est perdue. Scellez à nouveau pour en choisir un autre.`,
+    copy: {
+      fr: {
+        title: accessor ? "Accesseur parti" : "Validateur parti",
+        body: accessor
+          ? `L'accesseur de votre contrat ${name.fr} a supprimé son compte : choisissez-en un autre et scellez à nouveau.`
+          : `Un validateur de votre contrat ${name.fr} a supprimé son compte : sa part est perdue. Scellez à nouveau pour en choisir un autre.`,
+      },
+      en: {
+        title: accessor ? "Recipient left" : "Validator left",
+        body: accessor
+          ? `The recipient of your contract ${name.en} deleted their account: choose another one and seal again.`
+          : `A validator of your contract ${name.en} deleted their account: their share is lost. Seal again to choose another one.`,
+      },
+    },
     data: { url: `/contract/${params.contractId}` },
     critical: false,
   };

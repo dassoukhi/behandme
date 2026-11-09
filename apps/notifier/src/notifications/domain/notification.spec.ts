@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { shouldPush } from "./notification.js";
+import { render, shouldPush } from "./notification.js";
 import {
   interpretOutcome,
   MAX_SEND_ATTEMPTS,
   pushMessage,
   retryDelayMs,
 } from "./push.js";
+import * as templates from "./templates.js";
 import { trustAdded } from "./templates.js";
 
 describe("trust_added", () => {
@@ -15,7 +16,7 @@ describe("trust_added", () => {
       ownerId: "user_a",
       ownerName: "Sam Durand",
     });
-    expect(draft).toEqual({
+    expect(render(draft, "fr")).toEqual({
       userId: "user_b",
       type: "trust_added",
       title: "Nouveau proche",
@@ -26,14 +27,57 @@ describe("trust_added", () => {
   });
 
   it("stays polite when the person has no name", () => {
-    expect(
-      trustAdded({ userId: "b", ownerId: "a", ownerName: null }).body,
-    ).toBe("Quelqu'un vous a ajouté à ses proches.");
+    const draft = trustAdded({ userId: "b", ownerId: "a", ownerName: null });
+    expect(render(draft, "fr").body).toBe(
+      "Quelqu'un vous a ajouté à ses proches.",
+    );
+    expect(render(draft, "en").body).toBe(
+      "Someone added you as a trusted contact.",
+    );
   });
 });
 
+describe("copy", () => {
+  const ids = {
+    userId: "u",
+    ownerId: "o",
+    validatorId: "v",
+    accessorId: "a",
+    trusterId: "t",
+    contractId: "c",
+    ownerName: null,
+    userName: null,
+    quorum: false,
+    reason: "cancelled",
+    role: "accessor",
+  };
+  const categories = {
+    networks: ["Réseaux sociaux", "Social media"],
+    devices: ["Appareils", "Devices"],
+    storage: ["Stockage en ligne", "Online storage"],
+  } as const;
+
+  it.each(Object.entries(templates))(
+    "%s is written in both languages and names the category in each",
+    (_name, template) => {
+      for (const [category, [fr, en]] of Object.entries(categories)) {
+        const draft = template({ ...ids, category });
+        expect(render(draft, "fr").title).not.toBe(render(draft, "en").title);
+        expect(render(draft, "fr").body).not.toBe(render(draft, "en").body);
+        if (draft.data.url.startsWith("/contract/")) {
+          expect(render(draft, "fr").body).toContain(`« ${fr} »`);
+          expect(render(draft, "en").body).toContain(`“${en}”`);
+        }
+      }
+    },
+  );
+});
+
 describe("push", () => {
-  const draft = trustAdded({ userId: "b", ownerId: "a", ownerName: "Sam" });
+  const draft = render(
+    trustAdded({ userId: "b", ownerId: "a", ownerName: "Sam" }),
+    "fr",
+  );
 
   it("respects the user's choice, except for critical notifications", () => {
     expect(shouldPush(draft, { push_enabled: true })).toBe(true);

@@ -1,4 +1,4 @@
-import type { NotificationDraft } from "./notification.js";
+import type { RenderedNotification } from "./notification.js";
 
 /** What a phone receives (Expo push message without its recipient token). */
 export interface PushMessage {
@@ -15,7 +15,7 @@ export interface PushMessage {
 }
 
 export function pushMessage(
-  draft: NotificationDraft,
+  draft: RenderedNotification,
   notificationId: string,
   unreadCount: number,
 ): PushMessage {

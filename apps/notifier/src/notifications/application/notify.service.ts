@@ -3,6 +3,7 @@ import type { Clock } from "@lib/kernel";
 import {
   DEFAULT_PREFERENCES,
   type NotificationDraft,
+  render,
   shouldPush,
 } from "../domain/notification.js";
 import { pushMessage } from "../domain/push.js";
@@ -23,22 +24,27 @@ export class NotifyService {
   ): Promise<void> {
     if (drafts.length === 0) return;
     const userIds = [...new Set(drafts.map((d) => d.userId))];
-    const stored = await store.notifications.insert(drafts);
-    const [preferences, tokens, unread] = await Promise.all([
-      store.preferences.getMany(userIds),
+    const preferences = await store.preferences.getMany(userIds);
+    const prefsOf = (userId: string) =>
+      preferences.get(userId) ?? DEFAULT_PREFERENCES;
+    const rendered = drafts.map((draft) =>
+      render(draft, prefsOf(draft.userId).language),
+    );
+    const stored = await store.notifications.insert(rendered);
+    // After the insert: the badge counts the notification just added.
+    const [tokens, unread] = await Promise.all([
       store.tokens.tokensOf(userIds),
       store.notifications.unreadCounts(userIds),
     ]);
 
-    const deliveries = drafts.flatMap((draft, i) => {
-      const prefs = preferences.get(draft.userId) ?? DEFAULT_PREFERENCES;
-      if (!shouldPush(draft, prefs)) return [];
+    const deliveries = rendered.flatMap((notification, i) => {
+      if (!shouldPush(notification, prefsOf(notification.userId))) return [];
       const message = pushMessage(
-        draft,
+        notification,
         stored[i].id,
-        unread.get(draft.userId) ?? 0,
+        unread.get(notification.userId) ?? 0,
       );
-      return (tokens.get(draft.userId) ?? []).map((token) => ({
+      return (tokens.get(notification.userId) ?? []).map((token) => ({
         notificationId: stored[i].id,
         token,
         message,

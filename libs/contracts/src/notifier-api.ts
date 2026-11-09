@@ -24,9 +24,15 @@ export interface MarkedRead {
   updated: number;
 }
 
+/** The languages the app speaks, and so the ones notifications are written in. */
+export const NOTIFICATION_LANGUAGES = ["fr", "en"] as const;
+export type NotificationLanguage = (typeof NOTIFICATION_LANGUAGES)[number];
+
 export interface NotificationPreferences {
   /** Push for non-critical notifications; critical ones are always pushed. */
   push_enabled: boolean;
+  /** Language of new notifications; those already received keep theirs. */
+  language: NotificationLanguage;
 }
 
 export interface PushTokenBody {

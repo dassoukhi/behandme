@@ -1,9 +1,11 @@
 import { ApiProperty } from "@nestjs/swagger";
-import type {
-  InboxNotification,
-  MarkedRead,
-  NotificationPreferences,
-  UnreadCount,
+import {
+  NOTIFICATION_LANGUAGES,
+  type InboxNotification,
+  type MarkedRead,
+  type NotificationLanguage,
+  type NotificationPreferences,
+  type UnreadCount,
 } from "@lib/contracts";
 
 export class NotificationDto implements InboxNotification {
@@ -60,4 +62,12 @@ export class NotificationPreferencesDto implements NotificationPreferences {
     example: true,
   })
   push_enabled: boolean;
+
+  @ApiProperty({
+    description:
+      "Language of new notifications; those already received keep theirs.",
+    enum: NOTIFICATION_LANGUAGES,
+    example: "fr",
+  })
+  language: NotificationLanguage;
 }

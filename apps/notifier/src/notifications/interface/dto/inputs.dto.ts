@@ -1,10 +1,15 @@
 import {
   IsBoolean,
+  IsIn,
   IsOptional,
   IsString,
   Matches,
   MaxLength,
 } from "class-validator";
+import {
+  NOTIFICATION_LANGUAGES,
+  type NotificationLanguage,
+} from "@lib/contracts";
 
 export class SetReadDto {
   @IsBoolean()
@@ -24,4 +29,8 @@ export class UpdatePreferencesDto {
   @IsOptional()
   @IsBoolean()
   push_enabled?: boolean;
+
+  @IsOptional()
+  @IsIn(NOTIFICATION_LANGUAGES)
+  language?: NotificationLanguage;
 }

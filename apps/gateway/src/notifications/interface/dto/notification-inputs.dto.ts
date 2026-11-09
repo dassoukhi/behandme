@@ -1,11 +1,16 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import {
   IsBoolean,
+  IsIn,
   IsOptional,
   IsString,
   Matches,
   MaxLength,
 } from "class-validator";
+import {
+  NOTIFICATION_LANGUAGES,
+  type NotificationLanguage,
+} from "@lib/contracts";
 
 export class UpdateNotificationDto {
   @ApiProperty({ description: "Read (true) or unread (false)", example: true })
@@ -31,4 +36,13 @@ export class UpdateNotificationPreferencesDto {
   @IsOptional()
   @IsBoolean()
   push_enabled?: boolean;
+
+  @ApiPropertyOptional({
+    description: "Language of new notifications",
+    enum: NOTIFICATION_LANGUAGES,
+    example: "en",
+  })
+  @IsOptional()
+  @IsIn(NOTIFICATION_LANGUAGES)
+  language?: NotificationLanguage;
 }

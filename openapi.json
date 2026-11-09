@@ -1662,10 +1662,20 @@
             "type": "boolean",
             "description": "Push for non-critical notifications. Critical ones (a claim on your contract) are always pushed.",
             "example": true
+          },
+          "language": {
+            "enum": [
+              "fr",
+              "en"
+            ],
+            "type": "string",
+            "description": "Language of new notifications; those already received keep theirs.",
+            "example": "fr"
           }
         },
         "required": [
-          "push_enabled"
+          "push_enabled",
+          "language"
         ]
       },
       "UpdateNotificationPreferencesDto": {
@@ -1674,6 +1684,15 @@
           "push_enabled": {
             "type": "boolean",
             "example": false
+          },
+          "language": {
+            "enum": [
+              "fr",
+              "en"
+            ],
+            "type": "string",
+            "description": "Language of new notifications",
+            "example": "en"
           }
         }
       },

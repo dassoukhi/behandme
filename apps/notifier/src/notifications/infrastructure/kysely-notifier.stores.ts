@@ -4,8 +4,8 @@ import { DATABASE } from "@lib/platform";
 import type { Executor } from "@lib/messaging";
 import {
   DEFAULT_PREFERENCES,
-  type NotificationDraft,
   type Preferences,
+  type RenderedNotification,
 } from "../domain/notification.js";
 import type { PushMessage } from "../domain/push.js";
 import type {
@@ -29,12 +29,14 @@ function notify(db: Executor): Db {
 class KyselyNotifications implements NotificationRepository {
   constructor(private readonly db: Db) {}
 
-  async insert(drafts: NotificationDraft[]): Promise<StoredNotification[]> {
-    if (drafts.length === 0) return [];
+  async insert(
+    notifications: RenderedNotification[],
+  ): Promise<StoredNotification[]> {
+    if (notifications.length === 0) return [];
     const rows = await this.db
       .insertInto("notifications")
       .values(
-        drafts.map((d) => ({
+        notifications.map((d) => ({
           user_id: d.userId,
           type: d.type,
           title: d.title,
@@ -183,7 +185,7 @@ class KyselyPreferences implements PreferenceRepository {
     if (userIds.length === 0) return preferences;
     const rows = await this.db
       .selectFrom("preferences")
-      .select(["user_id", "push_enabled"])
+      .select(["user_id", "push_enabled", "language"])
       .where("user_id", "in", userIds)
       .execute();
     for (const { user_id, ...prefs } of rows) preferences.set(user_id, prefs);
@@ -203,7 +205,7 @@ class KyselyPreferences implements PreferenceRepository {
           .column("user_id")
           .doUpdateSet({ ...changes, updated_at: sql<Date>`now()` }),
       )
-      .returning(["push_enabled"])
+      .returning(["push_enabled", "language"])
       .executeTakeFirstOrThrow();
     return row;
   }

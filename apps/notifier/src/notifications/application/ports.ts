@@ -1,5 +1,8 @@
 import type { Executor } from "@lib/messaging";
-import type { NotificationDraft, Preferences } from "../domain/notification.js";
+import type {
+  Preferences,
+  RenderedNotification,
+} from "../domain/notification.js";
 import type { PushMessage, PushOutcome } from "../domain/push.js";
 
 export interface StoredNotification {
@@ -14,8 +17,8 @@ export interface StoredNotification {
 }
 
 export interface NotificationRepository {
-  /** Stores the drafts; returns them with their ids, in the same order. */
-  insert(drafts: NotificationDraft[]): Promise<StoredNotification[]>;
+  /** Stores the notifications; returns them with their ids, in the same order. */
+  insert(notifications: RenderedNotification[]): Promise<StoredNotification[]>;
   /** The user's notifications, newest first. */
   list(userId: string, limit: number): Promise<StoredNotification[]>;
   /** Unread count of each of `userIds` (0 when absent). */

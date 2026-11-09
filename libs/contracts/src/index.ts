@@ -20,9 +20,11 @@ export {
 } from "./events.js";
 export {
   INBOX_LIMIT,
+  NOTIFICATION_LANGUAGES,
   NOTIFIER_AUDIENCE,
   type InboxNotification,
   type MarkedRead,
+  type NotificationLanguage,
   type NotificationPreferences,
   type PushTokenBody,
   type UnreadCount,

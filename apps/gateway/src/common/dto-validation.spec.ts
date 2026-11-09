@@ -78,6 +78,15 @@ describe("notification DTOs", () => {
       validate(UpdateNotificationPreferencesDto, { push_enabled: "no" }),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
+
+  it("accepts the app's languages only", async () => {
+    await expect(
+      validate(UpdateNotificationPreferencesDto, { language: "en" }),
+    ).resolves.toEqual({ language: "en" });
+    await expect(
+      validate(UpdateNotificationPreferencesDto, { language: "de" }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
 });
 
 describe("contract DTOs", () => {

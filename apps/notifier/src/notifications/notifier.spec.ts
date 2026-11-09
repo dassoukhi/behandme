@@ -166,6 +166,35 @@ describe("trust.added", () => {
     expect(await inbox.list(ALICE)).toEqual([]);
   });
 
+  it("writes in the language of the person added, in the inbox and the push", async () => {
+    await inbox.updatePreferences(BOB, { language: "en" });
+    await inbox.registerDevice(BOB, TOKEN_B1);
+
+    await receive(aliceAddsBob());
+
+    const copy = {
+      title: "New trusted contact",
+      body: "Alice Martin added you as a trusted contact.",
+    };
+    expect((await inbox.list(BOB))[0]).toMatchObject(copy);
+    expect((await deliveries())[0].message).toMatchObject({
+      ...copy,
+      badge: 1,
+    });
+  });
+
+  it("changes the language without touching the push setting, and the reverse", async () => {
+    await inbox.updatePreferences(BOB, { push_enabled: false });
+    expect(await inbox.updatePreferences(BOB, { language: "en" })).toEqual({
+      push_enabled: false,
+      language: "en",
+    });
+    expect(await inbox.updatePreferences(BOB, { push_enabled: true })).toEqual({
+      push_enabled: true,
+      language: "en",
+    });
+  });
+
   it("creates the notification once when the event arrives twice", async () => {
     const event = aliceAddsBob();
     await receive(event, event);
@@ -381,7 +410,10 @@ describe("user.deleted", () => {
     );
 
     expect(await inbox.list(BOB)).toEqual([]);
-    expect(await inbox.preferences(BOB)).toEqual({ push_enabled: true });
+    expect(await inbox.preferences(BOB)).toEqual({
+      push_enabled: true,
+      language: "fr",
+    });
     const { rows } = await sql<{
       user_id: string;
     }>`select user_id from notify.push_tokens`.execute(db);

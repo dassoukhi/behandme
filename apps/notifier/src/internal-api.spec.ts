@@ -136,7 +136,21 @@ describe("internal API", () => {
       method: "PATCH",
       body: JSON.stringify({ push_enabled: false }),
     });
-    expect(await prefs.json()).toEqual({ push_enabled: false });
+    expect(await prefs.json()).toEqual({ push_enabled: false, language: "fr" });
+
+    const language = await call("/internal/v1/preferences", {
+      method: "PATCH",
+      body: JSON.stringify({ language: "en" }),
+    });
+    expect(await language.json()).toEqual({
+      push_enabled: false,
+      language: "en",
+    });
+    const unknown = await call("/internal/v1/preferences", {
+      method: "PATCH",
+      body: JSON.stringify({ language: "de" }),
+    });
+    expect(unknown.status).toBe(400);
     const count = await call("/internal/v1/inbox/unread-count");
     expect(await count.json()).toEqual({ count: 1 });
   });

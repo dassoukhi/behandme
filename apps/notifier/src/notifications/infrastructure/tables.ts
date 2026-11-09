@@ -1,4 +1,5 @@
 import type { ColumnType, Generated, JSONColumnType } from "kysely";
+import type { Language } from "../domain/notification.js";
 import type { PushMessage } from "../domain/push.js";
 
 // Schema notify (supabase/migrations/20261014180000_notifier_and_worker.sql).
@@ -25,6 +26,7 @@ export interface PushTokensTable {
 export interface PreferencesTable {
   user_id: string;
   push_enabled: boolean;
+  language: Language;
   updated_at: ColumnType<Date, Date | undefined, Date>;
 }
 
