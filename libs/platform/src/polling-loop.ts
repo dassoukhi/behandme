@@ -11,6 +11,12 @@ export interface PollingLoopOptions {
   maxBackoffMs?: number;
 }
 
+/** A connection that fails on every address of a host is an AggregateError: its message is empty. */
+function reason(error: unknown): string {
+  const { message, code, name } = error as NodeJS.ErrnoException;
+  return message || code || name;
+}
+
 /**
  * Runs a batch job again and again: at once while there is work, after `idleMs` when idle, with a
  * growing wait while it fails (database down…). `stop()` waits for the batch in progress.
@@ -53,7 +59,7 @@ export class PollingLoop {
         failures++;
         wait = Math.min(idleMs * 2 ** failures, maxBackoffMs);
         logger.error(
-          `${name} failed (${failures} in a row, next try in ${wait} ms): ${(error as Error).message}`,
+          `${name} failed (${failures} in a row, next try in ${wait} ms): ${reason(error)}`,
         );
       }
       if (wait > 0 && this.running) await this.sleep(wait);

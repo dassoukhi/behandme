@@ -137,6 +137,25 @@ describe("polling loop", () => {
     await loop.stop();
   });
 
+  it("says why it failed even when the error has no message", async () => {
+    vi.useFakeTimers();
+    // What Node throws when a connection fails on every address of a host.
+    const timedOut = Object.assign(new AggregateError([], ""), {
+      code: "ETIMEDOUT",
+    });
+    const run = vi
+      .fn<() => Promise<number>>()
+      .mockRejectedValueOnce(timedOut)
+      .mockResolvedValue(0);
+    const loop = new PollingLoop({ name: "test", run, logger, idleMs: 100 });
+    loop.start();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.stringMatching(/next try in 200 ms\): ETIMEDOUT$/),
+    );
+    await loop.stop();
+  });
+
   it("stops without waiting for the idle delay, after the batch in progress", async () => {
     let finish!: () => void;
     const run = vi.fn(
