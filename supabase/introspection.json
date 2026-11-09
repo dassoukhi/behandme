@@ -1528,6 +1528,18 @@
         },
         {
           "table_schema": "notify",
+          "table_name": "preferences",
+          "column_name": "language",
+          "ordinal_position": 4,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "NO",
+          "column_default": "'fr'::text",
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "notify",
           "table_name": "processed_messages",
           "column_name": "consumer",
           "ordinal_position": 1,
@@ -2354,6 +2366,13 @@
           "conname": "outbox_pkey",
           "contype": "p",
           "definition": "PRIMARY KEY (id)"
+        },
+        {
+          "schema": "notify",
+          "table_name": "notify.preferences",
+          "conname": "preferences_language_check",
+          "contype": "c",
+          "definition": "CHECK ((language = ANY (ARRAY['fr'::text, 'en'::text])))"
         },
         {
           "schema": "notify",
