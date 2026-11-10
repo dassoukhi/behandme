@@ -1,6 +1,6 @@
-# behandme — BehindMe backend
+# behandme — BehyndMe backend
 
-NestJS 12 (ESM) API for the BehindMe mobile app (`../behindMe`). Authentication with Clerk, data in
+NestJS 12 (ESM) API for the BehyndMe mobile app (`../behindMe`). Authentication with Clerk, data in
 Supabase Postgres (accessed with the service-role key; the public anon key is denied by RLS).
 
 It is a NestJS monorepo: one app per service in `apps/` (`gateway`, the public API; `notifier`, notifications

@@ -1,7 +1,7 @@
 {
   "name": "nestjs-supabase-backend",
   "version": "0.1.0",
-  "description": "BehindMe backend: gateway, notifier and worker services (NestJS monorepo)",
+  "description": "BehyndMe backend: gateway, notifier and worker services (NestJS monorepo)",
   "private": true,
   "type": "module",
   "scripts": {

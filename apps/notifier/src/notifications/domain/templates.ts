@@ -125,11 +125,11 @@ export function keyCheckup(params: { userId: string }): NotificationDraft {
     copy: {
       fr: {
         title: "Votre point annuel",
-        body: "Ouvrez BehindMe une minute : vos proches comptent sur vous.",
+        body: "Ouvrez BehyndMe une minute : vos proches comptent sur vous.",
       },
       en: {
         title: "Your yearly check-up",
-        body: "Open BehindMe for a minute: the people close to you are counting on you.",
+        body: "Open BehyndMe for a minute: the people close to you are counting on you.",
       },
     },
     data: { url: "/" },

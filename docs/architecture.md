@@ -1,6 +1,6 @@
-# BehindMe backend architecture
+# BehyndMe backend architecture
 
-BehindMe lets an **owner** hand a secret (social network, device or cloud access) to an **accessor**. The
+BehyndMe lets an **owner** hand a secret (social network, device or cloud access) to an **accessor**. The
 secret is released only after a claim, a contest window and a quorum of trusted **validators**. The server
 never sees the secret: it is encrypted end to end on the owner's phone.
 
