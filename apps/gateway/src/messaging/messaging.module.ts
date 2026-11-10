@@ -40,8 +40,12 @@ class GatewayMessaging implements OnApplicationBootstrap, OnModuleDestroy {
             "core",
             systemClock.now(),
           );
+          // Transfers nobody took: their wraps go too.
+          const transfers = await keysUnitOfWork
+            .bind(tx as Kysely<any>)
+            .transfers.deleteExpired(systemClock.now());
           this.logger.log(
-            `Retention: ${purged.outbox} outbox rows, ${purged.processed} processed ids deleted`,
+            `Retention: ${purged.outbox} outbox rows, ${purged.processed} processed ids, ${transfers} expired key transfers deleted`,
           );
         }),
         on(KeyCareDue, async (_payload, _event, tx) => {

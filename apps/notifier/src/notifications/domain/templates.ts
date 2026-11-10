@@ -50,6 +50,29 @@ export function keysReset(params: { userId: string }): NotificationDraft {
   };
 }
 
+/**
+ * A new phone took the user's keys from their old one. If it was not them, someone holds their session and
+ * a phone of theirs: pushed even when push is off.
+ */
+export function keysTransferred(params: { userId: string }): NotificationDraft {
+  return {
+    userId: params.userId,
+    type: "keys_transferred",
+    copy: {
+      fr: {
+        title: "Vos clés sont sur un nouveau téléphone",
+        body: "Si ce n'est pas vous, réinitialisez vos clés et changez votre mot de passe tout de suite.",
+      },
+      en: {
+        title: "Your keys are on a new phone",
+        body: "If this wasn't you, reset your keys and change your password right away.",
+      },
+    },
+    data: { url: "/settings/security" },
+    critical: true,
+  };
+}
+
 /** Someone the reader trusts has new keys: compare their new security code before entrusting them. */
 export function contactKeysReset(params: {
   trusterId: string;

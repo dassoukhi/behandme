@@ -1,6 +1,7 @@
 import type { EventPublisher } from "../../users/application/ports.js";
 import type { KeyCare, PhraseLocation } from "../domain/care.js";
 import type { RegisteredKeys } from "../domain/keys.js";
+import type { KeyTransfer } from "../domain/transfer.js";
 
 export interface KeyRepository {
   find(userId: string): Promise<RegisteredKeys | null>;
@@ -41,9 +42,26 @@ export interface KeyRepository {
 }
 export const KEY_REPOSITORY = Symbol("KeyRepository");
 
+/** core.key_transfers: a user's transfers, never another user's. */
+export interface KeyTransferRepository {
+  /** The user's only transfer: replaces the one they had, under a new id and with no wrap. */
+  open(
+    transfer: Omit<KeyTransfer, "id" | "wrap" | "createdAt">,
+  ): Promise<KeyTransfer>;
+  find(id: string, userId: string): Promise<KeyTransfer | null>;
+  /** Locked until the transaction ends: one depositor, one taker. */
+  findForUpdate(id: string, userId: string): Promise<KeyTransfer | null>;
+  deposit(id: string, wrap: Uint8Array): Promise<void>;
+  delete(id: string): Promise<void>;
+  deleteForUser(userId: string): Promise<void>;
+  deleteExpired(now: Date): Promise<number>;
+}
+export const KEY_TRANSFER_REPOSITORY = Symbol("KeyTransferRepository");
+
 /** Keys and the events their change causes, in one transaction. */
 export interface KeysTransaction {
   keys: KeyRepository;
+  transfers: KeyTransferRepository;
   events: EventPublisher;
 }
 

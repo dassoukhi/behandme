@@ -14,6 +14,7 @@ export {
   KeyCareDue,
   KeyCareReminder,
   KeysRotated,
+  KeysTransferred,
   ParticipantLeft,
   PushReceiptsDue,
   RetentionDue,

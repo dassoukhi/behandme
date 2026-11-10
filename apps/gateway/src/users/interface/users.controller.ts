@@ -1,7 +1,5 @@
-import { reverificationError } from "@clerk/backend/internal";
 import {
   Controller,
-  ForbiddenException,
   Get,
   Post,
   Body,
@@ -30,10 +28,7 @@ import {
   CurrentUserId,
   CurrentVerificationAge,
 } from "../../auth/current-user.decorator.js";
-import {
-  RESET_REVERIFICATION,
-  ReverificationRequired,
-} from "../../auth/domain/reverification.js";
+import { reverified } from "../../auth/reverified.js";
 import { RATE_LIMIT } from "../../common/throttle/user-throttler.guard.js";
 
 @ApiTags("users")
@@ -113,14 +108,7 @@ export class UsersController {
     @CurrentUserId() me: string,
     @CurrentVerificationAge() fva: [number, number] | null,
   ): Promise<{ message: string }> {
-    try {
-      await this.profiles.removeMe(me, fva);
-    } catch (error) {
-      if (error instanceof ReverificationRequired) {
-        throw new ForbiddenException(reverificationError(RESET_REVERIFICATION));
-      }
-      throw error;
-    }
+    await reverified(() => this.profiles.removeMe(me, fva));
     return { message: "Account deleted" };
   }
 

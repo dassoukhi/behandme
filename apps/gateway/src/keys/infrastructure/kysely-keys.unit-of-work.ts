@@ -4,6 +4,7 @@ import { currentCorrelationId, newId, systemClock } from "@lib/kernel";
 import { TransactionalOutbox } from "@lib/messaging";
 import { DATABASE } from "@lib/platform";
 import type { KeysTransaction, KeysUnitOfWork } from "../application/ports.js";
+import { KyselyKeyTransferRepository } from "./kysely-key-transfer.repository.js";
 import { KyselyKeyRepository } from "./kysely-key.repository.js";
 
 /** One database transaction; events go to core.outbox in it (see libs/messaging). */
@@ -24,6 +25,7 @@ export class KyselyKeysUnitOfWork implements KeysUnitOfWork {
     });
     return {
       keys: new KyselyKeyRepository(tx),
+      transfers: new KyselyKeyTransferRepository(tx),
       events: {
         publish: async (event) => {
           await outbox.publish(event);

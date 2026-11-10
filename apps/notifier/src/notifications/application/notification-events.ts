@@ -13,6 +13,7 @@ import {
   contractRevoked,
   keyCheckup,
   keysReset,
+  keysTransferred,
   participantLeft,
   phraseCheck,
   trustAdded,
@@ -57,6 +58,14 @@ export class NotificationEvents {
         }),
       ),
     ]);
+  }
+
+  /** Alert the user: it may not have been them. */
+  async keysTransferred(
+    store: NotifierStore,
+    event: { userId: string },
+  ): Promise<void> {
+    await this.notifier.notify(store, [keysTransferred(event)]);
   }
 
   /** A check of the recovery phrase, or the yearly check-up, is due. */

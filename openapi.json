@@ -1639,6 +1639,186 @@
           "keys"
         ]
       }
+    },
+    "/api/v1/users/me/key-transfers": {
+      "post": {
+        "operationId": "KeyTransfersController_open",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpenKeyTransferDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KeyTransferDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Not an X-Wing public key"
+          },
+          "403": {
+            "description": "Reverification needed: the body is Clerk's reverification hint (clerk_error)"
+          },
+          "404": {
+            "description": "No keys to move"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The new phone opens a transfer to a key it made. Needs a Clerk verification less than 10 minutes old; replaces the user's other transfers; open 5 minutes.",
+        "tags": [
+          "keys"
+        ]
+      }
+    },
+    "/api/v1/users/me/key-transfers/{id}": {
+      "get": {
+        "operationId": "KeyTransfersController_find",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KeyTransferDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such transfer, or it expired"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "An open transfer of the caller's",
+        "tags": [
+          "keys"
+        ]
+      },
+      "patch": {
+        "operationId": "KeyTransfersController_deposit",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DepositKeyTransferDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KeyTransferDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Not a transfer wrap"
+          },
+          "404": {
+            "description": "No such transfer, or it expired"
+          },
+          "409": {
+            "description": "The keys changed meanwhile, or this transfer holds keys already"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The old phone sends the keys, wrapped to the new phone's key (the server cannot open them). Once.",
+        "tags": [
+          "keys"
+        ]
+      }
+    },
+    "/api/v1/users/me/key-transfers/{id}/take": {
+      "post": {
+        "operationId": "KeyTransfersController_take",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TakenKeyTransferDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such transfer, or it expired"
+          },
+          "409": {
+            "description": "The old phone has not sent the keys yet"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The new phone takes the keys the old one sent; the transfer is then gone and the user alerted",
+        "tags": [
+          "keys"
+        ]
+      }
     }
   },
   "info": {
@@ -3064,6 +3244,92 @@
         },
         "required": [
           "key_version"
+        ]
+      },
+      "OpenKeyTransferDto": {
+        "type": "object",
+        "properties": {
+          "recipient_key": {
+            "type": "string",
+            "maxLength": 2000,
+            "format": "base64",
+            "description": "X-Wing public key, base64 (1216 bytes), made by the new phone for this transfer only"
+          }
+        },
+        "required": [
+          "recipient_key"
+        ]
+      },
+      "KeyTransferDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "4bce1a03-3fa5-4d39-8c7e-7f3b7e3468a5"
+          },
+          "recipient_key": {
+            "type": "string",
+            "description": "The new phone's public key, base64: the old phone checks it against the code it scanned"
+          },
+          "key_version": {
+            "type": "number",
+            "description": "The key version to send",
+            "example": 1
+          },
+          "ready": {
+            "type": "boolean",
+            "description": "The old phone sent the keys"
+          },
+          "expires_at": {
+            "type": "string",
+            "example": "2026-11-10T09:05:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "recipient_key",
+          "key_version",
+          "ready",
+          "expires_at"
+        ]
+      },
+      "DepositKeyTransferDto": {
+        "type": "object",
+        "properties": {
+          "key_version": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 1000,
+            "description": "The registered key version",
+            "example": 1
+          },
+          "wrap": {
+            "type": "string",
+            "maxLength": 2000,
+            "format": "base64",
+            "description": "The seed and its phrase's language, wrapped to recipient_key with HPKE in PSK mode (X-Wing, HKDF-SHA256, AES-256-GCM; the PSK is the secret in the new phone's QR code, which the server never sees; info behindme/v1/wrap/transfer|transfer=<id>|user=<id>|key=<key_version>), base64 (1170 bytes)"
+          }
+        },
+        "required": [
+          "key_version",
+          "wrap"
+        ]
+      },
+      "TakenKeyTransferDto": {
+        "type": "object",
+        "properties": {
+          "key_version": {
+            "type": "number",
+            "example": 1
+          },
+          "wrap": {
+            "type": "string",
+            "description": "The wrap the old phone sent, base64"
+          }
+        },
+        "required": [
+          "key_version",
+          "wrap"
         ]
       }
     }

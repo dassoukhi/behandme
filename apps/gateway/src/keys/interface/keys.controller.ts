@@ -1,8 +1,6 @@
-import { reverificationError } from "@clerk/backend/internal";
 import {
   Body,
   Controller,
-  ForbiddenException,
   Get,
   HttpCode,
   Patch,
@@ -20,18 +18,15 @@ import {
   CurrentUserId,
   CurrentVerificationAge,
 } from "../../auth/current-user.decorator.js";
+import { reverified } from "../../auth/reverified.js";
 import {
   KeyCareService,
   NO_KEY_CARE,
 } from "../application/key-care.service.js";
 import { KeysService } from "../application/keys.service.js";
 import { toPublicKeys } from "../application/public-keys.js";
-import {
-  type KeySubmission,
-  type RegisteredKeys,
-  RESET_REVERIFICATION,
-  ReverificationRequired,
-} from "../domain/keys.js";
+import { type KeySubmission, type RegisteredKeys } from "../domain/keys.js";
+import { fromBase64 } from "./base64.js";
 import {
   KeyProofDto,
   MyKeysDto,
@@ -39,9 +34,6 @@ import {
   RegisterKeysDto,
   UpdateKeyCareDto,
 } from "./dto/keys.dto.js";
-
-const fromBase64 = (text: string) =>
-  new Uint8Array(Buffer.from(text, "base64"));
 
 const toSubmission = (body: RegisterKeysDto): KeySubmission => ({
   keyVersion: body.key_version,
@@ -175,14 +167,9 @@ export class KeysController {
     @CurrentVerificationAge() fva: [number, number] | null,
     @Body() body: RegisterKeysDto,
   ): Promise<MyKeysDto> {
-    try {
-      return newKeysDto(await this.keys.reset(me, toSubmission(body), fva));
-    } catch (error) {
-      if (error instanceof ReverificationRequired) {
-        throw new ForbiddenException(reverificationError(RESET_REVERIFICATION));
-      }
-      throw error;
-    }
+    return reverified(async () =>
+      newKeysDto(await this.keys.reset(me, toSubmission(body), fva)),
+    );
   }
 
   @Get("keys")

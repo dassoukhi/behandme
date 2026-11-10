@@ -3,28 +3,34 @@ import { ConfigService } from "@nestjs/config";
 import { systemClock } from "@lib/kernel";
 import { UsersModule } from "../users/users.module.js";
 import { KeyCareService } from "./application/key-care.service.js";
+import { KeyTransferService } from "./application/key-transfer.service.js";
 import { KEYS_CLOCK, KeysService } from "./application/keys.service.js";
 import {
   KEY_CRYPTOGRAPHY,
   KEY_HOLDER_DIRECTORY,
   KEY_QUARANTINE,
   KEY_REPOSITORY,
+  KEY_TRANSFER_REPOSITORY,
   KEYS_UNIT_OF_WORK,
 } from "./application/ports.js";
 import { keyQuarantineMs } from "./domain/keys.js";
+import { KyselyKeyTransferRepository } from "./infrastructure/kysely-key-transfer.repository.js";
 import { KyselyKeyRepository } from "./infrastructure/kysely-key.repository.js";
 import { KyselyKeysUnitOfWork } from "./infrastructure/kysely-keys.unit-of-work.js";
 import { nodeKeyCryptography } from "./infrastructure/node-key-cryptography.js";
 import { UsersKeyHolderDirectory } from "./infrastructure/users-key-holder-directory.js";
+import { KeyTransfersController } from "./interface/key-transfers.controller.js";
 import { KeysController } from "./interface/keys.controller.js";
 
 @Module({
   imports: [UsersModule],
-  controllers: [KeysController],
+  controllers: [KeysController, KeyTransfersController],
   providers: [
     KeysService,
     KeyCareService,
+    KeyTransferService,
     { provide: KEY_REPOSITORY, useClass: KyselyKeyRepository },
+    { provide: KEY_TRANSFER_REPOSITORY, useClass: KyselyKeyTransferRepository },
     { provide: KEY_CRYPTOGRAPHY, useValue: nodeKeyCryptography },
     { provide: KEYS_CLOCK, useValue: systemClock },
     KyselyKeysUnitOfWork,

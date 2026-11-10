@@ -17,6 +17,7 @@ import {
   ContractSealed,
   KeyCareReminder,
   KeysRotated,
+  KeysTransferred,
   ParticipantLeft,
   on,
   PushReceiptsDue,
@@ -75,6 +76,9 @@ export class NotifierMessaging
         ),
         on(ContractSealed, (payload, _event, tx) =>
           events.contractSealed(stores.bind(tx), payload),
+        ),
+        on(KeysTransferred, (payload, _event, tx) =>
+          events.keysTransferred(stores.bind(tx), payload),
         ),
         on(ClaimFiled, (payload, _event, tx) =>
           events.claimFiled(stores.bind(tx), payload),

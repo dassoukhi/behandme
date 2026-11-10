@@ -18,6 +18,7 @@ import {
   ContractSealed,
   KeyCareReminder,
   KeysRotated,
+  KeysTransferred,
   ParticipantLeft,
   TrustAdded,
   UserDeleted,
@@ -94,6 +95,9 @@ async function receive(...envelopes: ReturnType<typeof createEnvelope>[]) {
       ),
       on(ContractSealed, (payload, _e, tx) =>
         events.contractSealed(stores.bind(tx), payload),
+      ),
+      on(KeysTransferred, (payload, _e, tx) =>
+        events.keysTransferred(stores.bind(tx), payload),
       ),
       on(ClaimFiled, (payload, _e, tx) =>
         events.claimFiled(stores.bind(tx), payload),
@@ -295,6 +299,28 @@ describe("keys.care_reminder", () => {
       { title: "Your yearly check-up" },
     ]);
     expect(await deliveries()).toEqual([]);
+  });
+});
+
+describe("keys.transferred", () => {
+  it("alerts the user even with push off: it may not have been them", async () => {
+    await inbox.registerDevice(BOB, TOKEN_B1);
+    await inbox.updatePreferences(BOB, { push_enabled: false });
+    await receive(
+      createEnvelope(
+        KeysTransferred.create({ userId: BOB }),
+        { correlationId: "c" },
+        clock,
+      ),
+    );
+    expect(await inbox.list(BOB)).toMatchObject([
+      {
+        type: "keys_transferred",
+        title: "Vos clés sont sur un nouveau téléphone",
+        data: { url: "/settings/security" },
+      },
+    ]);
+    expect(await deliveries()).toHaveLength(1);
   });
 });
 

@@ -204,6 +204,13 @@ export const RetentionDue = defineEvent(
   z.object({}),
 );
 
+/** Gateway: a new phone took the user's keys from their old one. If it was not them, they must act now. */
+export const KeysTransferred = defineEvent(
+  "keys.transferred",
+  1,
+  z.object({ userId }),
+);
+
 /** Worker, daily: the gateway looks for those whose keys or recovery phrase are due for a check. */
 export const KeyCareDue = defineEvent(
   "maintenance.key_care_due",

@@ -16,8 +16,10 @@ import {
 } from "vitest";
 import { ContractsFacade } from "../contracts/application/contracts.facade.js";
 import { KeyCareService } from "../keys/application/key-care.service.js";
+import { KeyTransferService } from "../keys/application/key-transfer.service.js";
 import { KeysService } from "../keys/application/keys.service.js";
 import { KEY_QUARANTINE_MS } from "../keys/domain/keys.js";
+import { KyselyKeyTransferRepository } from "../keys/infrastructure/kysely-key-transfer.repository.js";
 import { KyselyKeyRepository } from "../keys/infrastructure/kysely-key.repository.js";
 import { KyselyKeysUnitOfWork } from "../keys/infrastructure/kysely-keys.unit-of-work.js";
 import { UsersKeyHolderDirectory } from "../keys/infrastructure/users-key-holder-directory.js";
@@ -370,6 +372,31 @@ describe("public keys: who may read them", () => {
       const visible = await keys.visible(viewer, [ACCESSOR]);
       expect(visible.map((k) => k.userId)).toEqual(sees ? [ACCESSOR] : []);
     }
+  });
+});
+
+describe("key transfers: the account's own only", () => {
+  it("lets no one else read, fill or take a user's transfer, not even the people linked to them", async () => {
+    await withKeys(OWNER);
+    const transfers = new KeyTransferService(
+      new KyselyKeyTransferRepository(pg),
+      new KyselyKeysUnitOfWork(pg),
+      new FakeClock(),
+    );
+    const { id } = await transfers.open(OWNER, new Uint8Array(1216), [1, -1]);
+    const wrap = new Uint8Array(1170).fill(1);
+    const others = [ACCESSOR, VALIDATOR, STRANGER];
+    for (const other of others) {
+      await expect(transfers.find(other, id)).rejects.toThrow(NotFoundError);
+      await expect(transfers.deposit(other, id, 1, wrap)).rejects.toThrow(
+        NotFoundError,
+      );
+    }
+    await transfers.deposit(OWNER, id, 1, wrap);
+    for (const other of others) {
+      await expect(transfers.take(other, id)).rejects.toThrow(NotFoundError);
+    }
+    expect(await transfers.take(OWNER, id)).toMatchObject({ key_version: 1 });
   });
 });
 

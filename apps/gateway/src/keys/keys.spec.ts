@@ -8,7 +8,6 @@ import {
   expect,
   it,
 } from "vitest";
-import { generateKeyPairSync, randomBytes, sign } from "node:crypto";
 import { createCheckAuthorization } from "@clerk/shared/authorization";
 import { ConflictError, InvalidInputError, NotFoundError } from "@lib/kernel";
 import { FakeClock, startTestDatabase, type TestDatabase } from "@lib/testing";
@@ -18,14 +17,12 @@ import { KyselyUsersUnitOfWork } from "../users/infrastructure/kysely-users.unit
 import { KeyCareService } from "./application/key-care.service.js";
 import { KeysService } from "./application/keys.service.js";
 import { toPublicKeys } from "./application/public-keys.js";
-import { keyProofStatement } from "./domain/care.js";
 import {
   type FactorVerificationAge,
   KEY_QUARANTINE_MS,
   keyQuarantineMs,
   type KeySubmission,
   recentlyVerified,
-  registrationStatement,
   RESET_REVERIFICATION,
   ReverificationRequired,
 } from "./domain/keys.js";
@@ -33,6 +30,7 @@ import { KyselyKeyRepository } from "./infrastructure/kysely-key.repository.js";
 import { KyselyKeysUnitOfWork } from "./infrastructure/kysely-keys.unit-of-work.js";
 import { nodeKeyCryptography } from "./infrastructure/node-key-cryptography.js";
 import { KeysController } from "./interface/keys.controller.js";
+import { keyPair } from "./testing/key-pair.js";
 import fixture from "./testing/key-registration-v1.json" with { type: "json" };
 
 // The keys made and signed by the app's lib/crypto (fixture shared with the app repo), checked here
@@ -192,45 +190,6 @@ describe("history", () => {
     ).rejects.toThrow(/never changed/);
   });
 });
-
-/** A key pair made here (node:crypto) and its submission, signed for `userId` and `keyVersion`. */
-function keyPair() {
-  const { publicKey, privateKey } = generateKeyPairSync("ed25519");
-  const signing = new Uint8Array(
-    publicKey.export({ format: "der", type: "spki" }).subarray(-32),
-  );
-  const kem = new Uint8Array(randomBytes(1216));
-  const submit = (userId: string, keyVersion: number): KeySubmission => {
-    const statement = nodeKeyCryptography.canonicalJson(
-      registrationStatement(
-        userId,
-        keyVersion,
-        Buffer.from(kem).toString("base64"),
-        Buffer.from(signing).toString("base64"),
-      ),
-    );
-    return {
-      keyVersion,
-      kemPublicKey: kem,
-      signingPublicKey: signing,
-      signature: new Uint8Array(sign(null, statement, privateKey)),
-    };
-  };
-  const prove = (userId: string, keyVersion: number, day: string) => ({
-    keyVersion,
-    day,
-    signature: new Uint8Array(
-      sign(
-        null,
-        nodeKeyCryptography.canonicalJson(
-          keyProofStatement(userId, keyVersion, day),
-        ),
-        privateKey,
-      ),
-    ),
-  });
-  return Object.assign(submit, { prove });
-}
 
 const FRESH: FactorVerificationAge = [2, -1];
 

@@ -59,7 +59,8 @@ shared through `libs/contracts` (e.g. `notifier-api.ts`); the gateway keeps its 
   `claim.deadline_due` (handover to itself, delayed), `contract.revoked`, `participant.left`, `scheduler.tick`, `maintenance.push_receipts_due`, `maintenance.claims_due`,
   `maintenance.retention_due`, `maintenance.key_care_due`, `keys.care_reminder`, `contract.sealed` (to the
   validators a sealing names: someone counts on them, keep your keys; not to the accessor, whose keys can be
-  replaced up to the claim, since validators re-wrap their shares to the accessor's current keys).
+  replaced up to the claim, since validators re-wrap their shares to the accessor's current keys),
+  `keys.transferred` (to the user: their keys were copied to a new phone).
 - **Correlation.** The gateway gives each request a correlation id (`x-correlation-id`, kept from the caller
   when valid); it travels in internal calls and in every event's envelope, consumers run with it, and every
   log line carries it (`ServiceLogger`, JSON in production).
@@ -165,6 +166,16 @@ phone for 13 months), `not_saved` (phrase never proved kept), or `ok`. The worke
 gateway remind those who are due (`keys.care_reminder`): the phrase at 7, 30 and 180 days, then in the yearly
 check-up, in January, twice at most. A push only: nothing yet reaches someone who refused notifications
 (e-mail: phase 5).
+
+**Key transfer.** A user who changes phone and still has the old one moves the keys without the phrase
+(`/users/me/key-transfers`, gateway `keys/`, table `core.key_transfers`). The new phone makes a one-time X-Wing
+key and opens a transfer to it (a Clerk reverification less than 10 minutes old, as for a reset; opening replaces
+the user's other transfers), then shows a QR code: the transfer id, a hash of that key, and a secret the server
+never sees. The old phone reads the transfer (same account only), checks the key against the hash and, after
+Face ID, deposits the seed wrapped to it (HPKE in PSK mode with the QR secret: the server can neither open the
+wrap nor forge one). The new phone takes it once (`POST …/take`): the row is deleted in the transaction that
+publishes `keys.transferred`, a critical alert to the user. A transfer lasts 5 minutes and the daily retention
+deletes those left behind. The server checks sizes and key versions only. A transfer is not a phrase check.
 
 **Account deletion.** `DELETE /users/me` needs a recent Clerk reverification, like a key reset. The gateway
 deletes the profile (keys and trust links go with it) and publishes `user.deleted` in the same transaction, then
