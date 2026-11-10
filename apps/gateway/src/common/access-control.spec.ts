@@ -15,6 +15,7 @@ import {
   it,
 } from "vitest";
 import { ContractsFacade } from "../contracts/application/contracts.facade.js";
+import { KeyCareService } from "../keys/application/key-care.service.js";
 import { KeysService } from "../keys/application/keys.service.js";
 import { KEY_QUARANTINE_MS } from "../keys/domain/keys.js";
 import { KyselyKeyRepository } from "../keys/infrastructure/kysely-key.repository.js";
@@ -111,7 +112,17 @@ beforeEach(async () => {
     new UsersKeyHolderDirectory(users, trust),
     KEY_QUARANTINE_MS,
   );
-  contracts = new ContractsFacade(handover, users, trust, keys);
+  contracts = new ContractsFacade(
+    handover,
+    users,
+    trust,
+    keys,
+    new KeyCareService(
+      new KyselyKeyRepository(pg),
+      nodeKeyCryptography,
+      new FakeClock(),
+    ),
+  );
   contractId = (
     await contracts.create(OWNER, {
       category: "networks",
@@ -495,6 +506,7 @@ describe("claims and release: who may, with whose keys", () => {
       usable: 1,
       total: 1,
       threshold: 1,
+      validators: [{ user_id: VALIDATOR, state: "not_saved" }],
     });
     await sql`reset role`.execute(pg);
     await sql`update core.user_keys set fingerprint = ${"b".repeat(64)} where user_id = ${VALIDATOR}`.execute(
@@ -504,6 +516,38 @@ describe("claims and release: who may, with whose keys", () => {
     const [listed] = await contracts.list(OWNER);
     expect(listed.health).toMatchObject({ usable: 0, total: 1 });
     expect(listed).not.toHaveProperty("sealed_validators");
+  });
+
+  it("tells only the owner how far each validator can be counted on, a silent phone included", async () => {
+    stored().sealed_validators = [
+      { user_id: VALIDATOR, key_version: 1, fingerprint: "a".repeat(64) },
+    ];
+    await sql`reset role`.execute(pg);
+    await sql`update core.user_keys
+      set phrase_checked_at = created_at, phrase_checks = 1, proven_on = created_at
+      where user_id = ${VALIDATOR}`.execute(pg);
+    await sql`set role svc_gateway`.execute(pg);
+    const stateForOwner = async () =>
+      (await contracts.get(OWNER, contractId)).health?.validators;
+    expect(await stateForOwner()).toEqual([
+      { user_id: VALIDATOR, state: "ok" },
+    ]);
+    for (const other of [ACCESSOR, VALIDATOR]) {
+      const { health } = await contracts.get(other, contractId);
+      expect(health).toMatchObject({ usable: 1, total: 1 });
+      expect(health).not.toHaveProperty("validators");
+    }
+
+    // A phone that has said nothing for over a year: the keys match, yet they may be lost.
+    await sql`reset role`.execute(pg);
+    await sql`update core.user_keys
+      set proven_on = '2024-11-01', created_at = '2024-11-01'
+      where user_id = ${VALIDATOR}`.execute(pg);
+    await sql`set role svc_gateway`.execute(pg);
+    expect(await stateForOwner()).toEqual([
+      { user_id: VALIDATOR, state: "silent" },
+    ]);
+    expect((await contracts.get(OWNER, contractId)).health?.usable).toBe(1);
   });
 
   it("hands the release package to the accessor only, with the owner's keys", async () => {

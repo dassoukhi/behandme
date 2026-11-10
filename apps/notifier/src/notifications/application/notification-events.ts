@@ -10,8 +10,10 @@ import {
   contactKeysReset,
   contractReleasedForAccessor,
   contractRevoked,
+  keyCheckup,
   keysReset,
   participantLeft,
+  phraseCheck,
   trustAdded,
 } from "../domain/templates.js";
 import { NotifyService } from "./notify.service.js";
@@ -53,6 +55,16 @@ export class NotificationEvents {
           userName: event.userName,
         }),
       ),
+    ]);
+  }
+
+  /** A check of the recovery phrase, or the yearly check-up, is due. */
+  async keyCareReminder(
+    store: NotifierStore,
+    event: { userId: string; kind: "phrase_check" | "key_checkup" },
+  ): Promise<void> {
+    await this.notifier.notify(store, [
+      event.kind === "phrase_check" ? phraseCheck(event) : keyCheckup(event),
     ]);
   }
 

@@ -10,5 +10,10 @@
     "signature": "w2PhoVBxMHwWCIF6caMLS20ln07dcWzOoyXYF+8+5mfJ3+BgTrBUgAa5sllcV7HnxqoyjrP0sb7QeH9dpG+pCg=="
   },
   "fingerprint": "e6c9767c1a793ea04f978cad0435f958dad5977a2fb65e368d71608297280ef1",
-  "security_code": "63514 36343 55769 53082 90573 75560"
+  "security_code": "63514 36343 55769 53082 90573 75560",
+  "proof": {
+    "key_version": 1,
+    "day": "2026-10-15",
+    "signature": "E33z2+NxhIL+ROfnyJeJ2VXWHXPEl6CIJZemEN9fB3+LU/lyCQ2cqW8xNAOj2QI25PXbE+7+tpZ8xKxXBYhWDg=="
+  }
 }

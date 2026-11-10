@@ -74,6 +74,46 @@ export function contactKeysReset(params: {
   };
 }
 
+/** Time to check the recovery phrase. Nothing on the lock screen says where the user keeps it. */
+export function phraseCheck(params: { userId: string }): NotificationDraft {
+  return {
+    userId: params.userId,
+    type: "phrase_check",
+    copy: {
+      fr: {
+        title: "Votre phrase est-elle toujours à sa place ?",
+        body: "Une minute pour le vérifier, tant que ce téléphone a vos clés.",
+      },
+      en: {
+        title: "Is your recovery phrase still in its place?",
+        body: "Take a minute to check, while this phone still has your keys.",
+      },
+    },
+    data: { url: "/keys/check" },
+    critical: false,
+  };
+}
+
+/** Once a year: opening the app is all it takes, and tells those who rely on this user that all is well. */
+export function keyCheckup(params: { userId: string }): NotificationDraft {
+  return {
+    userId: params.userId,
+    type: "key_checkup",
+    copy: {
+      fr: {
+        title: "Votre point annuel",
+        body: "Ouvrez BehindMe une minute : vos proches comptent sur vous.",
+      },
+      en: {
+        title: "Your yearly check-up",
+        body: "Open BehindMe for a minute: the people close to you are counting on you.",
+      },
+    },
+    data: { url: "/" },
+    critical: false,
+  };
+}
+
 // Claims and release. Lock-screen text names the contract's category only, never its description.
 
 const CATEGORY: Record<Language, Record<string, string>> = {

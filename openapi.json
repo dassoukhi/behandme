@@ -1398,7 +1398,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PublicKeysDto"
+                  "$ref": "#/components/schemas/MyKeysDto"
                 }
               }
             }
@@ -1436,7 +1436,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PublicKeysDto"
+                  "$ref": "#/components/schemas/MyKeysDto"
                 }
               }
             }
@@ -1454,6 +1454,98 @@
           }
         ],
         "summary": "Register the caller's first public keys (signed by the caller)",
+        "tags": [
+          "keys"
+        ]
+      }
+    },
+    "/api/v1/users/me/keys/proof": {
+      "post": {
+        "operationId": "KeysController_prove",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KeyProofDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyKeysDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A day that is not today, or a signature that does not verify"
+          },
+          "404": {
+            "description": "No keys registered yet"
+          },
+          "409": {
+            "description": "The keys changed meanwhile"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The phone proves it still holds the registered keys (a signature of the day)",
+        "tags": [
+          "keys"
+        ]
+      }
+    },
+    "/api/v1/users/me/keys/care": {
+      "patch": {
+        "operationId": "KeysController_updateCare",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateKeyCareDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyKeysDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Nothing to change"
+          },
+          "404": {
+            "description": "No keys registered yet"
+          },
+          "409": {
+            "description": "The keys changed meanwhile"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The user just proved they kept their recovery phrase, or says where they keep it",
         "tags": [
           "keys"
         ]
@@ -1479,7 +1571,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PublicKeysDto"
+                  "$ref": "#/components/schemas/MyKeysDto"
                 }
               }
             }
@@ -1833,6 +1925,29 @@
           "my_decision"
         ]
       },
+      "ValidatorHealthDTO": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "example": "user_2abcdefghijklmnop"
+          },
+          "state": {
+            "enum": [
+              "ok",
+              "lost",
+              "not_saved",
+              "silent"
+            ],
+            "type": "string",
+            "description": "ok; lost: not the keys of the sealing, the share is gone until the owner seals again; silent: no sign from their phone for over a year; not_saved: they have not proved they kept their recovery phrase"
+          }
+        },
+        "required": [
+          "user_id",
+          "state"
+        ]
+      },
       "HealthDTO": {
         "type": "object",
         "properties": {
@@ -1848,6 +1963,13 @@
             "type": "number",
             "description": "Approvals needed (k of n)",
             "example": 2
+          },
+          "validators": {
+            "description": "Owner only: how far they can count on each validator",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ValidatorHealthDTO"
+            }
           }
         },
         "required": [
@@ -2765,6 +2887,86 @@
           "created_at"
         ]
       },
+      "MyKeysDto": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "example": "user_2abcdefghijklmnop"
+          },
+          "key_version": {
+            "type": "number",
+            "example": 1
+          },
+          "kem_public_key": {
+            "type": "string",
+            "description": "X-Wing public key, base64"
+          },
+          "signing_public_key": {
+            "type": "string",
+            "description": "Ed25519 public key, base64"
+          },
+          "fingerprint": {
+            "type": "string",
+            "description": "hex SHA-256 of both keys; its first 30 digits are the security code"
+          },
+          "signature": {
+            "type": "string",
+            "description": "The user's signature of these keys, base64"
+          },
+          "usable_from": {
+            "type": "string",
+            "description": "Others may encrypt to these keys from this time (later than created_at after a reset)",
+            "example": "2026-10-15T09:00:00.000Z"
+          },
+          "created_at": {
+            "type": "string",
+            "example": "2026-10-15T09:00:00.000Z"
+          },
+          "proven_on": {
+            "type": "string",
+            "nullable": true,
+            "description": "The day the phone last proved it holds these keys",
+            "example": "2026-10-15"
+          },
+          "phrase_checked_at": {
+            "type": "string",
+            "nullable": true,
+            "description": "The last time the user proved they kept their phrase",
+            "example": "2026-10-15T09:00:00.000Z"
+          },
+          "phrase_check_due": {
+            "type": "boolean",
+            "description": "Time to check the recovery phrase again"
+          },
+          "phrase_location": {
+            "nullable": true,
+            "enum": [
+              "papers",
+              "safe",
+              "password_manager",
+              "relative",
+              "notary",
+              "other"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "key_version",
+          "kem_public_key",
+          "signing_public_key",
+          "fingerprint",
+          "signature",
+          "usable_from",
+          "created_at",
+          "proven_on",
+          "phrase_checked_at",
+          "phrase_check_due",
+          "phrase_location"
+        ]
+      },
       "RegisterKeysDto": {
         "type": "object",
         "properties": {
@@ -2799,6 +3001,69 @@
           "kem_public_key",
           "signing_public_key",
           "signature"
+        ]
+      },
+      "KeyProofDto": {
+        "type": "object",
+        "properties": {
+          "key_version": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 1000,
+            "description": "The registered key version",
+            "example": 1
+          },
+          "day": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "description": "Today in UTC; a day either side is accepted",
+            "example": "2026-10-15"
+          },
+          "signature": {
+            "type": "string",
+            "maxLength": 200,
+            "format": "base64",
+            "description": "Ed25519 signature, base64, by the signing key over the RFC 8785 JSON of {type: 'behindme/v1/key-proof', user_id, key_version, day}"
+          }
+        },
+        "required": [
+          "key_version",
+          "day",
+          "signature"
+        ]
+      },
+      "UpdateKeyCareDto": {
+        "type": "object",
+        "properties": {
+          "key_version": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 1000,
+            "description": "The key version this is about",
+            "example": 1
+          },
+          "phrase_checked": {
+            "type": "boolean",
+            "enum": [
+              true
+            ],
+            "description": "The user just proved they kept their recovery phrase"
+          },
+          "phrase_location": {
+            "enum": [
+              "papers",
+              "safe",
+              "password_manager",
+              "relative",
+              "notary",
+              "other"
+            ],
+            "type": "string",
+            "description": "Where the user says they keep their phrase: a category, never the place"
+          }
+        },
+        "required": [
+          "key_version"
         ]
       }
     }

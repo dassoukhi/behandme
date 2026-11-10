@@ -12,20 +12,23 @@ export class KyselyKeysUnitOfWork implements KeysUnitOfWork {
   constructor(@Inject(DATABASE) private readonly db: Kysely<any>) {}
 
   run<T>(work: (tx: KeysTransaction) => Promise<T>): Promise<T> {
-    return this.db.transaction().execute((tx) => {
-      const outbox = new TransactionalOutbox(tx, {
-        schema: "core",
-        context: { correlationId: currentCorrelationId() ?? newId() },
-        clock: systemClock,
-      });
-      return work({
-        keys: new KyselyKeyRepository(tx),
-        events: {
-          publish: async (event) => {
-            await outbox.publish(event);
-          },
-        },
-      });
+    return this.db.transaction().execute((tx) => work(this.bind(tx)));
+  }
+
+  /** The same, inside a transaction already open (a consumer handling a message). */
+  bind(tx: Kysely<any>): KeysTransaction {
+    const outbox = new TransactionalOutbox(tx, {
+      schema: "core",
+      context: { correlationId: currentCorrelationId() ?? newId() },
+      clock: systemClock,
     });
+    return {
+      keys: new KyselyKeyRepository(tx),
+      events: {
+        publish: async (event) => {
+          await outbox.publish(event);
+        },
+      },
+    };
   }
 }

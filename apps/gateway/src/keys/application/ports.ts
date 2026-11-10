@@ -1,4 +1,5 @@
 import type { EventPublisher } from "../../users/application/ports.js";
+import type { KeyCare, PhraseLocation } from "../domain/care.js";
 import type { RegisteredKeys } from "../domain/keys.js";
 
 export interface KeyRepository {
@@ -20,6 +21,23 @@ export interface KeyRepository {
     keys: RegisteredKeys,
     reason: "reset",
   ): Promise<boolean>;
+  careOf(userIds: string[]): Promise<KeyCare[]>;
+  /** The next page of everyone's key care, in user id order. */
+  carePage(afterUserId: string | null, limit: number): Promise<KeyCare[]>;
+  /** False when the registered keys are no longer that version. Never moves back in time. */
+  recordProof(userId: string, keyVersion: number, day: Date): Promise<boolean>;
+  /** At least one change. False when the registered keys are no longer that version. */
+  updateCare(
+    userId: string,
+    keyVersion: number,
+    change: {
+      checkedAt?: Date;
+      /** This check is one more step of the schedule, not the same one answered twice. */
+      countCheck?: boolean;
+      location?: PhraseLocation;
+    },
+  ): Promise<boolean>;
+  markReminded(userIds: string[], at: Date): Promise<void>;
 }
 export const KEY_REPOSITORY = Symbol("KeyRepository");
 

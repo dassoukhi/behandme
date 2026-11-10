@@ -1,6 +1,7 @@
 import { Inject, Injectable } from "@nestjs/common";
-import type { Kysely, Selectable } from "kysely";
+import { type Generated, type Kysely, type Selectable, sql } from "kysely";
 import { DATABASE } from "@lib/platform";
+import type { KeyCare, PhraseLocation } from "../domain/care.js";
 import type { RegisteredKeys } from "../domain/keys.js";
 import type { KeyRepository } from "../application/ports.js";
 
@@ -13,6 +14,11 @@ interface UserKeysTable {
   signature: Uint8Array;
   usable_from: Date;
   created_at: Date;
+  proven_on: Date | null;
+  phrase_checked_at: Date | null;
+  phrase_checks: Generated<number>;
+  phrase_location: PhraseLocation | null;
+  care_reminded_at: Date | null;
 }
 interface UserKeyHistoryTable {
   user_id: string;
@@ -123,10 +129,88 @@ export class KyselyKeyRepository implements KeyRepository {
         signature: keys.signature,
         usable_from: keys.usableFrom,
         created_at: keys.createdAt,
+        // What we knew of the old keys and their phrase says nothing of the new ones.
+        proven_on: null,
+        phrase_checked_at: null,
+        phrase_checks: 0,
+        phrase_location: null,
+        care_reminded_at: null,
       })
       .where("user_id", "=", keys.userId)
       .execute();
     return true;
+  }
+
+  async careOf(userIds: string[]): Promise<KeyCare[]> {
+    if (userIds.length === 0) return [];
+    const rows = await this.db
+      .selectFrom("user_keys")
+      .select(CARE_COLUMNS)
+      .where("user_id", "in", userIds)
+      .execute();
+    return rows.map(toCare);
+  }
+
+  async carePage(
+    afterUserId: string | null,
+    limit: number,
+  ): Promise<KeyCare[]> {
+    let query = this.db
+      .selectFrom("user_keys")
+      .select(CARE_COLUMNS)
+      .orderBy("user_id")
+      .limit(limit);
+    if (afterUserId !== null) query = query.where("user_id", ">", afterUserId);
+    return (await query.execute()).map(toCare);
+  }
+
+  async recordProof(
+    userId: string,
+    keyVersion: number,
+    day: Date,
+  ): Promise<boolean> {
+    const row = await this.db
+      .updateTable("user_keys")
+      .set({ proven_on: sql<Date>`greatest(proven_on, ${day}::timestamptz)` })
+      .where("user_id", "=", userId)
+      .where("key_version", "=", keyVersion)
+      .returning("user_id")
+      .executeTakeFirst();
+    return row !== undefined;
+  }
+
+  async updateCare(
+    userId: string,
+    keyVersion: number,
+    change: {
+      checkedAt?: Date;
+      countCheck?: boolean;
+      location?: PhraseLocation;
+    },
+  ): Promise<boolean> {
+    const row = await this.db
+      .updateTable("user_keys")
+      .set((eb) => ({
+        ...(change.checkedAt ? { phrase_checked_at: change.checkedAt } : {}),
+        ...(change.countCheck
+          ? { phrase_checks: eb("phrase_checks", "+", 1) }
+          : {}),
+        ...(change.location ? { phrase_location: change.location } : {}),
+      }))
+      .where("user_id", "=", userId)
+      .where("key_version", "=", keyVersion)
+      .returning("user_id")
+      .executeTakeFirst();
+    return row !== undefined;
+  }
+
+  async markReminded(userIds: string[], at: Date): Promise<void> {
+    if (userIds.length === 0) return;
+    await this.db
+      .updateTable("user_keys")
+      .set({ care_reminded_at: at })
+      .where("user_id", "in", userIds)
+      .execute();
   }
 
   async insert(keys: Omit<RegisteredKeys, "createdAt">): Promise<boolean> {
@@ -147,6 +231,34 @@ export class KyselyKeyRepository implements KeyRepository {
       .executeTakeFirst();
     return row !== undefined;
   }
+}
+
+const CARE_COLUMNS = [
+  "user_id",
+  "key_version",
+  "fingerprint",
+  "created_at",
+  "proven_on",
+  "phrase_checked_at",
+  "phrase_checks",
+  "phrase_location",
+  "care_reminded_at",
+] as const;
+
+function toCare(
+  row: Pick<Selectable<UserKeysTable>, (typeof CARE_COLUMNS)[number]>,
+): KeyCare {
+  return {
+    userId: row.user_id,
+    keyVersion: row.key_version,
+    fingerprint: row.fingerprint,
+    createdAt: row.created_at,
+    provenOn: row.proven_on,
+    phraseCheckedAt: row.phrase_checked_at,
+    phraseChecks: row.phrase_checks,
+    phraseLocation: row.phrase_location,
+    remindedAt: row.care_reminded_at,
+  };
 }
 
 function toKeys(row: Selectable<UserKeysTable>): RegisteredKeys {

@@ -192,3 +192,17 @@ export const RetentionDue = defineEvent(
   1,
   z.object({}),
 );
+
+/** Worker, daily: the gateway looks for those whose keys or recovery phrase are due for a check. */
+export const KeyCareDue = defineEvent(
+  "maintenance.key_care_due",
+  1,
+  z.object({}),
+);
+
+/** Gateway: a user's recovery phrase, or their yearly check-up, is due. The notifier tells them. */
+export const KeyCareReminder = defineEvent(
+  "keys.care_reminder",
+  1,
+  z.object({ userId, kind: z.enum(["phrase_check", "key_checkup"]) }),
+);

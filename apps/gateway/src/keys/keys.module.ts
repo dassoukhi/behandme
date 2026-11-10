@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { systemClock } from "@lib/kernel";
 import { UsersModule } from "../users/users.module.js";
+import { KeyCareService } from "./application/key-care.service.js";
 import { KEYS_CLOCK, KeysService } from "./application/keys.service.js";
 import {
   KEY_CRYPTOGRAPHY,
@@ -22,10 +23,12 @@ import { KeysController } from "./interface/keys.controller.js";
   controllers: [KeysController],
   providers: [
     KeysService,
+    KeyCareService,
     { provide: KEY_REPOSITORY, useClass: KyselyKeyRepository },
     { provide: KEY_CRYPTOGRAPHY, useValue: nodeKeyCryptography },
     { provide: KEYS_CLOCK, useValue: systemClock },
-    { provide: KEYS_UNIT_OF_WORK, useClass: KyselyKeysUnitOfWork },
+    KyselyKeysUnitOfWork,
+    { provide: KEYS_UNIT_OF_WORK, useExisting: KyselyKeysUnitOfWork },
     { provide: KEY_HOLDER_DIRECTORY, useClass: UsersKeyHolderDirectory },
     {
       provide: KEY_QUARANTINE,
@@ -37,6 +40,6 @@ import { KeysController } from "./interface/keys.controller.js";
       inject: [ConfigService],
     },
   ],
-  exports: [KeysService],
+  exports: [KeysService, KeyCareService, KyselyKeysUnitOfWork],
 })
 export class KeysModule {}

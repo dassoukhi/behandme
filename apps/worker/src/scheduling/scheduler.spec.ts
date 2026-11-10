@@ -54,6 +54,7 @@ describe("scheduler", () => {
       "claims-due",
       "audit-verify",
       "retention",
+      "key-care",
     ]);
     const events = await published();
     expect(events.map((e) => e.type)).toEqual([
@@ -61,6 +62,7 @@ describe("scheduler", () => {
       "maintenance.claims_due",
       "maintenance.audit_verify_due",
       "maintenance.retention_due",
+      "maintenance.key_care_due",
     ]);
     expect(events[0].envelope).toMatchObject({
       correlationId: "tick-1",
@@ -88,6 +90,7 @@ describe("scheduler", () => {
       "claims-due",
       "audit-verify",
       "retention",
+      "key-care",
     ]);
   });
 
@@ -106,6 +109,7 @@ describe("scheduler", () => {
       "claims-due",
       "audit-verify",
       "retention",
+      "key-care",
     ]);
   });
 
@@ -115,6 +119,6 @@ describe("scheduler", () => {
     const purged = await t.asRole("svc_worker", (d) =>
       scheduler.purge(stores.bind(d, cause)),
     );
-    expect(purged).toBe(4);
+    expect(purged).toBe(5);
   });
 });

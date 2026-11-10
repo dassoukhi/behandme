@@ -16,11 +16,13 @@ import {
   HANDOVER_CLIENT,
   type HandoverClient,
 } from "../../handover/application/handover-client.js";
+import { KeyCareService } from "../../keys/application/key-care.service.js";
 import { KeysService } from "../../keys/application/keys.service.js";
 import {
   type PublicKeys,
   toPublicKeys,
 } from "../../keys/application/public-keys.js";
+import type { ValidatorKeyState } from "../../keys/domain/care.js";
 import type { RegisteredKeys } from "../../keys/domain/keys.js";
 import type { Profile } from "../../users/domain/profile.js";
 import { ProfileService } from "../../users/application/profile.service.js";
@@ -31,6 +33,8 @@ export interface Health {
   usable: number;
   total: number;
   threshold: number;
+  /** Owner only: how far they can count on each validator. */
+  validators?: { user_id: string; state: ValidatorKeyState }[];
 }
 
 /** A contract with its participants' profiles, as the caller may see them. */
@@ -65,6 +69,7 @@ export class ContractsFacade {
     private readonly profiles: ProfileService,
     private readonly trust: TrustService,
     private readonly keys: KeysService,
+    private readonly keyCare: KeyCareService,
   ) {}
 
   async list(me: string): Promise<ContractView[]> {
@@ -74,7 +79,7 @@ export class ContractsFacade {
         me,
         records.flatMap((r) => [r.owner_id, r.accessor_id]),
       ),
-      this.health(records),
+      this.health(me, records),
     ]);
     return records.map((record) => view(record, profiles, health));
   }
@@ -206,14 +211,11 @@ export class ContractsFacade {
 
   /** For each sealed contract, the validators whose current keys are still those it was sealed for. */
   private async health(
+    me: string,
     records: ContractRecord[],
   ): Promise<Map<string, Health>> {
-    const current = new Map(
-      (
-        await this.keys.participants(
-          records.flatMap((r) => r.sealed_validators.map((v) => v.user_id)),
-        )
-      ).map((k) => [k.userId, k]),
+    const stateOf = await this.keyCare.validatorStates(
+      records.flatMap((r) => r.sealed_validators.map((v) => v.user_id)),
     );
     return new Map(
       records
@@ -221,11 +223,18 @@ export class ContractsFacade {
         .map((r) => [
           r.id,
           {
-            usable: r.sealed_validators.filter(
-              (v) => current.get(v.user_id)?.fingerprint === v.fingerprint,
-            ).length,
+            usable: r.sealed_validators.filter((v) => stateOf(v) !== "lost")
+              .length,
             total: r.sealed_validators.length,
             threshold: Math.floor(r.sealed_validators.length / 2) + 1,
+            ...(r.owner_id === me
+              ? {
+                  validators: r.sealed_validators.map((v) => ({
+                    user_id: v.user_id,
+                    state: stateOf(v),
+                  })),
+                }
+              : {}),
           },
         ]),
     );
@@ -283,7 +292,7 @@ export class ContractsFacade {
         record.accessor_id,
         ...record.validator_ids,
       ]),
-      this.health([record]),
+      this.health(me, [record]),
     ]);
     return {
       ...view(record, profiles, health),

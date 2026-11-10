@@ -15,7 +15,10 @@ import { FakeClock, startTestDatabase, type TestDatabase } from "@lib/testing";
 import { TrustService } from "../users/application/trust.service.js";
 import { KyselyTrustRepository } from "../users/infrastructure/kysely-trust.repository.js";
 import { KyselyUsersUnitOfWork } from "../users/infrastructure/kysely-users.unit-of-work.js";
+import { KeyCareService } from "./application/key-care.service.js";
 import { KeysService } from "./application/keys.service.js";
+import { toPublicKeys } from "./application/public-keys.js";
+import { keyProofStatement } from "./domain/care.js";
 import {
   type FactorVerificationAge,
   KEY_QUARANTINE_MS,
@@ -29,6 +32,7 @@ import {
 import { KyselyKeyRepository } from "./infrastructure/kysely-key.repository.js";
 import { KyselyKeysUnitOfWork } from "./infrastructure/kysely-keys.unit-of-work.js";
 import { nodeKeyCryptography } from "./infrastructure/node-key-cryptography.js";
+import { KeysController } from "./interface/keys.controller.js";
 import fixture from "./testing/key-registration-v1.json" with { type: "json" };
 
 // The keys made and signed by the app's lib/crypto (fixture shared with the app repo), checked here
@@ -45,6 +49,7 @@ const submission = () => ({
 let t: TestDatabase;
 let db: Kysely<any>;
 let keys: KeysService;
+let care: KeyCareService;
 let clock: FakeClock;
 
 beforeAll(async () => {
@@ -82,6 +87,11 @@ beforeEach(async () => {
       }),
     },
     KEY_QUARANTINE_MS,
+  );
+  care = new KeyCareService(
+    new KyselyKeyRepository(db),
+    nodeKeyCryptography,
+    clock,
   );
 });
 afterEach(() => sql`reset role`.execute(db));
@@ -190,7 +200,7 @@ function keyPair() {
     publicKey.export({ format: "der", type: "spki" }).subarray(-32),
   );
   const kem = new Uint8Array(randomBytes(1216));
-  return (userId: string, keyVersion: number): KeySubmission => {
+  const submit = (userId: string, keyVersion: number): KeySubmission => {
     const statement = nodeKeyCryptography.canonicalJson(
       registrationStatement(
         userId,
@@ -206,6 +216,20 @@ function keyPair() {
       signature: new Uint8Array(sign(null, statement, privateKey)),
     };
   };
+  const prove = (userId: string, keyVersion: number, day: string) => ({
+    keyVersion,
+    day,
+    signature: new Uint8Array(
+      sign(
+        null,
+        nodeKeyCryptography.canonicalJson(
+          keyProofStatement(userId, keyVersion, day),
+        ),
+        privateKey,
+      ),
+    ),
+  });
+  return Object.assign(submit, { prove });
 }
 
 const FRESH: FactorVerificationAge = [2, -1];
@@ -319,6 +343,249 @@ describe("reset", () => {
       (results.find((r) => r.status === "rejected") as PromiseRejectedResult)
         .reason,
     ).toBeInstanceOf(ConflictError);
+  });
+});
+
+describe("proving the phone holds the keys", () => {
+  const appProof = () => ({
+    keyVersion: fixture.proof.key_version,
+    day: fixture.proof.day,
+    signature: b64(fixture.proof.signature),
+  });
+
+  it("accepts the signature the app makes", async () => {
+    await keys.register(ME, submission());
+    expect((await care.mine(ME)).proven_on).toBeNull();
+    await care.prove(ME, appProof());
+    expect((await care.mine(ME)).proven_on).toBe("2026-10-15");
+  });
+
+  it.each([
+    [
+      "a changed signature",
+      (p: ReturnType<typeof appProof>) => (p.signature[0] ^= 1),
+    ],
+    [
+      "a signature of another day",
+      (p: ReturnType<typeof appProof>) => (p.day = "2026-10-14"),
+    ],
+    [
+      "a day too far from today",
+      (p: ReturnType<typeof appProof>) => (p.day = "2026-10-01"),
+    ],
+    [
+      "a short signature",
+      (p: ReturnType<typeof appProof>) => (p.signature = new Uint8Array(10)),
+    ],
+  ])("refuses %s", async (_case, tamper) => {
+    await keys.register(ME, submission());
+    const p = appProof();
+    tamper(p);
+    await expect(care.prove(ME, p)).rejects.toThrow(InvalidInputError);
+    expect((await care.mine(ME)).proven_on).toBeNull();
+  });
+
+  it("refuses another account's proof, and an account without keys", async () => {
+    await expect(care.prove(ME, appProof())).rejects.toThrow(NotFoundError);
+    const other = keyPair();
+    await keys.register("user_friend", other("user_friend", 1));
+    await expect(care.prove("user_friend", appProof())).rejects.toThrow(
+      InvalidInputError,
+    );
+  });
+
+  it("refuses a proof for keys that were replaced", async () => {
+    const pair = keyPair();
+    await keys.register(ME, pair(ME, 1));
+    await keys.reset(ME, keyPair()(ME, 2), FRESH);
+    await expect(
+      care.prove(ME, pair.prove(ME, 1, "2026-10-15")),
+    ).rejects.toThrow(ConflictError);
+  });
+
+  it("never moves back in time", async () => {
+    const pair = keyPair();
+    await keys.register(ME, pair(ME, 1));
+    await care.prove(ME, pair.prove(ME, 1, "2026-10-15"));
+    await care.prove(ME, pair.prove(ME, 1, "2026-10-14"));
+    expect((await care.mine(ME)).proven_on).toBe("2026-10-15");
+  });
+
+  it("keeps all of it out of what others can see", async () => {
+    await keys.register(ME, submission());
+    await care.prove(ME, appProof());
+    await care.updatePhrase(ME, {
+      keyVersion: 1,
+      checked: true,
+      location: "notary",
+    });
+    const [mine] = await keys.visible(ME, [ME]);
+    const shown = JSON.stringify(toPublicKeys(mine));
+    expect(shown).not.toMatch(/proven|phrase|notary/);
+  });
+});
+
+describe("the recovery phrase", () => {
+  const DAY = 86_400_000;
+
+  it("is not due before the user proved they kept it, then comes back after a week", async () => {
+    await keys.register(ME, submission());
+    expect(await care.mine(ME)).toMatchObject({
+      phrase_checked_at: null,
+      phrase_check_due: false,
+    });
+    await care.updatePhrase(ME, { keyVersion: 1, checked: true });
+    expect(await care.mine(ME)).toMatchObject({
+      phrase_checked_at: "2026-10-15T09:00:00.000Z",
+      phrase_check_due: false,
+    });
+    clock.advance(7 * DAY);
+    expect((await care.mine(ME)).phrase_check_due).toBe(true);
+    await care.updatePhrase(ME, { keyVersion: 1, checked: true });
+    expect((await care.mine(ME)).phrase_check_due).toBe(false);
+    // The second check: the next one is a month away.
+    clock.advance(29 * DAY);
+    expect((await care.mine(ME)).phrase_check_due).toBe(false);
+    clock.advance(DAY);
+    expect((await care.mine(ME)).phrase_check_due).toBe(true);
+  });
+
+  it("counts the same check once, however many times it is answered", async () => {
+    await keys.register(ME, submission());
+    for (let i = 0; i < 3; i++) {
+      await care.updatePhrase(ME, { keyVersion: 1, checked: true });
+    }
+    clock.advance(7 * DAY);
+    expect((await care.mine(ME)).phrase_check_due).toBe(true);
+  });
+
+  it("refuses what is said about keys that were replaced", async () => {
+    await keys.register(ME, submission());
+    await keys.reset(ME, keyPair()(ME, 2), FRESH);
+    await expect(
+      care.updatePhrase(ME, { keyVersion: 1, checked: true }),
+    ).rejects.toThrow(ConflictError);
+    expect((await care.mine(ME)).phrase_checked_at).toBeNull();
+  });
+
+  it("keeps where the user says it is, without counting that as a check", async () => {
+    await keys.register(ME, submission());
+    await care.updatePhrase(ME, {
+      keyVersion: 1,
+      location: "password_manager",
+    });
+    expect(await care.mine(ME)).toMatchObject({
+      phrase_location: "password_manager",
+      phrase_checked_at: null,
+    });
+  });
+
+  it("refuses an empty change, and an account without keys", async () => {
+    await keys.register(ME, submission());
+    await expect(care.updatePhrase(ME, { keyVersion: 1 })).rejects.toThrow(
+      InvalidInputError,
+    );
+    await expect(
+      care.updatePhrase("user_friend", { keyVersion: 1, checked: true }),
+    ).rejects.toThrow(NotFoundError);
+  });
+
+  it("starts over with new keys: nothing known of the old ones applies to them", async () => {
+    const pair = keyPair();
+    await keys.register(ME, pair(ME, 1));
+    await care.prove(ME, pair.prove(ME, 1, "2026-10-15"));
+    await care.updatePhrase(ME, {
+      keyVersion: 1,
+      checked: true,
+      location: "safe",
+    });
+    await keys.reset(ME, keyPair()(ME, 2), FRESH);
+    expect(await care.mine(ME)).toEqual({
+      proven_on: null,
+      phrase_checked_at: null,
+      phrase_check_due: false,
+      phrase_location: null,
+    });
+  });
+});
+
+describe("the answer to new keys", () => {
+  const body = (s: KeySubmission) => ({
+    key_version: s.keyVersion,
+    kem_public_key: Buffer.from(s.kemPublicKey).toString("base64"),
+    signing_public_key: Buffer.from(s.signingPublicKey).toString("base64"),
+    signature: Buffer.from(s.signature).toString("base64"),
+  });
+
+  it("is made from what was written: a failed read must not make accepted keys look refused", async () => {
+    const controller = new KeysController(keys, {
+      mine: async () => {
+        throw new Error("connection lost");
+      },
+    } as unknown as KeyCareService);
+    const pair = keyPair();
+    expect(await controller.register(ME, body(pair(ME, 1)))).toMatchObject({
+      key_version: 1,
+      phrase_checked_at: null,
+      phrase_check_due: false,
+    });
+    expect(
+      await controller.reset(ME, FRESH, body(keyPair()(ME, 2))),
+    ).toMatchObject({ key_version: 2, proven_on: null });
+  });
+});
+
+describe("reminders", () => {
+  const DAY = 86_400_000;
+  const remind = () =>
+    new KyselyKeysUnitOfWork(db).run((tx) => care.remind(tx));
+  const published = async () => {
+    await sql`reset role`.execute(db);
+    const { rows } = await sql<{
+      type: string;
+      envelope: { payload: unknown };
+    }>`select type, envelope from core.outbox`.execute(db);
+    await sql`set role svc_gateway`.execute(db);
+    return rows.map((r) => [r.type, r.envelope.payload]);
+  };
+
+  it("tells the notifier of a phrase check that fell due, and only once", async () => {
+    await keys.register(ME, submission());
+    await care.updatePhrase(ME, { keyVersion: 1, checked: true });
+    expect(await remind()).toBe(0);
+    clock.advance(7 * DAY);
+    expect(await remind()).toBe(1);
+    expect(await published()).toEqual([
+      ["keys.care_reminder", { userId: ME, kind: "phrase_check" }],
+    ]);
+    clock.advance(DAY);
+    expect(await remind()).toBe(0);
+  });
+
+  it("asks for the yearly check-up in January, then leaves alone whoever opened the app", async () => {
+    const pair = keyPair();
+    await keys.register(ME, pair(ME, 1));
+    await keys.register("user_friend", keyPair()("user_friend", 1));
+    clock.advance(80 * DAY); // 3 January 2027
+    await care.prove(ME, pair.prove(ME, 1, "2027-01-03"));
+    expect(await remind()).toBe(1);
+    expect(await published()).toEqual([
+      ["keys.care_reminder", { userId: "user_friend", kind: "key_checkup" }],
+    ]);
+  });
+
+  it("is routed to the notifier and asked of the gateway", async () => {
+    await sql`reset role`.execute(db);
+    const { rows } = await sql<{
+      event_type: string;
+      queue: string;
+    }>`select event_type, queue from messaging.subscriptions
+       where event_type in ('keys.care_reminder', 'maintenance.key_care_due')
+       order by event_type`.execute(db);
+    expect(rows).toEqual([
+      { event_type: "keys.care_reminder", queue: "notifier" },
+      { event_type: "maintenance.key_care_due", queue: "gateway" },
+    ]);
   });
 });
 

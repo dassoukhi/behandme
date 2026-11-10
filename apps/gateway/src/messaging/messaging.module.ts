@@ -8,10 +8,13 @@ import {
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import type { Kysely } from "kysely";
-import { on, RetentionDue } from "@lib/contracts";
+import { KeyCareDue, on, RetentionDue } from "@lib/contracts";
 import { systemClock } from "@lib/kernel";
 import { purgeMessagingTables } from "@lib/messaging";
 import { DATABASE, MessagingRuntime } from "@lib/platform";
+import { KeyCareService } from "../keys/application/key-care.service.js";
+import { KyselyKeysUnitOfWork } from "../keys/infrastructure/kysely-keys.unit-of-work.js";
+import { KeysModule } from "../keys/keys.module.js";
 
 /** Relays core.outbox to the other services and handles the events sent to the gateway's queue. */
 @Injectable()
@@ -22,6 +25,8 @@ class GatewayMessaging implements OnApplicationBootstrap, OnModuleDestroy {
   constructor(
     @Inject(DATABASE) db: Kysely<any>,
     private readonly config: ConfigService,
+    keyCare: KeyCareService,
+    keysUnitOfWork: KyselyKeysUnitOfWork,
   ) {
     this.runtime = new MessagingRuntime({
       db,
@@ -39,6 +44,12 @@ class GatewayMessaging implements OnApplicationBootstrap, OnModuleDestroy {
             `Retention: ${purged.outbox} outbox rows, ${purged.processed} processed ids deleted`,
           );
         }),
+        on(KeyCareDue, async (_payload, _event, tx) => {
+          const reminded = await keyCare.remind(
+            keysUnitOfWork.bind(tx as Kysely<any>),
+          );
+          this.logger.log(`Key care: ${reminded} reminder(s)`);
+        }),
       ]),
     });
   }
@@ -52,5 +63,5 @@ class GatewayMessaging implements OnApplicationBootstrap, OnModuleDestroy {
   }
 }
 
-@Module({ providers: [GatewayMessaging] })
+@Module({ imports: [KeysModule], providers: [GatewayMessaging] })
 export class MessagingModule {}

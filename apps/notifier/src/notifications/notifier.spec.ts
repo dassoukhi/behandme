@@ -15,6 +15,7 @@ import {
   ClaimReminder,
   ContractReleased,
   ContractRevoked,
+  KeyCareReminder,
   KeysRotated,
   ParticipantLeft,
   TrustAdded,
@@ -86,6 +87,9 @@ async function receive(...envelopes: ReturnType<typeof createEnvelope>[]) {
       ),
       on(KeysRotated, (payload, _e, tx) =>
         events.keysRotated(stores.bind(tx), payload),
+      ),
+      on(KeyCareReminder, (payload, _e, tx) =>
+        events.keyCareReminder(stores.bind(tx), payload),
       ),
       on(ClaimFiled, (payload, _e, tx) =>
         events.claimFiled(stores.bind(tx), payload),
@@ -249,6 +253,44 @@ describe("keys.rotated", () => {
     expect((await deliveries()).map((d) => d.token).sort()).toEqual(
       ["ExponentPushToken[alice]", TOKEN_B1].sort(),
     );
+  });
+});
+
+describe("keys.care_reminder", () => {
+  const reminder = (kind: "phrase_check" | "key_checkup") =>
+    createEnvelope(
+      KeyCareReminder.create({ userId: BOB, kind }),
+      { correlationId: "c" },
+      clock,
+    );
+
+  it.each([
+    [
+      "phrase_check",
+      "Votre phrase est-elle toujours à sa place ?",
+      "/keys/check",
+    ],
+    ["key_checkup", "Votre point annuel", "/"],
+  ] as const)("tells the user to act on %s", async (kind, title, url) => {
+    await inbox.registerDevice(BOB, TOKEN_B1);
+    expect(await receive(reminder(kind))).toMatchObject({ handled: 1 });
+    expect(await inbox.list(BOB)).toMatchObject([
+      { type: kind, title, data: { url } },
+    ]);
+    expect(await deliveries()).toHaveLength(1);
+  });
+
+  it("writes in the user's language, and stays quiet when they turned push off", async () => {
+    await inbox.updatePreferences(BOB, {
+      language: "en",
+      push_enabled: false,
+    });
+    await inbox.registerDevice(BOB, TOKEN_B1);
+    await receive(reminder("key_checkup"));
+    expect(await inbox.list(BOB)).toMatchObject([
+      { title: "Your yearly check-up" },
+    ]);
+    expect(await deliveries()).toEqual([]);
   });
 });
 

@@ -16,7 +16,7 @@ One NestJS app per service in `apps/`, each deployed separately. The mobile app 
 | `gateway`  | Clerk authentication, access control, response composition, public OpenAPI (`openapi.json`). Identity domain: profiles, trust links, public E2E keys | `core`: users, trusted, user_keys (+ history)                                   | Public REST API `/api/v1/*`                                     |
 | `handover` | Whole contract life cycle: draft, sealing (encrypted vault), claims, votes, deadlines, release, revocation; hash-chained audit log                   | `handover`: contracts, envelopes, key_wraps, claims, decisions, contract_events | Internal API (commands and queries from the gateway) and events |
 | `notifier` | In-app notifications, Expo push (and Resend email, phase 5), preferences, push tokens, deliveries and their receipts                                 | `notify`: notifications, push_tokens, preferences, deliveries                   | Internal API (inbox, devices, settings) and event consumers     |
-| `worker`   | Schedules recurring jobs (push receipts, claims catch-up, audit-log verification, retention)                                                         | `ops`: job_runs                                                                 | Nothing public; driven by pg_cron ticks and its queue           |
+| `worker`   | Schedules recurring jobs (push receipts, claims catch-up, audit-log verification, retention, key care)                                               | `ops`: job_runs                                                                 | Nothing public; driven by pg_cron ticks and its queue           |
 
 A service reads and writes **its own schema only**. Data owned by another service is obtained through that
 service's API or kept as a local copy fed by its events.
@@ -57,7 +57,7 @@ shared through `libs/contracts` (e.g. `notifier-api.ts`); the gateway keeps its 
   dead-lettered at once. Today: `trust.added`, `keys.rotated`, `user.deleted`, `claim.filed`,
   `claim.quorum_reached`, `claim.reminder`, `claim.closed`, `contract.released`, `claim.reminder_due` and
   `claim.deadline_due` (handover to itself, delayed), `contract.revoked`, `participant.left`, `scheduler.tick`, `maintenance.push_receipts_due`, `maintenance.claims_due`,
-  `maintenance.retention_due`. Later: `contract.sealed`.
+  `maintenance.retention_due`, `maintenance.key_care_due`, `keys.care_reminder`. Later: `contract.sealed`.
 - **Correlation.** The gateway gives each request a correlation id (`x-correlation-id`, kept from the caller
   when valid); it travels in internal calls and in every event's envelope, consumers run with it, and every
   log line carries it (`ServiceLogger`, JSON in production).
@@ -152,6 +152,17 @@ The old keys go to `core.user_key_history`; the new ones are usable by others on
 (`usable_from`; handover refuses a sealing with keys in quarantine, the owner's included), and `keys.rotated`
 alerts the user (critical push) and the people who trust them (compare the new security code). Contracts sealed
 with the old keys stay as they are: the owner can no longer read them and re-seals them with the secret.
+
+**Key care.** A validator who changes phone without their phrase loses their share, and the server would not
+know: their registered keys are unchanged. So the phone signs the day with its registered keys when it opens
+the app, once a week at most (`POST /users/me/keys/proof`, `behindme/v1/key-proof`, one to a day either side of
+the server's), and the app reports when the user proved they kept their phrase and where they keep it, as a
+category (`PATCH /users/me/keys/care`). A reset clears all of it. For the owner only, `health.validators` gives
+each validator's state (`keys/domain/care.ts`): `lost` (not the keys of the sealing), `silent` (no sign from the
+phone for 13 months), `not_saved` (phrase never proved kept), or `ok`. The worker's daily `key-care` job makes the
+gateway remind those who are due (`keys.care_reminder`): the phrase at 7, 30 and 180 days, then in the yearly
+check-up, in January, twice at most. A push only: nothing yet reaches someone who refused notifications
+(e-mail: phase 5).
 
 **Account deletion.** `DELETE /users/me` needs a recent Clerk reverification, like a key reset. The gateway
 deletes the profile (keys and trust links go with it) and publishes `user.deleted` in the same transaction, then

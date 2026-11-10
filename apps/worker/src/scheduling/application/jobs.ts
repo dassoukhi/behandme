@@ -1,6 +1,7 @@
 import {
   AuditVerifyDue,
   ClaimsDue,
+  KeyCareDue,
   PushReceiptsDue,
   RetentionDue,
 } from "@lib/contracts";
@@ -31,4 +32,6 @@ export const JOBS: ScheduledJob[] = [
   },
   // Each service deletes what it no longer needs.
   { name: "retention", everyMs: DAY, event: () => RetentionDue.create({}) },
+  // The gateway reminds those whose keys or recovery phrase are due for a check.
+  { name: "key-care", everyMs: DAY, event: () => KeyCareDue.create({}) },
 ];

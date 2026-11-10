@@ -13,6 +13,10 @@ import {
   type ContractStatus,
   type SealedMaterial,
 } from "@lib/contracts";
+import {
+  VALIDATOR_KEY_STATES,
+  type ValidatorKeyState,
+} from "../../../keys/domain/care.js";
 import { PublicKeysDto } from "../../../keys/interface/dto/keys.dto.js";
 import { UserProfileDto } from "../../../users/interface/dto/user-profile.dto.js";
 
@@ -74,6 +78,18 @@ export class ClaimDTO implements ClaimRecord {
   my_decision: "approve" | "reject" | null;
 }
 
+export class ValidatorHealthDTO {
+  @ApiProperty({ example: "user_2abcdefghijklmnop" })
+  user_id: string;
+
+  @ApiProperty({
+    enum: VALIDATOR_KEY_STATES,
+    description:
+      "ok; lost: not the keys of the sealing, the share is gone until the owner seals again; silent: no sign from their phone for over a year; not_saved: they have not proved they kept their recovery phrase",
+  })
+  state: ValidatorKeyState;
+}
+
 /** How many validators could still approve a claim: their keys are those the contract was sealed for. */
 export class HealthDTO {
   @ApiProperty({ example: 3 })
@@ -84,6 +100,13 @@ export class HealthDTO {
 
   @ApiProperty({ description: "Approvals needed (k of n)", example: 2 })
   threshold: number;
+
+  @ApiProperty({
+    type: [ValidatorHealthDTO],
+    required: false,
+    description: "Owner only: how far they can count on each validator",
+  })
+  validators?: ValidatorHealthDTO[];
 }
 
 // A contract as one of its participants sees it. Secret material is never returned.
