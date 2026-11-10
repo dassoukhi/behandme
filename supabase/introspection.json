@@ -4,6 +4,90 @@
       "columns": [
         {
           "table_schema": "core",
+          "table_name": "key_transfers",
+          "column_name": "id",
+          "ordinal_position": 1,
+          "data_type": "uuid",
+          "udt_name": "uuid",
+          "is_nullable": "NO",
+          "column_default": "gen_random_uuid()",
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "key_transfers",
+          "column_name": "user_id",
+          "ordinal_position": 2,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "key_transfers",
+          "column_name": "recipient_key",
+          "ordinal_position": 3,
+          "data_type": "bytea",
+          "udt_name": "bytea",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "key_transfers",
+          "column_name": "key_version",
+          "ordinal_position": 4,
+          "data_type": "integer",
+          "udt_name": "int4",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "key_transfers",
+          "column_name": "wrap",
+          "ordinal_position": 5,
+          "data_type": "bytea",
+          "udt_name": "bytea",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "key_transfers",
+          "column_name": "created_at",
+          "ordinal_position": 6,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "is_nullable": "NO",
+          "column_default": "now()",
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "key_transfers",
+          "column_name": "expires_at",
+          "ordinal_position": 7,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "core",
           "table_name": "outbox",
           "column_name": "id",
           "ordinal_position": 1,
@@ -1974,6 +2058,48 @@
       "constraints": [
         {
           "schema": "core",
+          "table_name": "core.key_transfers",
+          "conname": "key_transfers_key_version_check",
+          "contype": "c",
+          "definition": "CHECK ((key_version >= 1))"
+        },
+        {
+          "schema": "core",
+          "table_name": "core.key_transfers",
+          "conname": "key_transfers_pkey",
+          "contype": "p",
+          "definition": "PRIMARY KEY (id)"
+        },
+        {
+          "schema": "core",
+          "table_name": "core.key_transfers",
+          "conname": "key_transfers_recipient_key_check",
+          "contype": "c",
+          "definition": "CHECK ((octet_length(recipient_key) = 1216))"
+        },
+        {
+          "schema": "core",
+          "table_name": "core.key_transfers",
+          "conname": "key_transfers_user_id_fkey",
+          "contype": "f",
+          "definition": "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE"
+        },
+        {
+          "schema": "core",
+          "table_name": "core.key_transfers",
+          "conname": "key_transfers_user_id_key",
+          "contype": "u",
+          "definition": "UNIQUE (user_id)"
+        },
+        {
+          "schema": "core",
+          "table_name": "core.key_transfers",
+          "conname": "key_transfers_wrap_check",
+          "contype": "c",
+          "definition": "CHECK (((wrap IS NULL) OR (octet_length(wrap) = 1170)))"
+        },
+        {
+          "schema": "core",
           "table_name": "core.outbox",
           "conname": "outbox_event_id_key",
           "contype": "u",
@@ -2536,6 +2662,18 @@
       "indexes": [
         {
           "schemaname": "core",
+          "tablename": "key_transfers",
+          "indexname": "key_transfers_pkey",
+          "indexdef": "CREATE UNIQUE INDEX key_transfers_pkey ON core.key_transfers USING btree (id)"
+        },
+        {
+          "schemaname": "core",
+          "tablename": "key_transfers",
+          "indexname": "key_transfers_user_id_key",
+          "indexdef": "CREATE UNIQUE INDEX key_transfers_user_id_key ON core.key_transfers USING btree (user_id)"
+        },
+        {
+          "schemaname": "core",
           "tablename": "outbox",
           "indexname": "outbox_event_id_key",
           "indexdef": "CREATE UNIQUE INDEX outbox_event_id_key ON core.outbox USING btree (event_id)"
@@ -2902,6 +3040,12 @@
       "rls": [
         {
           "schema": "core",
+          "table_name": "key_transfers",
+          "rls_enabled": true,
+          "rls_forced": false
+        },
+        {
+          "schema": "core",
           "table_name": "outbox",
           "rls_enabled": true,
           "rls_forced": false
@@ -3100,6 +3244,17 @@
         }
       ],
       "policies": [
+        {
+          "schemaname": "core",
+          "tablename": "key_transfers",
+          "policyname": "service_access",
+          "roles": [
+            "svc_gateway"
+          ],
+          "cmd": "ALL",
+          "qual": "true",
+          "with_check": "true"
+        },
         {
           "schemaname": "core",
           "tablename": "outbox",
@@ -3468,6 +3623,18 @@
         }
       ],
       "grants": [
+        {
+          "table_schema": "core",
+          "table_name": "key_transfers",
+          "grantee": "postgres",
+          "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "key_transfers",
+          "grantee": "svc_gateway",
+          "privileges": "DELETE,INSERT,SELECT,UPDATE"
+        },
         {
           "table_schema": "core",
           "table_name": "outbox",
