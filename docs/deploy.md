@@ -43,7 +43,7 @@ npm run dev                 # the four services in watch mode
 ## One server (Oracle Cloud): the current target
 
 Everything on one Ubuntu machine, from `deploy/vm/`: the four services and Caddy, which serves the gateway
-on `https://api.behindme.fr` with a Let's Encrypt certificate it renews by itself. Only Caddy listens on the
+on `https://api.behyndme.com` with a Let's Encrypt certificate it renews by itself. Only Caddy listens on the
 internet (80, 443); the services reach each other on Docker's internal network, by name.
 
 1. **Account**: cloud.oracle.com/free, home region **France Central (Paris)**: Always Free resources exist
@@ -55,7 +55,7 @@ internet (80, 443); the services reach each other on Docker's internal network, 
    instance as idle when CPU, network **and** memory all stay under 20 % for 7 days, and the services use
    about 1 GB. On "Out of capacity", try again later or in another availability domain.
 3. **Network**: in the subnet's security list, add ingress rules for TCP 80 and 443 from `0.0.0.0/0`.
-4. **DNS**: at the registrar of `behindme.fr`, an `A` record `api` → the instance's public IP.
+4. **DNS**: at the registrar of `behyndme.com`, an `A` record `api` → the instance's public IP.
 5. **On the server** (`ssh ubuntu@<ip>`), a read-only deploy key for the private repo, then the clone and the
    one-time setup (Docker, firewall, security updates, swap):
 
@@ -72,8 +72,8 @@ internet (80, 443); the services reach each other on Docker's internal network, 
    `env-example/` to `deploy/vm/env/`, fill them in (the `svc_*` URLs of "Database, once" above), then
    `chmod 600 deploy/vm/.env deploy/vm/env/*`. They are ignored by git.
 7. **Start**: `~/behandme/deploy/vm/update.sh` builds the images and starts everything; Caddy gets the
-   certificate once the DNS record points to the server. Check `curl https://api.behindme.fr/health`.
-8. **The app**: `EXPO_PUBLIC_API_URL=https://api.behindme.fr/api/v1`.
+   certificate once the DNS record points to the server. Check `curl https://api.behyndme.com/health`.
+8. **The app**: `EXPO_PUBLIC_API_URL=https://api.behyndme.com/api/v1`.
 
 Day to day, from `~/behandme/deploy/vm`: `./update.sh` deploys what was pushed (pull, build, restart what
 changed); `docker compose logs -f gateway` shows a service's logs (5 × 10 MB kept per service);

@@ -57,7 +57,7 @@ export function keyProofStatement(
   day: string,
 ) {
   return {
-    type: "behindme/v1/key-proof",
+    type: "behyndme/v1/key-proof",
     user_id: userId,
     key_version: keyVersion,
     day,

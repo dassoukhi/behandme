@@ -263,7 +263,7 @@ describe("the envelope's padding", () => {
         hkdfSync(
           "sha256",
           new Uint8Array(32).fill(P.owner.seed_byte),
-          "behindme/v1/identity",
+          "behyndme/v1/identity",
           "signing/ed25519",
           32,
         ),

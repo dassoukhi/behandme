@@ -2661,7 +2661,7 @@
           "manifest": {
             "type": "object",
             "additionalProperties": true,
-            "description": "The manifest the owner signed (behindme/v1/manifest)"
+            "description": "The manifest the owner signed (behyndme/v1/manifest)"
           },
           "manifest_signature": {
             "type": "string",
@@ -3173,7 +3173,7 @@
             "type": "string",
             "maxLength": 200,
             "format": "base64",
-            "description": "Ed25519 signature, base64, by the signing key over the RFC 8785 JSON of {type: 'behindme/v1/key-registration', user_id, key_version, kem_public_key, signing_public_key}"
+            "description": "Ed25519 signature, base64, by the signing key over the RFC 8785 JSON of {type: 'behyndme/v1/key-registration', user_id, key_version, kem_public_key, signing_public_key}"
           }
         },
         "required": [
@@ -3203,7 +3203,7 @@
             "type": "string",
             "maxLength": 200,
             "format": "base64",
-            "description": "Ed25519 signature, base64, by the signing key over the RFC 8785 JSON of {type: 'behindme/v1/key-proof', user_id, key_version, day}"
+            "description": "Ed25519 signature, base64, by the signing key over the RFC 8785 JSON of {type: 'behyndme/v1/key-proof', user_id, key_version, day}"
           }
         },
         "required": [
@@ -3307,7 +3307,7 @@
             "type": "string",
             "maxLength": 2000,
             "format": "base64",
-            "description": "The seed and its phrase's language, wrapped to recipient_key with HPKE in PSK mode (X-Wing, HKDF-SHA256, AES-256-GCM; the PSK is the secret in the new phone's QR code, which the server never sees; info behindme/v1/wrap/transfer|transfer=<id>|user=<id>|key=<key_version>), base64 (1170 bytes)"
+            "description": "The seed and its phrase's language, wrapped to recipient_key with HPKE in PSK mode (X-Wing, HKDF-SHA256, AES-256-GCM; the PSK is the secret in the new phone's QR code, which the server never sees; info behyndme/v1/wrap/transfer|transfer=<id>|user=<id>|key=<key_version>), base64 (1170 bytes)"
           }
         },
         "required": [

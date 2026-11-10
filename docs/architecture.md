@@ -158,7 +158,7 @@ with the old keys stay as they are: the owner can no longer read them and re-sea
 
 **Key care.** A validator who changes phone without their phrase loses their share, and the server would not
 know: their registered keys are unchanged. So the phone signs the day with its registered keys when it opens
-the app, once a week at most (`POST /users/me/keys/proof`, `behindme/v1/key-proof`, one to a day either side of
+the app, once a week at most (`POST /users/me/keys/proof`, `behyndme/v1/key-proof`, one to a day either side of
 the server's), and the app reports when the user proved they kept their phrase and where they keep it, as a
 category (`PATCH /users/me/keys/care`). A reset clears all of it. For the owner only, `health.validators` gives
 each validator's state (`keys/domain/care.ts`): `lost` (not the keys of the sealing), `silent` (no sign from the

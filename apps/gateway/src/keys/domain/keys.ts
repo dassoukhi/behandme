@@ -59,7 +59,7 @@ export function registrationStatement(
   signingPublicKeyBase64: string,
 ) {
   return {
-    type: "behindme/v1/key-registration",
+    type: "behyndme/v1/key-registration",
     user_id: userId,
     key_version: keyVersion,
     kem_public_key: kemPublicKeyBase64,
@@ -73,7 +73,7 @@ export function fingerprintInput(
   signingPublicKey: Uint8Array,
 ): Uint8Array {
   const parts = [
-    new TextEncoder().encode("behindme/v1/fingerprint"),
+    new TextEncoder().encode("behyndme/v1/fingerprint"),
     kemPublicKey,
     signingPublicKey,
   ];

@@ -6,7 +6,7 @@ import { assertValidDraft, type Contract } from "./contract.js";
 // owner over the right participants and keys, so that nobody (not even a server bug) can mix it up.
 
 export const SUITE_NAME =
-  "behindme/v1 HPKE(X-Wing, HKDF-SHA256, AES-256-GCM) + Shamir GF(256)";
+  "behyndme/v1 HPKE(X-Wing, HKDF-SHA256, AES-256-GCM) + Shamir GF(256)";
 const WRAP_FORMAT = 0x01;
 const ENC_LENGTH = 1120; // X-Wing ciphertext
 const TAG_LENGTH = 16; // AES-GCM
@@ -52,7 +52,7 @@ export interface ManifestParty {
 }
 
 export interface Manifest {
-  type: "behindme/v1/manifest";
+  type: "behyndme/v1/manifest";
   suite: string;
   contract_id: string;
   version: number;
@@ -124,7 +124,7 @@ export function parseManifest(value: unknown): Manifest {
     m !== null &&
     keys(m) ===
       "accessor,contract_id,envelope_hash,owner,suite,threshold,type,validators,version" &&
-    m.type === "behindme/v1/manifest" &&
+    m.type === "behyndme/v1/manifest" &&
     m.suite === SUITE_NAME &&
     typeof m.contract_id === "string" &&
     Number.isInteger(m.version) &&
@@ -145,7 +145,7 @@ export function parseManifest(value: unknown): Manifest {
         HEX64.test(v.commitment),
     );
   if (!ok)
-    throw new InvalidInputError("The manifest is not a behindme/v1 manifest");
+    throw new InvalidInputError("The manifest is not a behyndme/v1 manifest");
   return m;
 }
 
@@ -244,7 +244,7 @@ export function checkSeal(
   const { envelope } = request;
   if (!isPaddedEnvelope(envelope)) {
     throw new InvalidInputError(
-      "The envelope is not a padded behindme/v1 envelope (format 2)",
+      "The envelope is not a padded behyndme/v1 envelope (format 2)",
     );
   }
   if (crypto.sha256Hex(envelope) !== manifest.envelope_hash) {

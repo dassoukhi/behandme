@@ -40,7 +40,7 @@ export class DepositKeyTransferDto {
 
   @ApiProperty({
     description:
-      "The seed and its phrase's language, wrapped to recipient_key with HPKE in PSK mode (X-Wing, HKDF-SHA256, AES-256-GCM; the PSK is the secret in the new phone's QR code, which the server never sees; info behindme/v1/wrap/transfer|transfer=<id>|user=<id>|key=<key_version>), base64 (1170 bytes)",
+      "The seed and its phrase's language, wrapped to recipient_key with HPKE in PSK mode (X-Wing, HKDF-SHA256, AES-256-GCM; the PSK is the secret in the new phone's QR code, which the server never sees; info behyndme/v1/wrap/transfer|transfer=<id>|user=<id>|key=<key_version>), base64 (1170 bytes)",
   })
   @IsBase64()
   @MaxLength(2000)

@@ -30,7 +30,7 @@ export class RegisterKeysDto {
 
   @ApiProperty({
     description:
-      "Ed25519 signature, base64, by the signing key over the RFC 8785 JSON of {type: 'behindme/v1/key-registration', user_id, key_version, kem_public_key, signing_public_key}",
+      "Ed25519 signature, base64, by the signing key over the RFC 8785 JSON of {type: 'behyndme/v1/key-registration', user_id, key_version, kem_public_key, signing_public_key}",
   })
   @IsBase64()
   @MaxLength(200)
@@ -86,7 +86,7 @@ export class KeyProofDto {
 
   @ApiProperty({
     description:
-      "Ed25519 signature, base64, by the signing key over the RFC 8785 JSON of {type: 'behindme/v1/key-proof', user_id, key_version, day}",
+      "Ed25519 signature, base64, by the signing key over the RFC 8785 JSON of {type: 'behyndme/v1/key-proof', user_id, key_version, day}",
   })
   @IsBase64()
   @MaxLength(200)

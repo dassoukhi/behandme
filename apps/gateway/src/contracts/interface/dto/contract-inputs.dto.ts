@@ -176,7 +176,7 @@ export class SealContractDTO {
   shares: ShareWrapDTO[];
 
   @ApiProperty({
-    description: "The manifest the owner signed (behindme/v1/manifest)",
+    description: "The manifest the owner signed (behyndme/v1/manifest)",
     type: "object",
     additionalProperties: true,
   })
