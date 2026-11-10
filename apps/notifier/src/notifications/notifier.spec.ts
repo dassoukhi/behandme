@@ -15,6 +15,7 @@ import {
   ClaimReminder,
   ContractReleased,
   ContractRevoked,
+  ContractSealed,
   KeyCareReminder,
   KeysRotated,
   ParticipantLeft,
@@ -90,6 +91,9 @@ async function receive(...envelopes: ReturnType<typeof createEnvelope>[]) {
       ),
       on(KeyCareReminder, (payload, _e, tx) =>
         events.keyCareReminder(stores.bind(tx), payload),
+      ),
+      on(ContractSealed, (payload, _e, tx) =>
+        events.contractSealed(stores.bind(tx), payload),
       ),
       on(ClaimFiled, (payload, _e, tx) =>
         events.claimFiled(stores.bind(tx), payload),
@@ -291,6 +295,36 @@ describe("keys.care_reminder", () => {
       { title: "Your yearly check-up" },
     ]);
     expect(await deliveries()).toEqual([]);
+  });
+});
+
+describe("contract.sealed", () => {
+  const CONTRACT = "5d2f7a10-8c3e-4b6a-9f21-0a1b2c3d4e5f";
+
+  it("tells each new validator that someone counts on them, naming the category only", async () => {
+    await inbox.updatePreferences(ALICE, { language: "en" });
+    await receive(
+      createEnvelope(
+        ContractSealed.create({
+          contractId: CONTRACT,
+          category: "devices",
+          newValidatorIds: [BOB, ALICE],
+        }),
+        { correlationId: "c" },
+        clock,
+      ),
+    );
+    expect(await inbox.list(BOB)).toMatchObject([
+      {
+        type: "validator_chosen",
+        title: "Un proche compte sur vous",
+        body: "Vous êtes validateur du contrat « Appareils ». Gardez vos clés à l'abri : une minute suffit.",
+        data: { url: "/keys" },
+      },
+    ]);
+    expect(await inbox.list(ALICE)).toMatchObject([
+      { title: "Someone close is counting on you" },
+    ]);
   });
 });
 

@@ -102,6 +102,10 @@ beforeEach(async () => {
     request,
     keys,
   );
+  // What the sealing published is the subject of sealing.spec.ts, not of these tests.
+  await sql`reset role`.execute(db);
+  await sql`delete from handover.outbox`.execute(db);
+  await sql`set role svc_handover`.execute(db);
   clock.advance(FILED.getTime() - clock.now().getTime());
 });
 afterEach(() => sql`reset role`.execute(db));

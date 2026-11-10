@@ -14,7 +14,11 @@ import { ConflictError, InvalidInputError, NotFoundError } from "@lib/kernel";
 import { FakeClock, startTestDatabase, type TestDatabase } from "@lib/testing";
 import { ContractsService } from "./application/contracts.service.js";
 import { SealingService } from "./application/sealing.service.js";
-import type { RegisteredKey, SealRequest } from "./domain/sealing.js";
+import {
+  newlyNamed,
+  type RegisteredKey,
+  type SealRequest,
+} from "./domain/sealing.js";
 import { KyselyHandoverStores } from "./infrastructure/kysely-handover.stores.js";
 import { nodeSealCrypto } from "./infrastructure/node-seal-crypto.js";
 import { nodeSha256 } from "./infrastructure/sha256.js";
@@ -117,6 +121,43 @@ describe("sealing", () => {
       accessor_id: P.accessor.user_id,
       validator_ids: [P.v1.user_id, P.v2.user_id, P.v3.user_id],
     });
+  });
+
+  it("tells the validators it names for the first time", async () => {
+    await sql`reset role`.execute(db);
+    await sql`delete from handover.outbox`.execute(db);
+    await sql`set role svc_handover`.execute(db);
+    await sealing.seal(OWNER, ID, request(), keys());
+    await sql`reset role`.execute(db);
+    const { rows } = await sql<{
+      type: string;
+      envelope: { payload: unknown };
+    }>`select type, envelope from handover.outbox order by id`.execute(db);
+    await sql`set role svc_handover`.execute(db);
+    expect(rows.map((r) => [r.type, r.envelope.payload])).toEqual([
+      [
+        "contract.sealed",
+        {
+          contractId: ID,
+          category: "networks",
+          newValidatorIds: [P.v1.user_id, P.v2.user_id, P.v3.user_id],
+        },
+      ],
+    ]);
+    await sql`reset role`.execute(db);
+    const routes = await sql<{
+      queue: string;
+    }>`select queue from messaging.subscriptions where event_type = 'contract.sealed'`.execute(
+      db,
+    );
+    await sql`set role svc_handover`.execute(db);
+    expect(routes.rows).toEqual([{ queue: "notifier" }]);
+  });
+
+  it("names as new only the validators who held no share before", () => {
+    expect(newlyNamed(["a", "b"], ["b", "c", "a"])).toEqual(["c"]);
+    expect(newlyNamed(["a"], ["a"])).toEqual([]);
+    expect(newlyNamed([], ["a", "b"])).toEqual(["a", "b"]);
   });
 
   it("is reserved to the owner", async () => {

@@ -55,6 +55,17 @@ export const ClaimFiled = defineEvent(
   }),
 );
 
+/** Handover: the owner sealed a contract; those it names as validators for the first time are told. */
+export const ContractSealed = defineEvent(
+  "contract.sealed",
+  1,
+  z.object({
+    contractId,
+    category,
+    newValidatorIds: z.array(userId).min(1),
+  }),
+);
+
 /** Handover: enough validators approved; the release follows at `contestUntil` unless cancelled. */
 export const ClaimQuorumReached = defineEvent(
   "claim.quorum_reached",

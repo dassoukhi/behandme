@@ -1,11 +1,16 @@
 import { Inject, Injectable } from "@nestjs/common";
-import type { ContractRecord, SealedMaterial } from "@lib/contracts";
+import {
+  type ContractRecord,
+  ContractSealed,
+  type SealedMaterial,
+} from "@lib/contracts";
 import { type Clock, ConflictError, NotFoundError } from "@lib/kernel";
 import { contractSealed } from "../domain/audit-events.js";
 import { type Contract, type Role, roleOf } from "../domain/contract.js";
 import { assertAllowed } from "../domain/lifecycle.js";
 import {
   checkSeal,
+  newlyNamed,
   type RegisteredKey,
   type SealRequest,
 } from "../domain/sealing.js";
@@ -78,6 +83,21 @@ export class SealingService {
           "The contract changed meanwhile: reload it and seal again",
         );
       await store.sealings.replace(id, sealing);
+      // Someone who now holds a share should know it, and keep their keys: told when named, not at each
+      // re-seal. Validators change only by sealing, so a sealed contract's are those of its last sealing.
+      const newValidatorIds = newlyNamed(
+        contract.sealedVersion > 0 ? contract.validatorIds : [],
+        request.validatorIds,
+      );
+      if (newValidatorIds.length > 0) {
+        await store.events.publish(
+          ContractSealed.create({
+            contractId: id,
+            category: contract.category,
+            newValidatorIds,
+          }),
+        );
+      }
       await store.audit.append(
         id,
         me,

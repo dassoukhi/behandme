@@ -1,6 +1,7 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { type Clock } from "@lib/kernel";
 import {
+  chosenAsValidator,
   claimClosed,
   claimFiledForOwner,
   claimFiledForValidator,
@@ -66,6 +67,19 @@ export class NotificationEvents {
     await this.notifier.notify(store, [
       event.kind === "phrase_check" ? phraseCheck(event) : keyCheckup(event),
     ]);
+  }
+
+  /** Those named validators for the first time. */
+  async contractSealed(
+    store: NotifierStore,
+    event: { category: string; newValidatorIds: string[] },
+  ): Promise<void> {
+    await this.notifier.notify(
+      store,
+      event.newValidatorIds.map((validatorId) =>
+        chosenAsValidator({ validatorId, category: event.category }),
+      ),
+    );
   }
 
   /** Alert the owner (they may stop it), ask the other validators for their decision. */

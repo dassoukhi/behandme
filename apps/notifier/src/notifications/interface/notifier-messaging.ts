@@ -14,6 +14,7 @@ import {
   ClaimReminder,
   ContractReleased,
   ContractRevoked,
+  ContractSealed,
   KeyCareReminder,
   KeysRotated,
   ParticipantLeft,
@@ -71,6 +72,9 @@ export class NotifierMessaging
         ),
         on(KeyCareReminder, (payload, _event, tx) =>
           events.keyCareReminder(stores.bind(tx), payload),
+        ),
+        on(ContractSealed, (payload, _event, tx) =>
+          events.contractSealed(stores.bind(tx), payload),
         ),
         on(ClaimFiled, (payload, _event, tx) =>
           events.claimFiled(stores.bind(tx), payload),

@@ -57,7 +57,9 @@ shared through `libs/contracts` (e.g. `notifier-api.ts`); the gateway keeps its 
   dead-lettered at once. Today: `trust.added`, `keys.rotated`, `user.deleted`, `claim.filed`,
   `claim.quorum_reached`, `claim.reminder`, `claim.closed`, `contract.released`, `claim.reminder_due` and
   `claim.deadline_due` (handover to itself, delayed), `contract.revoked`, `participant.left`, `scheduler.tick`, `maintenance.push_receipts_due`, `maintenance.claims_due`,
-  `maintenance.retention_due`, `maintenance.key_care_due`, `keys.care_reminder`. Later: `contract.sealed`.
+  `maintenance.retention_due`, `maintenance.key_care_due`, `keys.care_reminder`, `contract.sealed` (to the
+  validators a sealing names: someone counts on them, keep your keys; not to the accessor, whose keys can be
+  replaced up to the claim, since validators re-wrap their shares to the accessor's current keys).
 - **Correlation.** The gateway gives each request a correlation id (`x-correlation-id`, kept from the caller
   when valid); it travels in internal calls and in every event's envelope, consumers run with it, and every
   log line carries it (`ServiceLogger`, JSON in production).

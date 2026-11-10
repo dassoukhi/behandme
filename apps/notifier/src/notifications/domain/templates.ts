@@ -158,6 +158,33 @@ export function claimFiledForOwner(params: {
   };
 }
 
+/**
+ * Someone now holds a share of a contract: they should know, and keep their keys. Category only; it opens
+ * the screen where they keep their keys, the one thing to do.
+ */
+export function chosenAsValidator(params: {
+  validatorId: string;
+  category: string;
+}): NotificationDraft {
+  const name = contractName(params.category);
+  return {
+    userId: params.validatorId,
+    type: "validator_chosen",
+    copy: {
+      fr: {
+        title: "Un proche compte sur vous",
+        body: `Vous êtes validateur du contrat ${name.fr}. Gardez vos clés à l'abri : une minute suffit.`,
+      },
+      en: {
+        title: "Someone close is counting on you",
+        body: `You are a validator of the contract ${name.en}. Keep your keys safe: it takes a minute.`,
+      },
+    },
+    data: { url: "/keys" },
+    critical: false,
+  };
+}
+
 export function claimFiledForValidator(params: {
   validatorId: string;
   contractId: string;

@@ -20,6 +20,11 @@ const ENVELOPE_FORMAT = 0x02;
 const MIN_PADDED_LENGTH = 1024;
 const MAX_PADDED_LENGTH = 32768;
 
+/** The validators of a new sealing who held no share of the previous one, in their order. */
+export function newlyNamed(previous: string[], current: string[]): string[] {
+  return current.filter((id) => !previous.includes(id));
+}
+
 /** A format 2 envelope whose size is one of the padding steps. */
 export function isPaddedEnvelope(envelope: Uint8Array): boolean {
   const padded = envelope.length - (1 + NONCE_LENGTH + TAG_LENGTH);
