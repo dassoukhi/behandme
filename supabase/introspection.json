@@ -339,6 +339,66 @@
           "is_identity": "NO"
         },
         {
+          "table_schema": "core",
+          "table_name": "user_keys",
+          "column_name": "proven_on",
+          "ordinal_position": 9,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "user_keys",
+          "column_name": "phrase_checked_at",
+          "ordinal_position": 10,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "user_keys",
+          "column_name": "phrase_checks",
+          "ordinal_position": 11,
+          "data_type": "integer",
+          "udt_name": "int4",
+          "is_nullable": "NO",
+          "column_default": "0",
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "user_keys",
+          "column_name": "phrase_location",
+          "ordinal_position": 12,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "user_keys",
+          "column_name": "care_reminded_at",
+          "ordinal_position": 13,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
           "table_schema": "handover",
           "table_name": "claims",
           "column_name": "id",
@@ -1981,6 +2041,20 @@
           "conname": "user_keys_key_version_check",
           "contype": "c",
           "definition": "CHECK ((key_version >= 1))"
+        },
+        {
+          "schema": "core",
+          "table_name": "core.user_keys",
+          "conname": "user_keys_phrase_checks_check",
+          "contype": "c",
+          "definition": "CHECK ((phrase_checks >= 0))"
+        },
+        {
+          "schema": "core",
+          "table_name": "core.user_keys",
+          "conname": "user_keys_phrase_location_check",
+          "contype": "c",
+          "definition": "CHECK ((phrase_location = ANY (ARRAY['papers'::text, 'safe'::text, 'password_manager'::text, 'relative'::text, 'notary'::text, 'other'::text])))"
         },
         {
           "schema": "core",
