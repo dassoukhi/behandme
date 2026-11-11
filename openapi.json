@@ -1551,6 +1551,132 @@
         ]
       }
     },
+    "/api/v1/users/me/keys/backup": {
+      "put": {
+        "operationId": "KeysController_putBackup",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutKeyBackupDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyKeysDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A malformed backup, a made_at too far from now, or a signature that does not verify"
+          },
+          "404": {
+            "description": "No keys registered yet"
+          },
+          "409": {
+            "description": "The keys changed meanwhile, or a backup made later is already there"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Back the keys up in a passkey: a box of the seed the server cannot open, signed by the keys in it. Replaces the caller's last backup.",
+        "tags": [
+          "keys"
+        ]
+      },
+      "delete": {
+        "operationId": "KeysController_removeBackup",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyKeysDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Reverification needed: the body is Clerk's reverification hint (clerk_error), handled by useReverification"
+          },
+          "404": {
+            "description": "No backup"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete the caller's passkey backup. Needs a Clerk reverification less than 10 minutes old.",
+        "tags": [
+          "keys"
+        ]
+      }
+    },
+    "/api/v1/users/me/keys/backup/open": {
+      "post": {
+        "operationId": "KeysController_openBackup",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpenKeyBackupDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KeyBackupBoxDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Not a credential id"
+          },
+          "403": {
+            "description": "Reverification needed: the body is Clerk's reverification hint (clerk_error), handled by useReverification"
+          },
+          "404": {
+            "description": "No backup of the account's keys"
+          },
+          "409": {
+            "description": "This passkey does not hold the backup"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The box of the passkey backup, for a phone that just used that passkey. Needs a Clerk reverification less than 10 minutes old; the user is alerted (critical push).",
+        "tags": [
+          "keys"
+        ]
+      }
+    },
     "/api/v1/users/me/keys/reset": {
       "post": {
         "operationId": "KeysController_reset",
@@ -3067,6 +3193,29 @@
           "created_at"
         ]
       },
+      "PasskeyBackupDto": {
+        "type": "object",
+        "properties": {
+          "credential_id": {
+            "type": "string",
+            "description": "The passkey that holds the backup: its WebAuthn credential id, base64url"
+          },
+          "synced": {
+            "type": "boolean",
+            "description": "The passkey syncs to the user's other devices (WebAuthn backup state, as the phone saw it)"
+          },
+          "made_at": {
+            "type": "string",
+            "description": "When the phone made the backup, right after the passkey opened: a passkey that syncs counts for 13 months from then",
+            "example": "2026-11-11T09:00:00.000Z"
+          }
+        },
+        "required": [
+          "credential_id",
+          "synced",
+          "made_at"
+        ]
+      },
       "MyKeysDto": {
         "type": "object",
         "properties": {
@@ -3130,6 +3279,16 @@
               "other"
             ],
             "type": "string"
+          },
+          "passkey_backup": {
+            "nullable": true,
+            "description": "The backup of these keys in a passkey, if any",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PasskeyBackupDto"
+              }
+            ]
           }
         },
         "required": [
@@ -3144,7 +3303,8 @@
           "proven_on",
           "phrase_checked_at",
           "phrase_check_due",
-          "phrase_location"
+          "phrase_location",
+          "passkey_backup"
         ]
       },
       "RegisterKeysDto": {
@@ -3244,6 +3404,85 @@
         },
         "required": [
           "key_version"
+        ]
+      },
+      "PutKeyBackupDto": {
+        "type": "object",
+        "properties": {
+          "key_version": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 1000,
+            "description": "The registered key version",
+            "example": 1
+          },
+          "credential_id": {
+            "type": "string",
+            "description": "The passkey whose PRF output keys the box: its WebAuthn credential id, base64url"
+          },
+          "synced": {
+            "type": "boolean",
+            "description": "The passkey syncs to the user's other devices (WebAuthn backup state flag)"
+          },
+          "made_at": {
+            "type": "string",
+            "description": "When the phone made the box, ISO 8601 in UTC with milliseconds; a day either side of the server's time is accepted, and a backup made later than this one is never replaced",
+            "example": "2026-11-11T09:00:00.000Z"
+          },
+          "box": {
+            "type": "string",
+            "maxLength": 200,
+            "format": "base64",
+            "description": "0x01 ‖ nonce ‖ AES-256-GCM of the seed and its phrase's language, under HKDF-SHA256 of the passkey's PRF output (salt behyndme/v1/passkey-backup, info: user id and credential id), base64 (62 bytes)"
+          },
+          "signature": {
+            "type": "string",
+            "maxLength": 200,
+            "format": "base64",
+            "description": "Ed25519 signature, base64, by the signing key over the RFC 8785 JSON of {type: 'behyndme/v1/key-backup', user_id, key_version, credential_id, synced, made_at, box_hash (hex SHA-256 of the box)}"
+          }
+        },
+        "required": [
+          "key_version",
+          "credential_id",
+          "synced",
+          "made_at",
+          "box",
+          "signature"
+        ]
+      },
+      "OpenKeyBackupDto": {
+        "type": "object",
+        "properties": {
+          "credential_id": {
+            "type": "string",
+            "description": "The passkey the phone just used: the server hands out the box only if it is this one's"
+          }
+        },
+        "required": [
+          "credential_id"
+        ]
+      },
+      "KeyBackupBoxDto": {
+        "type": "object",
+        "properties": {
+          "key_version": {
+            "type": "number",
+            "example": 1
+          },
+          "credential_id": {
+            "type": "string",
+            "description": "The passkey whose PRF output opens the box"
+          },
+          "box": {
+            "type": "string",
+            "description": "The box the phone put in, base64"
+          }
+        },
+        "required": [
+          "key_version",
+          "credential_id",
+          "box"
         ]
       },
       "OpenKeyTransferDto": {

@@ -50,27 +50,49 @@ export function keysReset(params: { userId: string }): NotificationDraft {
   };
 }
 
-/**
- * A new phone took the user's keys from their old one. If it was not them, someone holds their session and
- * a phone of theirs: pushed even when push is off.
- */
-export function keysTransferred(params: { userId: string }): NotificationDraft {
+/** Keys that reached a phone: pushed even when push is off, since it may not have been the user. */
+function keysReachedAPhone(
+  userId: string,
+  type: string,
+  title: { fr: string; en: string },
+): NotificationDraft {
   return {
-    userId: params.userId,
-    type: "keys_transferred",
+    userId,
+    type,
     copy: {
       fr: {
-        title: "Vos clés sont sur un nouveau téléphone",
+        title: title.fr,
         body: "Si ce n'est pas vous, réinitialisez vos clés et changez votre mot de passe tout de suite.",
       },
       en: {
-        title: "Your keys are on a new phone",
+        title: title.en,
         body: "If this wasn't you, reset your keys and change your password right away.",
       },
     },
     data: { url: "/settings/security" },
     critical: true,
   };
+}
+
+/** A new phone took the user's keys from their old one: if it was not them, someone holds their session and a phone of theirs. */
+export function keysTransferred(params: { userId: string }): NotificationDraft {
+  return keysReachedAPhone(params.userId, "keys_transferred", {
+    fr: "Vos clés sont sur un nouveau téléphone",
+    en: "Your keys are on a new phone",
+  });
+}
+
+/**
+ * A phone took the user's keys from their passkey backup, after a fresh verification: if it was not them, someone
+ * holds their password and their passkey.
+ */
+export function keysBackupOpened(params: {
+  userId: string;
+}): NotificationDraft {
+  return keysReachedAPhone(params.userId, "keys_backup_opened", {
+    fr: "Vos clés ont été récupérées avec votre clé d'accès",
+    en: "Your keys were recovered with your passkey",
+  });
 }
 
 /** Someone the reader trusts has new keys: compare their new security code before entrusting them. */

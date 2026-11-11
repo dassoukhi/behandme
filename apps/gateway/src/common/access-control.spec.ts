@@ -15,15 +15,18 @@ import {
   it,
 } from "vitest";
 import { ContractsFacade } from "../contracts/application/contracts.facade.js";
+import { KeyBackupService } from "../keys/application/key-backup.service.js";
 import { KeyCareService } from "../keys/application/key-care.service.js";
 import { KeyTransferService } from "../keys/application/key-transfer.service.js";
 import { KeysService } from "../keys/application/keys.service.js";
 import { KEY_QUARANTINE_MS } from "../keys/domain/keys.js";
+import { KyselyKeyBackupRepository } from "../keys/infrastructure/kysely-key-backup.repository.js";
 import { KyselyKeyTransferRepository } from "../keys/infrastructure/kysely-key-transfer.repository.js";
 import { KyselyKeyRepository } from "../keys/infrastructure/kysely-key.repository.js";
 import { KyselyKeysUnitOfWork } from "../keys/infrastructure/kysely-keys.unit-of-work.js";
 import { UsersKeyHolderDirectory } from "../keys/infrastructure/users-key-holder-directory.js";
 import { nodeKeyCryptography } from "../keys/infrastructure/node-key-cryptography.js";
+import { keyPair } from "../keys/testing/key-pair.js";
 import { InMemoryHandover } from "../handover/testing/in-memory-handover.js";
 import type { IdentityProfile } from "../users/application/ports.js";
 import { ProfileService } from "../users/application/profile.service.js";
@@ -397,6 +400,45 @@ describe("key transfers: the account's own only", () => {
       await expect(transfers.take(other, id)).rejects.toThrow(NotFoundError);
     }
     expect(await transfers.take(OWNER, id)).toMatchObject({ key_version: 1 });
+  });
+});
+
+describe("key backups: the account's own only", () => {
+  it("lets no one else take, replace or delete a user's backup, not even the people linked to them", async () => {
+    const pair = keyPair();
+    await keys.register(OWNER, pair(OWNER, 1));
+    await withKeys(ACCESSOR, VALIDATOR, STRANGER);
+    const clock = new FakeClock();
+    const backups = new KeyBackupService(
+      new KyselyKeyBackupRepository(pg),
+      nodeKeyCryptography,
+      new KyselyKeysUnitOfWork(pg),
+      clock,
+    );
+    const credentialId = "Y3JlZGVudGlhbC1vZi10aGUtcGFzc2tleQ";
+    const ownerBackup = () =>
+      pair.backUp(OWNER, 1, {
+        credentialId,
+        box: new Uint8Array(62).fill(1),
+        madeAt: clock.now().toISOString(),
+      });
+    await backups.put(OWNER, ownerBackup());
+    for (const other of [ACCESSOR, VALIDATOR, STRANGER]) {
+      await expect(backups.open(other, credentialId, [1, -1])).rejects.toThrow(
+        NotFoundError,
+      );
+      await expect(backups.remove(other, [1, -1])).rejects.toThrow(
+        NotFoundError,
+      );
+      // The owner's signed backup, sent as someone else's, is checked against that person's keys.
+      await expect(backups.put(other, ownerBackup())).rejects.toThrow(
+        InvalidInputError,
+      );
+    }
+    expect(await backups.open(OWNER, credentialId, [1, -1])).toMatchObject({
+      key_version: 1,
+      credential_id: credentialId,
+    });
   });
 });
 

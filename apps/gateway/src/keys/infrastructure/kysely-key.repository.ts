@@ -4,6 +4,7 @@ import { DATABASE } from "@lib/platform";
 import type { KeyCare, PhraseLocation } from "../domain/care.js";
 import type { RegisteredKeys } from "../domain/keys.js";
 import type { KeyRepository } from "../application/ports.js";
+import type { KeyBackupsTable } from "./kysely-key-backup.repository.js";
 
 interface UserKeysTable {
   user_id: string;
@@ -33,11 +34,13 @@ interface UserKeyHistoryTable {
 type Db = Kysely<{
   user_keys: UserKeysTable;
   user_key_history: UserKeyHistoryTable;
+  key_backups: KeyBackupsTable;
 }>;
 
 /**
- * core.user_keys and core.user_key_history (supabase/migrations/20261015090000_user_keys.sql). Bound to
- * a transaction by KyselyKeysUnitOfWork for `replace`.
+ * core.user_keys and core.user_key_history (supabase/migrations/20261015090000_user_keys.sql), with the
+ * passkey backup of the current keys in their care (core.key_backups). Bound to a transaction by
+ * KyselyKeysUnitOfWork for `replace`.
  */
 @Injectable()
 export class KyselyKeyRepository implements KeyRepository {
@@ -52,6 +55,17 @@ export class KyselyKeyRepository implements KeyRepository {
       .selectFrom("user_keys")
       .selectAll()
       .where("user_id", "=", userId)
+      .executeTakeFirst();
+    return row ? toKeys(row) : null;
+  }
+
+  async findForShare(userId: string): Promise<RegisteredKeys | null> {
+    // A reset locks the row for update (`replace`): it waits for this transaction, or this one for it.
+    const row = await this.db
+      .selectFrom("user_keys")
+      .selectAll()
+      .where("user_id", "=", userId)
+      .forShare()
       .executeTakeFirst();
     return row ? toKeys(row) : null;
   }
@@ -143,10 +157,8 @@ export class KyselyKeyRepository implements KeyRepository {
 
   async careOf(userIds: string[]): Promise<KeyCare[]> {
     if (userIds.length === 0) return [];
-    const rows = await this.db
-      .selectFrom("user_keys")
-      .select(CARE_COLUMNS)
-      .where("user_id", "in", userIds)
+    const rows = await careQuery(this.db)
+      .where("user_keys.user_id", "in", userIds)
       .execute();
     return rows.map(toCare);
   }
@@ -155,12 +167,10 @@ export class KyselyKeyRepository implements KeyRepository {
     afterUserId: string | null,
     limit: number,
   ): Promise<KeyCare[]> {
-    let query = this.db
-      .selectFrom("user_keys")
-      .select(CARE_COLUMNS)
-      .orderBy("user_id")
-      .limit(limit);
-    if (afterUserId !== null) query = query.where("user_id", ">", afterUserId);
+    let query = careQuery(this.db).orderBy("user_keys.user_id").limit(limit);
+    if (afterUserId !== null) {
+      query = query.where("user_keys.user_id", ">", afterUserId);
+    }
     return (await query.execute()).map(toCare);
   }
 
@@ -233,21 +243,38 @@ export class KyselyKeyRepository implements KeyRepository {
   }
 }
 
-const CARE_COLUMNS = [
-  "user_id",
-  "key_version",
-  "fingerprint",
-  "created_at",
-  "proven_on",
-  "phrase_checked_at",
-  "phrase_checks",
-  "phrase_location",
-  "care_reminded_at",
-] as const;
+/** The care of the current keys, with their passkey backup: one made for other keys, before a reset, is not theirs. */
+function careQuery(db: Db) {
+  return db
+    .selectFrom("user_keys")
+    .leftJoin("key_backups", (join) =>
+      join
+        .onRef("key_backups.user_id", "=", "user_keys.user_id")
+        .onRef("key_backups.key_version", "=", "user_keys.key_version"),
+    )
+    .select([
+      "user_keys.user_id",
+      "user_keys.key_version",
+      "user_keys.fingerprint",
+      "user_keys.created_at",
+      "user_keys.proven_on",
+      "user_keys.phrase_checked_at",
+      "user_keys.phrase_checks",
+      "user_keys.phrase_location",
+      "user_keys.care_reminded_at",
+      "key_backups.credential_id as backup_credential_id",
+      "key_backups.synced as backup_synced",
+      "key_backups.made_at as backup_made_at",
+    ]);
+}
 
-function toCare(
-  row: Pick<Selectable<UserKeysTable>, (typeof CARE_COLUMNS)[number]>,
-): KeyCare {
+type CareRow = Awaited<
+  ReturnType<ReturnType<typeof careQuery>["execute"]>
+>[number];
+
+function toCare(row: CareRow): KeyCare {
+  // The join gives the backup's columns all null, or none: checking each only narrows their types.
+  const { backup_credential_id, backup_synced, backup_made_at } = row;
   return {
     userId: row.user_id,
     keyVersion: row.key_version,
@@ -258,6 +285,16 @@ function toCare(
     phraseChecks: row.phrase_checks,
     phraseLocation: row.phrase_location,
     remindedAt: row.care_reminded_at,
+    passkeyBackup:
+      backup_credential_id !== null &&
+      backup_synced !== null &&
+      backup_made_at !== null
+        ? {
+            credentialId: backup_credential_id,
+            synced: backup_synced,
+            madeAt: backup_made_at,
+          }
+        : null,
   };
 }
 

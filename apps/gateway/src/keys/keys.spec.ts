@@ -14,6 +14,7 @@ import { FakeClock, startTestDatabase, type TestDatabase } from "@lib/testing";
 import { TrustService } from "../users/application/trust.service.js";
 import { KyselyTrustRepository } from "../users/infrastructure/kysely-trust.repository.js";
 import { KyselyUsersUnitOfWork } from "../users/infrastructure/kysely-users.unit-of-work.js";
+import type { KeyBackupService } from "./application/key-backup.service.js";
 import { KeyCareService } from "./application/key-care.service.js";
 import { KeysService } from "./application/keys.service.js";
 import { toPublicKeys } from "./application/public-keys.js";
@@ -464,6 +465,7 @@ describe("the recovery phrase", () => {
       phrase_checked_at: null,
       phrase_check_due: false,
       phrase_location: null,
+      passkey_backup: null,
     });
   });
 });
@@ -477,11 +479,15 @@ describe("the answer to new keys", () => {
   });
 
   it("is made from what was written: a failed read must not make accepted keys look refused", async () => {
-    const controller = new KeysController(keys, {
-      mine: async () => {
-        throw new Error("connection lost");
-      },
-    } as unknown as KeyCareService);
+    const controller = new KeysController(
+      keys,
+      {
+        mine: async () => {
+          throw new Error("connection lost");
+        },
+      } as unknown as KeyCareService,
+      {} as KeyBackupService,
+    );
     const pair = keyPair();
     expect(await controller.register(ME, body(pair(ME, 1)))).toMatchObject({
       key_version: 1,

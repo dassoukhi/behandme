@@ -12,6 +12,7 @@ import {
   contractReleasedForAccessor,
   contractRevoked,
   keyCheckup,
+  keysBackupOpened,
   keysReset,
   keysTransferred,
   participantLeft,
@@ -66,6 +67,14 @@ export class NotificationEvents {
     event: { userId: string },
   ): Promise<void> {
     await this.notifier.notify(store, [keysTransferred(event)]);
+  }
+
+  /** Alert the user: it may not have been them. */
+  async keysBackupOpened(
+    store: NotifierStore,
+    event: { userId: string },
+  ): Promise<void> {
+    await this.notifier.notify(store, [keysBackupOpened(event)]);
   }
 
   /** A check of the recovery phrase, or the yearly check-up, is due. */

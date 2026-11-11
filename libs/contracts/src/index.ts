@@ -13,6 +13,7 @@ export {
   ContractSealed,
   KeyCareDue,
   KeyCareReminder,
+  KeysBackupOpened,
   KeysRotated,
   KeysTransferred,
   ParticipantLeft,

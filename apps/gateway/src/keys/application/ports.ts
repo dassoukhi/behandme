@@ -1,10 +1,13 @@
 import type { EventPublisher } from "../../users/application/ports.js";
+import type { KeyBackup } from "../domain/backup.js";
 import type { KeyCare, PhraseLocation } from "../domain/care.js";
 import type { RegisteredKeys } from "../domain/keys.js";
 import type { KeyTransfer } from "../domain/transfer.js";
 
 export interface KeyRepository {
   find(userId: string): Promise<RegisteredKeys | null>;
+  /** The same, kept as they are until the transaction ends: a reset waits for it. */
+  findForShare(userId: string): Promise<RegisteredKeys | null>;
   findMany(userIds: string[]): Promise<RegisteredKeys[]>;
   /** The user's keys of that version: the current ones, or retired ones from the history. */
   findVersion(
@@ -58,10 +61,21 @@ export interface KeyTransferRepository {
 }
 export const KEY_TRANSFER_REPOSITORY = Symbol("KeyTransferRepository");
 
+/** core.key_backups: one backup per account. */
+export interface KeyBackupRepository {
+  find(userId: string): Promise<KeyBackup | null>;
+  /** Replaces the user's backup. False when the one there was made later than this one. */
+  put(backup: KeyBackup): Promise<boolean>;
+  /** False when the user had no backup. */
+  deleteForUser(userId: string): Promise<boolean>;
+}
+export const KEY_BACKUP_REPOSITORY = Symbol("KeyBackupRepository");
+
 /** Keys and the events their change causes, in one transaction. */
 export interface KeysTransaction {
   keys: KeyRepository;
   transfers: KeyTransferRepository;
+  backups: KeyBackupRepository;
   events: EventPublisher;
 }
 

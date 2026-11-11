@@ -15,5 +15,14 @@
     "key_version": 1,
     "day": "2026-10-15",
     "signature": "2hhWFz5Tck1nck/WGyAkC/DDEM/koQ5+d9LnGbPGKYiuV9NyLvvEnxYNM5NAob51k01HZLWMQKZ6QUnSbgtCAg=="
+  },
+  "backup_prf_output_hex": "5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b",
+  "backup": {
+    "credential_id": "x8fHx8fHx8fHx8fHx8fHx8fHx8c",
+    "key_version": 1,
+    "synced": true,
+    "made_at": "2026-11-11T09:00:00.000Z",
+    "box": "AeKEFYjyDbjj+gYzdKXnnlw7QqbMjdarMJJ4Kf4h3fcSQ2T1nvZmwoTPcY1+Wyt1rwTyhR51OiVNFabBllA=",
+    "signature": "/VCophUdn/Kmd1GvbcewV7R9N9MQ61toFNP2uX+4XEKiI1AyVRtj5dhj3kJon4wSWEymSOqDj4laWhcnAuXeDA=="
   }
 }

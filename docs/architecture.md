@@ -60,7 +60,8 @@ shared through `libs/contracts` (e.g. `notifier-api.ts`); the gateway keeps its 
   `maintenance.retention_due`, `maintenance.key_care_due`, `keys.care_reminder`, `contract.sealed` (to the
   validators a sealing names: someone counts on them, keep your keys; not to the accessor, whose keys can be
   replaced up to the claim, since validators re-wrap their shares to the accessor's current keys),
-  `keys.transferred` (to the user: their keys were copied to a new phone).
+  `keys.transferred` (to the user: their keys were copied to a new phone), `keys.backup_opened` (to the user:
+  a phone took their passkey backup).
 - **Correlation.** The gateway gives each request a correlation id (`x-correlation-id`, kept from the caller
   when valid); it travels in internal calls and in every event's envelope, consumers run with it, and every
   log line carries it (`ServiceLogger`, JSON in production).
@@ -162,10 +163,27 @@ the app, once a week at most (`POST /users/me/keys/proof`, `behyndme/v1/key-proo
 the server's), and the app reports when the user proved they kept their phrase and where they keep it, as a
 category (`PATCH /users/me/keys/care`). A reset clears all of it. For the owner only, `health.validators` gives
 each validator's state (`keys/domain/care.ts`): `lost` (not the keys of the sealing), `silent` (no sign from the
-phone for 13 months), `not_saved` (phrase never proved kept), or `ok`. The worker's daily `key-care` job makes the
-gateway remind those who are due (`keys.care_reminder`): the phrase at 7, 30 and 180 days, then in the yearly
-check-up, in January, twice at most. A push only: nothing yet reaches someone who refused notifications
-(e-mail: phase 5).
+phone for 13 months), `not_saved` (neither the phrase proved kept nor a passkey backup that syncs), or `ok`. The
+worker's daily `key-care` job makes the gateway remind those who are due (`keys.care_reminder`): the phrase at 7,
+30 and 180 days, then in the yearly check-up, in January, twice at most; never the phrase of keys backed up in a
+passkey that syncs, for which it is only a fallback (a check made meanwhile still counts in its schedule). A push
+only: nothing yet reaches someone who refused notifications (e-mail: phase 5).
+
+**Passkey backup.** The phone backs the keys up in a passkey (`PUT /users/me/keys/backup`, gateway `keys/`, table
+`core.key_backups`, one per account): the seed in an AES-256-GCM box under a key derived from the passkey's
+WebAuthn PRF output, which only the user's devices can get, after Face ID. The keys in the box sign it
+(`behyndme/v1/key-backup`: user, key version, credential id, whether the passkey syncs, when it was made, the
+box's hash), so the server stores only what the keys' holder made, and knows from the signed WebAuthn backup
+state whether losing the phone loses the passkey. The time must be within a day of the server's, and a backup
+never replaces one made later: an old signed backup cannot be sent again. A passkey that syncs counts, for the
+owner's view of a validator and instead of the phrase's checks, for 13 months after the phone made or confirmed
+the backup (the passkey may be deleted, or the keychain turned off, without the server knowing); the app asks
+the user to confirm it before then. A phone without the keys uses the passkey, then takes the box
+(`POST /users/me/keys/backup/open`, with that passkey's credential id): a Clerk reverification less than
+10 minutes old, and `keys.backup_opened` alerts the user (critical push). Deleting the backup needs the same
+reverification; a reset deletes it (putting and taking out lock the keys' row, so neither straddles a reset), and
+a backup counts for the key version it was made for only. The server checks sizes, the time and the signature: it
+can neither open the box nor make one. Restoring this way is not a phrase check.
 
 **Key transfer.** A user who changes phone and still has the old one moves the keys without the phrase
 (`/users/me/key-transfers`, gateway `keys/`, table `core.key_transfers`). The new phone makes a one-time X-Wing

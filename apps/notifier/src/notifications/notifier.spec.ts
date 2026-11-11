@@ -17,6 +17,7 @@ import {
   ContractRevoked,
   ContractSealed,
   KeyCareReminder,
+  KeysBackupOpened,
   KeysRotated,
   KeysTransferred,
   ParticipantLeft,
@@ -98,6 +99,9 @@ async function receive(...envelopes: ReturnType<typeof createEnvelope>[]) {
       ),
       on(KeysTransferred, (payload, _e, tx) =>
         events.keysTransferred(stores.bind(tx), payload),
+      ),
+      on(KeysBackupOpened, (payload, _e, tx) =>
+        events.keysBackupOpened(stores.bind(tx), payload),
       ),
       on(ClaimFiled, (payload, _e, tx) =>
         events.claimFiled(stores.bind(tx), payload),
@@ -317,6 +321,28 @@ describe("keys.transferred", () => {
       {
         type: "keys_transferred",
         title: "Vos clés sont sur un nouveau téléphone",
+        data: { url: "/settings/security" },
+      },
+    ]);
+    expect(await deliveries()).toHaveLength(1);
+  });
+});
+
+describe("keys.backup_opened", () => {
+  it("alerts the user in their language, even with push off: it may not have been them", async () => {
+    await inbox.registerDevice(BOB, TOKEN_B1);
+    await inbox.updatePreferences(BOB, { push_enabled: false, language: "en" });
+    await receive(
+      createEnvelope(
+        KeysBackupOpened.create({ userId: BOB }),
+        { correlationId: "c" },
+        clock,
+      ),
+    );
+    expect(await inbox.list(BOB)).toMatchObject([
+      {
+        type: "keys_backup_opened",
+        title: "Your keys were recovered with your passkey",
         data: { url: "/settings/security" },
       },
     ]);

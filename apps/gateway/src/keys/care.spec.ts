@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   acceptableProofDay,
+  backedUpByPasskey,
   careReminder,
   type KeyCare,
   phraseCheckDue,
   phraseCheckDueAt,
+  phraseScheduleDueAt,
   validatorKeyState,
 } from "./domain/care.js";
 
@@ -19,6 +21,7 @@ const care = (changes: Partial<KeyCare> = {}): KeyCare => ({
   phraseChecks: 0,
   phraseLocation: null,
   remindedAt: null,
+  passkeyBackup: null,
   ...changes,
 });
 
@@ -41,7 +44,7 @@ describe("checks of the phrase", () => {
   const checked = at("2026-03-01T10:00:00Z");
 
   it("are not due before the user proved they kept it", () => {
-    expect(phraseCheckDueAt(care())).toBeNull();
+    expect(phraseScheduleDueAt(care())).toBeNull();
     expect(phraseCheckDue(care(), at("2030-01-01T00:00:00Z"))).toBe(false);
   });
 
@@ -53,7 +56,7 @@ describe("checks of the phrase", () => {
     [9, "2027-01-01T00:00:00.000Z"],
   ])("after proof number %i, fall due on %s", (phraseChecks, due) => {
     const c = care({ phraseCheckedAt: checked, phraseChecks });
-    expect(phraseCheckDueAt(c)?.toISOString()).toBe(due);
+    expect(phraseScheduleDueAt(c)?.toISOString()).toBe(due);
     expect(phraseCheckDue(c, at(due))).toBe(true);
     expect(phraseCheckDue(c, new Date(at(due).getTime() - 1))).toBe(false);
   });
@@ -63,7 +66,9 @@ describe("checks of the phrase", () => {
       phraseCheckedAt: at("2026-12-20T10:00:00Z"),
       phraseChecks: 4,
     });
-    expect(phraseCheckDueAt(c)?.toISOString()).toBe("2027-01-19T10:00:00.000Z");
+    expect(phraseScheduleDueAt(c)?.toISOString()).toBe(
+      "2027-01-19T10:00:00.000Z",
+    );
   });
 });
 
@@ -179,5 +184,94 @@ describe("how far an owner can count on a validator", () => {
         now,
       ),
     ).toBe("not_saved");
+  });
+
+  it("counts on a passkey that syncs instead of the phrase, not on one kept by a single phone", () => {
+    const provenOn = at("2027-12-01T00:00:00Z");
+    const backup = (synced: boolean) => ({
+      credentialId: "x8fHx8fHx8fHx8fHx8fHx8fHx8c",
+      synced,
+      madeAt: at("2027-06-01T00:00:00Z"),
+    });
+    expect(
+      validatorKeyState(
+        "a",
+        care({ provenOn, passkeyBackup: backup(true) }),
+        now,
+      ),
+    ).toBe("ok");
+    expect(
+      validatorKeyState(
+        "a",
+        care({ provenOn, passkeyBackup: backup(false) }),
+        now,
+      ),
+    ).toBe("not_saved");
+    // A passkey says nothing of a phone silent for 13 months, or of keys that are not the sealing's.
+    expect(
+      validatorKeyState("a", care({ passkeyBackup: backup(true) }), now),
+    ).toBe("silent");
+    expect(
+      validatorKeyState(
+        "b",
+        care({ provenOn, passkeyBackup: backup(true) }),
+        now,
+      ),
+    ).toBe("lost");
+  });
+});
+
+describe("with the keys in a passkey that syncs", () => {
+  const backup = (synced: boolean, madeAt = "2026-03-02T10:00:00Z") => ({
+    passkeyBackup: {
+      credentialId: "x8fHx8fHx8fHx8fHx8fHx8fHx8c",
+      synced,
+      madeAt: at(madeAt),
+    },
+  });
+  const checked = {
+    phraseCheckedAt: at("2026-03-01T10:00:00Z"),
+    phraseChecks: 1,
+  };
+
+  it("no check of the phrase falls due, nor is reminded: it is a fallback", () => {
+    const c = care({ ...checked, ...backup(true) });
+    const now = at("2026-03-08T10:00:00Z");
+    expect(phraseCheckDueAt(c, now)).toBeNull();
+    expect(phraseCheckDue(c, at("2027-01-01T00:00:00Z"))).toBe(false);
+    expect(careReminder(c, now)).toBeNull();
+    // The schedule itself goes on: a check made meanwhile is its next step.
+    expect(phraseScheduleDueAt(c)?.toISOString()).toBe(
+      "2026-03-08T10:00:00.000Z",
+    );
+  });
+
+  it("checks of the phrase go on while the passkey stays on one phone", () => {
+    const c = care({ ...checked, ...backup(false) });
+    const now = at("2026-03-08T10:00:00Z");
+    expect(phraseCheckDueAt(c, now)?.toISOString()).toBe(
+      "2026-03-08T10:00:00.000Z",
+    );
+    expect(careReminder(c, now)).toBe("phrase_check");
+  });
+
+  it("are counted on for 13 months after the phone last confirmed the passkey, no longer", () => {
+    const c = care({ ...checked, ...backup(true) });
+    // 2026-03-02 + 396 days.
+    expect(backedUpByPasskey(c, at("2027-04-02T10:00:00Z"))).toBe(true);
+    expect(backedUpByPasskey(c, at("2027-04-03T10:00:01Z"))).toBe(false);
+    expect(phraseCheckDue(c, at("2027-04-03T10:00:01Z"))).toBe(true);
+    expect(
+      validatorKeyState(
+        "a",
+        care({ provenOn: at("2027-12-01T00:00:00Z"), ...backup(true) }),
+        at("2028-01-01T00:00:00Z"),
+      ),
+    ).toBe("not_saved");
+  });
+
+  it("the yearly check-up still asks a silent phone for a sign", () => {
+    const c = care({ provenOn: at("2026-11-02T00:00:00Z"), ...backup(true) });
+    expect(careReminder(c, at("2027-01-03T08:00:00Z"))).toBe("key_checkup");
   });
 });

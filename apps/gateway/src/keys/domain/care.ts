@@ -1,6 +1,6 @@
 // How we know, while something can still be done, that a user's end-to-end keys are not lost: the phone
-// proves now and then that it holds them, and the user proves that they kept their recovery phrase. The
-// app's docs/crypto-protocol.md ("Key care") describes the signature.
+// proves now and then that it holds them, and the user proves that they kept their recovery phrase, or keeps
+// the keys in a passkey that syncs. The app's docs/crypto-protocol.md ("Key care") describes the signature.
 
 const DAY_MS = 86_400_000;
 
@@ -43,6 +43,26 @@ export interface KeyCare {
   phraseChecks: number;
   phraseLocation: PhraseLocation | null;
   remindedAt: Date | null;
+  /** The backup of these keys in a passkey, if any (domain/backup.ts). */
+  passkeyBackup: {
+    credentialId: string;
+    synced: boolean;
+    /** When the phone made the backup or last confirmed that the passkey opens it (signed). */
+    madeAt: Date;
+  } | null;
+}
+
+/**
+ * A passkey that syncs holds these keys: losing the phone loses nothing, and the phrase is only a fallback. Only
+ * for 13 months after the phone last confirmed it: the passkey may have been deleted since, or the keychain turned
+ * off, which the server cannot see.
+ */
+export function backedUpByPasskey(care: KeyCare, now: Date): boolean {
+  const backup = care.passkeyBackup;
+  return (
+    backup?.synced === true &&
+    now.getTime() - backup.madeAt.getTime() <= SILENT_AFTER_DAYS * DAY_MS
+  );
 }
 
 /** A UTC day, as the phone signs it. */
@@ -76,8 +96,8 @@ export function acceptableProofDay(day: string, now: Date): boolean {
 /** The last sign of life of these keys: the phone's last proof, or the day they were made. */
 const lastSign = (care: KeyCare) => care.provenOn ?? care.createdAt;
 
-/** When the next check of the phrase falls due; null until the user proved they kept it. */
-export function phraseCheckDueAt(care: KeyCare): Date | null {
+/** When the next check of the phrase falls in its schedule; null until the user proved they kept it. */
+export function phraseScheduleDueAt(care: KeyCare): Date | null {
   if (!care.phraseCheckedAt) return null;
   const last = care.phraseCheckedAt.getTime();
   const days = FIRST_CHECKS_DAYS[care.phraseChecks - 1];
@@ -86,8 +106,19 @@ export function phraseCheckDueAt(care: KeyCare): Date | null {
   return new Date(Math.max(nextJanuary, last + MIN_GAP_DAYS * DAY_MS));
 }
 
+/** A check made now is the next step of the schedule, whether it was asked for or not. */
+export function phraseScheduleDue(care: KeyCare, now: Date): boolean {
+  const due = phraseScheduleDueAt(care);
+  return due !== null && due <= now;
+}
+
+/** When the user is asked to check the phrase: never while a passkey that syncs holds the keys, a fallback then. */
+export function phraseCheckDueAt(care: KeyCare, now: Date): Date | null {
+  return backedUpByPasskey(care, now) ? null : phraseScheduleDueAt(care);
+}
+
 export function phraseCheckDue(care: KeyCare, now: Date): boolean {
-  const due = phraseCheckDueAt(care);
+  const due = phraseCheckDueAt(care, now);
   return due !== null && due <= now;
 }
 
@@ -116,7 +147,7 @@ export function careReminder(
   ) {
     return "key_checkup";
   }
-  const due = phraseCheckDueAt(care);
+  const due = phraseCheckDueAt(care, now);
   if (!due || due > now) return null;
   const askedSince = slot && slot > due ? slot : due;
   return !care.remindedAt || care.remindedAt < askedSince
@@ -134,5 +165,7 @@ export function validatorKeyState(
   if (now.getTime() - lastSign(care).getTime() > SILENT_AFTER_DAYS * DAY_MS) {
     return "silent";
   }
-  return care.phraseCheckedAt ? "ok" : "not_saved";
+  return care.phraseCheckedAt || backedUpByPasskey(care, now)
+    ? "ok"
+    : "not_saved";
 }

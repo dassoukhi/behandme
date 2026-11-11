@@ -1,10 +1,12 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   Patch,
   Post,
+  Put,
   Query,
 } from "@nestjs/common";
 import {
@@ -19,6 +21,7 @@ import {
   CurrentVerificationAge,
 } from "../../auth/current-user.decorator.js";
 import { reverified } from "../../auth/reverified.js";
+import { KeyBackupService } from "../application/key-backup.service.js";
 import {
   KeyCareService,
   NO_KEY_CARE,
@@ -28,9 +31,12 @@ import { toPublicKeys } from "../application/public-keys.js";
 import { type KeySubmission, type RegisteredKeys } from "../domain/keys.js";
 import { fromBase64 } from "./base64.js";
 import {
+  KeyBackupBoxDto,
   KeyProofDto,
   MyKeysDto,
+  OpenKeyBackupDto,
   PublicKeysDto,
+  PutKeyBackupDto,
   RegisterKeysDto,
   UpdateKeyCareDto,
 } from "./dto/keys.dto.js";
@@ -58,6 +64,7 @@ export class KeysController {
   constructor(
     private readonly keys: KeysService,
     private readonly care: KeyCareService,
+    private readonly backups: KeyBackupService,
   ) {}
 
   private async myKeys(me: string): Promise<MyKeysDto> {
@@ -136,6 +143,84 @@ export class KeysController {
       checked: body.phrase_checked,
       location: body.phrase_location,
     });
+    return this.myKeys(me);
+  }
+
+  @Put("users/me/keys/backup")
+  @ApiOperation({
+    summary:
+      "Back the keys up in a passkey: a box of the seed the server cannot open, signed by the keys in it. Replaces the caller's last backup.",
+  })
+  @ApiResponse({ status: 200, type: MyKeysDto })
+  @ApiResponse({
+    status: 400,
+    description:
+      "A malformed backup, a made_at too far from now, or a signature that does not verify",
+  })
+  @ApiResponse({ status: 404, description: "No keys registered yet" })
+  @ApiResponse({
+    status: 409,
+    description:
+      "The keys changed meanwhile, or a backup made later is already there",
+  })
+  async putBackup(
+    @CurrentUserId() me: string,
+    @Body() body: PutKeyBackupDto,
+  ): Promise<MyKeysDto> {
+    await this.backups.put(me, {
+      keyVersion: body.key_version,
+      credentialId: body.credential_id,
+      synced: body.synced,
+      madeAt: body.made_at,
+      box: fromBase64(body.box),
+      signature: fromBase64(body.signature),
+    });
+    return this.myKeys(me);
+  }
+
+  @Post("users/me/keys/backup/open")
+  @HttpCode(200)
+  @ApiOperation({
+    summary:
+      "The box of the passkey backup, for a phone that just used that passkey. Needs a Clerk reverification less than 10 minutes old; the user is alerted (critical push).",
+  })
+  @ApiResponse({ status: 200, type: KeyBackupBoxDto })
+  @ApiResponse({ status: 400, description: "Not a credential id" })
+  @ApiResponse({
+    status: 403,
+    description:
+      "Reverification needed: the body is Clerk's reverification hint (clerk_error), handled by useReverification",
+  })
+  @ApiResponse({ status: 404, description: "No backup of the account's keys" })
+  @ApiResponse({
+    status: 409,
+    description: "This passkey does not hold the backup",
+  })
+  openBackup(
+    @CurrentUserId() me: string,
+    @CurrentVerificationAge() fva: [number, number] | null,
+    @Body() body: OpenKeyBackupDto,
+  ): Promise<KeyBackupBoxDto> {
+    return reverified(() => this.backups.open(me, body.credential_id, fva));
+  }
+
+  @Delete("users/me/keys/backup")
+  @ApiOperation({
+    summary:
+      "Delete the caller's passkey backup. Needs a Clerk reverification less than 10 minutes old.",
+  })
+  @ApiResponse({ status: 200, type: MyKeysDto })
+  @ApiResponse({
+    status: 403,
+    description:
+      "Reverification needed: the body is Clerk's reverification hint (clerk_error), handled by useReverification",
+  })
+  @ApiResponse({ status: 404, description: "No backup" })
+  async removeBackup(
+    @CurrentUserId() me: string,
+    @CurrentVerificationAge() fva: [number, number] | null,
+  ): Promise<MyKeysDto> {
+    await reverified(() => this.backups.remove(me, fva));
     return this.myKeys(me);
   }
 

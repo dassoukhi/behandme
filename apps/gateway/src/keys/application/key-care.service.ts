@@ -13,6 +13,7 @@ import {
   keyProofStatement,
   phraseCheckDue,
   type PhraseLocation,
+  phraseScheduleDue,
   utcDay,
   type ValidatorKeyState,
   validatorKeyState,
@@ -37,6 +38,11 @@ export interface KeyCareView {
   phrase_checked_at: string | null;
   phrase_check_due: boolean;
   phrase_location: PhraseLocation | null;
+  passkey_backup: {
+    credential_id: string;
+    synced: boolean;
+    made_at: string;
+  } | null;
 }
 
 /** Keys just registered: nothing is known about them yet. */
@@ -45,6 +51,7 @@ export const NO_KEY_CARE: KeyCareView = {
   phrase_checked_at: null,
   phrase_check_due: false,
   phrase_location: null,
+  passkey_backup: null,
 };
 
 /** Whether users still hold their keys: the phone's proofs, the checks of the phrase, the reminders. */
@@ -64,6 +71,11 @@ export class KeyCareService {
       phrase_checked_at: care.phraseCheckedAt?.toISOString() ?? null,
       phrase_check_due: phraseCheckDue(care, this.clock.now()),
       phrase_location: care.phraseLocation,
+      passkey_backup: care.passkeyBackup && {
+        credential_id: care.passkeyBackup.credentialId,
+        synced: care.passkeyBackup.synced,
+        made_at: care.passkeyBackup.madeAt.toISOString(),
+      },
     };
   }
 
@@ -122,7 +134,7 @@ export class KeyCareService {
       ...(change.checked
         ? {
             checkedAt: now,
-            countCheck: !care.phraseCheckedAt || phraseCheckDue(care, now),
+            countCheck: !care.phraseCheckedAt || phraseScheduleDue(care, now),
           }
         : {}),
       ...(change.location ? { location: change.location } : {}),

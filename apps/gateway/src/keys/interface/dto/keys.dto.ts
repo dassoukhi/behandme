@@ -1,6 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger";
 import {
   IsBase64,
+  IsBoolean,
   IsIn,
   IsInt,
   IsOptional,
@@ -9,6 +10,7 @@ import {
   MaxLength,
   Min,
 } from "class-validator";
+import { CREDENTIAL_ID_PATTERN, MADE_AT_PATTERN } from "../../domain/backup.js";
 import { PHRASE_LOCATIONS, type PhraseLocation } from "../../domain/care.js";
 
 export class RegisterKeysDto {
@@ -123,6 +125,27 @@ export class UpdateKeyCareDto {
   phrase_location?: PhraseLocation;
 }
 
+export class PasskeyBackupDto {
+  @ApiProperty({
+    description:
+      "The passkey that holds the backup: its WebAuthn credential id, base64url",
+  })
+  credential_id: string;
+
+  @ApiProperty({
+    description:
+      "The passkey syncs to the user's other devices (WebAuthn backup state, as the phone saw it)",
+  })
+  synced: boolean;
+
+  @ApiProperty({
+    description:
+      "When the phone made the backup, right after the passkey opened: a passkey that syncs counts for 13 months from then",
+    example: "2026-11-11T09:00:00.000Z",
+  })
+  made_at: string;
+}
+
 /** The caller's own keys, and what only they may know about keeping them. */
 export class MyKeysDto extends PublicKeysDto {
   @ApiProperty({
@@ -146,4 +169,77 @@ export class MyKeysDto extends PublicKeysDto {
 
   @ApiProperty({ enum: PHRASE_LOCATIONS, nullable: true })
   phrase_location: PhraseLocation | null;
+
+  @ApiProperty({
+    type: PasskeyBackupDto,
+    nullable: true,
+    description: "The backup of these keys in a passkey, if any",
+  })
+  passkey_backup: PasskeyBackupDto | null;
+}
+
+export class PutKeyBackupDto {
+  @ApiProperty({ description: "The registered key version", example: 1 })
+  @IsInt()
+  @Min(1)
+  @Max(1000)
+  key_version: number;
+
+  @ApiProperty({
+    description:
+      "The passkey whose PRF output keys the box: its WebAuthn credential id, base64url",
+  })
+  @Matches(CREDENTIAL_ID_PATTERN)
+  credential_id: string;
+
+  @ApiProperty({
+    description:
+      "The passkey syncs to the user's other devices (WebAuthn backup state flag)",
+  })
+  @IsBoolean()
+  synced: boolean;
+
+  @ApiProperty({
+    description:
+      "When the phone made the box, ISO 8601 in UTC with milliseconds; a day either side of the server's time is accepted, and a backup made later than this one is never replaced",
+    example: "2026-11-11T09:00:00.000Z",
+  })
+  @Matches(MADE_AT_PATTERN)
+  made_at: string;
+
+  @ApiProperty({
+    description:
+      "0x01 ‖ nonce ‖ AES-256-GCM of the seed and its phrase's language, under HKDF-SHA256 of the passkey's PRF output (salt behyndme/v1/passkey-backup, info: user id and credential id), base64 (62 bytes)",
+  })
+  @IsBase64()
+  @MaxLength(200)
+  box: string;
+
+  @ApiProperty({
+    description:
+      "Ed25519 signature, base64, by the signing key over the RFC 8785 JSON of {type: 'behyndme/v1/key-backup', user_id, key_version, credential_id, synced, made_at, box_hash (hex SHA-256 of the box)}",
+  })
+  @IsBase64()
+  @MaxLength(200)
+  signature: string;
+}
+
+export class OpenKeyBackupDto {
+  @ApiProperty({
+    description:
+      "The passkey the phone just used: the server hands out the box only if it is this one's",
+  })
+  @Matches(CREDENTIAL_ID_PATTERN)
+  credential_id: string;
+}
+
+export class KeyBackupBoxDto {
+  @ApiProperty({ example: 1 })
+  key_version: number;
+
+  @ApiProperty({ description: "The passkey whose PRF output opens the box" })
+  credential_id: string;
+
+  @ApiProperty({ description: "The box the phone put in, base64" })
+  box: string;
 }

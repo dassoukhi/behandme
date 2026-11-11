@@ -211,6 +211,13 @@ export const KeysTransferred = defineEvent(
   z.object({ userId }),
 );
 
+/** Gateway: a session verified again a moment ago took the user's passkey backup. If it was not them, they must act now. */
+export const KeysBackupOpened = defineEvent(
+  "keys.backup_opened",
+  1,
+  z.object({ userId }),
+);
+
 /** Worker, daily: the gateway looks for those whose keys or recovery phrase are due for a check. */
 export const KeyCareDue = defineEvent(
   "maintenance.key_care_due",

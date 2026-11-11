@@ -1,4 +1,8 @@
 import { generateKeyPairSync, randomBytes, sign } from "node:crypto";
+import {
+  type KeyBackupSubmission,
+  keyBackupStatement,
+} from "../domain/backup.js";
 import { keyProofStatement } from "../domain/care.js";
 import { type KeySubmission, registrationStatement } from "../domain/keys.js";
 import { nodeKeyCryptography } from "../infrastructure/node-key-cryptography.js";
@@ -39,5 +43,41 @@ export function keyPair() {
       ),
     ),
   });
-  return Object.assign(submit, { prove });
+  /** A passkey backup of these keys, as the phone signs it (the box is whatever the test passes). */
+  const backUp = (
+    userId: string,
+    keyVersion: number,
+    backup: {
+      credentialId: string;
+      box: Uint8Array;
+      madeAt: string;
+      synced?: boolean;
+    },
+  ): KeyBackupSubmission => {
+    const { credentialId, box, madeAt, synced = true } = backup;
+    return {
+      keyVersion,
+      credentialId,
+      synced,
+      madeAt,
+      box,
+      signature: new Uint8Array(
+        sign(
+          null,
+          nodeKeyCryptography.canonicalJson(
+            keyBackupStatement(
+              userId,
+              keyVersion,
+              credentialId,
+              synced,
+              madeAt,
+              nodeKeyCryptography.sha256Hex(box),
+            ),
+          ),
+          privateKey,
+        ),
+      ),
+    };
+  };
+  return Object.assign(submit, { prove, backUp });
 }

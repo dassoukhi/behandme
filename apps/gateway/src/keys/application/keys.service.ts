@@ -81,7 +81,7 @@ export class KeysService {
     if (!recentlyVerified(fva)) throw new ReverificationRequired();
     const signed = this.signedKeys(me, submission);
     const holder = await this.holders.describe(me);
-    return this.unitOfWork.run(async ({ keys, transfers, events }) => {
+    return this.unitOfWork.run(async ({ keys, transfers, backups, events }) => {
       const current = await keys.find(me);
       if (!current) {
         throw new NotFoundError("No keys to reset: register them instead");
@@ -103,8 +103,9 @@ export class KeysService {
       if (!(await keys.replace(current.keyVersion, next, "reset"))) {
         throw new ConflictError("The keys changed meanwhile: try again");
       }
-      // A transfer under way would hand a new phone the keys just replaced.
+      // A transfer under way, or the passkey backup, would hand a new phone the keys just replaced.
       await transfers.deleteForUser(me);
+      await backups.deleteForUser(me);
       await events.publish(
         KeysRotated.create({
           userId: me,
