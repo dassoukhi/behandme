@@ -109,6 +109,29 @@ describe("the reset for the behyndme labels", () => {
     expect(rows[0].usable).toBe(false);
   });
 
+  // After the backup's checks: it removes what they read.
+  it("is followed by a cleanup that drops the backup, and nothing else", async () => {
+    await sql
+      .raw(
+        readFileSync(
+          new URL(
+            "../../../supabase/scripts/20261111_drop_reset_backup.sql",
+            import.meta.url,
+          ),
+          "utf8",
+        ),
+      )
+      .execute(db);
+    const { rows } = await sql<{
+      n: string;
+    }>`select count(*) as n from information_schema.schemata where schema_name = 'backup_20261111'`.execute(
+      db,
+    );
+    expect(Number(rows[0].n)).toBe(0);
+    expect(await count("public.users")).toBe(2);
+    expect(await count("pgmq.q_gateway")).toBe(1);
+  });
+
   it("leaves the audit log append-only again", async () => {
     await appendEvent();
     await expect(
