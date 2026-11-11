@@ -4,6 +4,90 @@
       "columns": [
         {
           "table_schema": "core",
+          "table_name": "key_backups",
+          "column_name": "user_id",
+          "ordinal_position": 1,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "key_backups",
+          "column_name": "key_version",
+          "ordinal_position": 2,
+          "data_type": "integer",
+          "udt_name": "int4",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "key_backups",
+          "column_name": "credential_id",
+          "ordinal_position": 3,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "key_backups",
+          "column_name": "synced",
+          "ordinal_position": 4,
+          "data_type": "boolean",
+          "udt_name": "bool",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "key_backups",
+          "column_name": "made_at",
+          "ordinal_position": 5,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "key_backups",
+          "column_name": "box",
+          "ordinal_position": 6,
+          "data_type": "bytea",
+          "udt_name": "bytea",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "key_backups",
+          "column_name": "signature",
+          "ordinal_position": 7,
+          "data_type": "bytea",
+          "udt_name": "bytea",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "core",
           "table_name": "key_transfers",
           "column_name": "id",
           "ordinal_position": 1,
@@ -2058,6 +2142,48 @@
       "constraints": [
         {
           "schema": "core",
+          "table_name": "core.key_backups",
+          "conname": "key_backups_box_check",
+          "contype": "c",
+          "definition": "CHECK ((octet_length(box) = 62))"
+        },
+        {
+          "schema": "core",
+          "table_name": "core.key_backups",
+          "conname": "key_backups_credential_id_check",
+          "contype": "c",
+          "definition": "CHECK (((credential_id ~ '^[A-Za-z0-9_-]+$'::text) AND ((char_length(credential_id) >= 22) AND (char_length(credential_id) <= 1364))))"
+        },
+        {
+          "schema": "core",
+          "table_name": "core.key_backups",
+          "conname": "key_backups_key_version_check",
+          "contype": "c",
+          "definition": "CHECK ((key_version >= 1))"
+        },
+        {
+          "schema": "core",
+          "table_name": "core.key_backups",
+          "conname": "key_backups_pkey",
+          "contype": "p",
+          "definition": "PRIMARY KEY (user_id)"
+        },
+        {
+          "schema": "core",
+          "table_name": "core.key_backups",
+          "conname": "key_backups_signature_check",
+          "contype": "c",
+          "definition": "CHECK ((octet_length(signature) = 64))"
+        },
+        {
+          "schema": "core",
+          "table_name": "core.key_backups",
+          "conname": "key_backups_user_id_fkey",
+          "contype": "f",
+          "definition": "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE"
+        },
+        {
+          "schema": "core",
           "table_name": "core.key_transfers",
           "conname": "key_transfers_key_version_check",
           "contype": "c",
@@ -2662,6 +2788,12 @@
       "indexes": [
         {
           "schemaname": "core",
+          "tablename": "key_backups",
+          "indexname": "key_backups_pkey",
+          "indexdef": "CREATE UNIQUE INDEX key_backups_pkey ON core.key_backups USING btree (user_id)"
+        },
+        {
+          "schemaname": "core",
           "tablename": "key_transfers",
           "indexname": "key_transfers_pkey",
           "indexdef": "CREATE UNIQUE INDEX key_transfers_pkey ON core.key_transfers USING btree (id)"
@@ -3040,6 +3172,12 @@
       "rls": [
         {
           "schema": "core",
+          "table_name": "key_backups",
+          "rls_enabled": true,
+          "rls_forced": false
+        },
+        {
+          "schema": "core",
           "table_name": "key_transfers",
           "rls_enabled": true,
           "rls_forced": false
@@ -3244,6 +3382,17 @@
         }
       ],
       "policies": [
+        {
+          "schemaname": "core",
+          "tablename": "key_backups",
+          "policyname": "service_access",
+          "roles": [
+            "svc_gateway"
+          ],
+          "cmd": "ALL",
+          "qual": "true",
+          "with_check": "true"
+        },
         {
           "schemaname": "core",
           "tablename": "key_transfers",
@@ -3623,6 +3772,18 @@
         }
       ],
       "grants": [
+        {
+          "table_schema": "core",
+          "table_name": "key_backups",
+          "grantee": "postgres",
+          "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "key_backups",
+          "grantee": "svc_gateway",
+          "privileges": "DELETE,INSERT,SELECT,UPDATE"
+        },
         {
           "table_schema": "core",
           "table_name": "key_transfers",
