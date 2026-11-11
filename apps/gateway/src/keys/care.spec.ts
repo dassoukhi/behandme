@@ -3,6 +3,7 @@ import {
   acceptableProofDay,
   backedUpByPasskey,
   careReminder,
+  passkeyCheckDue,
   type KeyCare,
   phraseCheckDue,
   phraseCheckDueAt,
@@ -268,6 +269,17 @@ describe("with the keys in a passkey that syncs", () => {
         at("2028-01-01T00:00:00Z"),
       ),
     ).toBe("not_saved");
+  });
+
+  it("ask the phone to open the passkey once more a year after, a month before they stop counting", () => {
+    const c = care(backup(true));
+    // 2026-03-02 + 365 days.
+    expect(passkeyCheckDue(c, at("2027-03-02T09:59:59Z"))).toBe(false);
+    expect(passkeyCheckDue(c, at("2027-03-02T10:00:00Z"))).toBe(true);
+    expect(
+      passkeyCheckDue(care(backup(false)), at("2028-01-01T00:00:00Z")),
+    ).toBe(false);
+    expect(passkeyCheckDue(care(), at("2028-01-01T00:00:00Z"))).toBe(false);
   });
 
   it("the yearly check-up still asks a silent phone for a sign", () => {

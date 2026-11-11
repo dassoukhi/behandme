@@ -174,11 +174,12 @@ only: nothing yet reaches someone who refused notifications (e-mail: phase 5).
 WebAuthn PRF output, which only the user's devices can get, after Face ID. The keys in the box sign it
 (`behyndme/v1/key-backup`: user, key version, credential id, whether the passkey syncs, when it was made, the
 box's hash), so the server stores only what the keys' holder made, and knows from the signed WebAuthn backup
-state whether losing the phone loses the passkey. The time must be within a day of the server's, and a backup
-never replaces one made later: an old signed backup cannot be sent again. A passkey that syncs counts, for the
-owner's view of a validator and instead of the phrase's checks, for 13 months after the phone made or confirmed
-the backup (the passkey may be deleted, or the keychain turned off, without the server knowing); the app asks
-the user to confirm it before then. A phone without the keys uses the passkey, then takes the box
+state whether losing the phone loses the passkey. The time may be a day behind the server's and 5 minutes ahead,
+and a backup never replaces one made later: an old signed backup cannot be sent again, and a phone whose clock
+is ahead cannot hold off the next ones for long. A passkey that syncs counts, for the owner's view of a validator
+and instead of the phrase's checks, for 13 months after the phone made or confirmed the backup (the passkey may
+be deleted, or the keychain turned off, without the server knowing); `GET /users/me/keys` says whether it counts
+(`passkey_backup.counts`) and, a year on, asks the app to have it confirmed (`check_due`). A phone without the keys uses the passkey, then takes the box
 (`POST /users/me/keys/backup/open`, with that passkey's credential id): a Clerk reverification less than
 10 minutes old, and `keys.backup_opened` alerts the user (critical push). Deleting the backup needs the same
 reverification; a reset deletes it (putting and taking out lock the keys' row, so neither straddles a reset), and

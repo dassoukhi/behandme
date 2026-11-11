@@ -144,6 +144,18 @@ export class PasskeyBackupDto {
     example: "2026-11-11T09:00:00.000Z",
   })
   made_at: string;
+
+  @ApiProperty({
+    description:
+      "The keys count as kept without the recovery phrase: a passkey that syncs, made or confirmed less than 13 months ago",
+  })
+  counts: boolean;
+
+  @ApiProperty({
+    description:
+      "Time to open the passkey once more (a year after made_at), so that it goes on counting",
+  })
+  check_due: boolean;
 }
 
 /** The caller's own keys, and what only they may know about keeping them. */

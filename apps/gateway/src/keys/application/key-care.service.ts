@@ -8,8 +8,10 @@ import {
 } from "@lib/kernel";
 import {
   acceptableProofDay,
+  backedUpByPasskey,
   careReminder,
   type KeyCare,
+  passkeyCheckDue,
   keyProofStatement,
   phraseCheckDue,
   type PhraseLocation,
@@ -42,6 +44,10 @@ export interface KeyCareView {
     credential_id: string;
     synced: boolean;
     made_at: string;
+    /** The keys count as kept without the phrase (domain/care.ts, backedUpByPasskey). */
+    counts: boolean;
+    /** Time to open the passkey once more. */
+    check_due: boolean;
   } | null;
 }
 
@@ -66,15 +72,18 @@ export class KeyCareService {
   async mine(me: string): Promise<KeyCareView> {
     const [care] = await this.keys.careOf([me]);
     if (!care) throw new NotFoundError("No keys registered yet");
+    const now = this.clock.now();
     return {
       proven_on: care.provenOn ? utcDay(care.provenOn) : null,
       phrase_checked_at: care.phraseCheckedAt?.toISOString() ?? null,
-      phrase_check_due: phraseCheckDue(care, this.clock.now()),
+      phrase_check_due: phraseCheckDue(care, now),
       phrase_location: care.phraseLocation,
       passkey_backup: care.passkeyBackup && {
         credential_id: care.passkeyBackup.credentialId,
         synced: care.passkeyBackup.synced,
         made_at: care.passkeyBackup.madeAt.toISOString(),
+        counts: backedUpByPasskey(care, now),
+        check_due: passkeyCheckDue(care, now),
       },
     };
   }

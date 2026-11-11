@@ -52,17 +52,28 @@ export interface KeyCare {
   } | null;
 }
 
+/** The app asks the user to open the passkey once more a year after, a month before it stops counting. */
+const PASSKEY_CHECK_AFTER_DAYS = 365;
+
+const passkeyAge = (care: KeyCare, now: Date): number | null =>
+  care.passkeyBackup?.synced === true
+    ? now.getTime() - care.passkeyBackup.madeAt.getTime()
+    : null;
+
 /**
  * A passkey that syncs holds these keys: losing the phone loses nothing, and the phrase is only a fallback. Only
  * for 13 months after the phone last confirmed it: the passkey may have been deleted since, or the keychain turned
  * off, which the server cannot see.
  */
 export function backedUpByPasskey(care: KeyCare, now: Date): boolean {
-  const backup = care.passkeyBackup;
-  return (
-    backup?.synced === true &&
-    now.getTime() - backup.madeAt.getTime() <= SILENT_AFTER_DAYS * DAY_MS
-  );
+  const age = passkeyAge(care, now);
+  return age !== null && age <= SILENT_AFTER_DAYS * DAY_MS;
+}
+
+/** Time for the phone to open the passkey once more, so that it goes on counting. */
+export function passkeyCheckDue(care: KeyCare, now: Date): boolean {
+  const age = passkeyAge(care, now);
+  return age !== null && age >= PASSKEY_CHECK_AFTER_DAYS * DAY_MS;
 }
 
 /** A UTC day, as the phone signs it. */

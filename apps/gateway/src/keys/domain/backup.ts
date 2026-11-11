@@ -8,6 +8,11 @@ import { SIGNATURE_LENGTH } from "./keys.js";
 // when the phone did not.
 
 const DAY_MS = 86_400_000;
+/**
+ * A backup is never replaced by one made earlier: a phone whose clock is ahead would hold off the others' until
+ * then, so the time may be ahead of the server's by this much only.
+ */
+const AHEAD_MS = 5 * 60_000;
 const BOX_FORMAT = 0x01;
 /** 0x01 ‖ nonce (12) ‖ AES-256-GCM of the seed (32) and its phrase's language (1), tag 16. */
 export const BACKUP_BOX_LENGTH = 1 + 12 + 33 + 16;
@@ -79,8 +84,8 @@ export function assertWellFormedBackup(backup: KeyBackupSubmission): void {
 }
 
 /**
- * The time a backup was made, if it is a real one, written as the phone writes it, within a day of the server's:
- * an old signed backup sent again is refused, and the phone's clock may be a little off.
+ * The time a backup was made, if it is a real one, written as the phone writes it: at most a day before the
+ * server's (an old signed backup sent again is refused, a phone's clock may be behind) and 5 minutes after.
  */
 export function backupTime(madeAt: string, now: Date): Date {
   const at = new Date(madeAt);
@@ -88,7 +93,8 @@ export function backupTime(madeAt: string, now: Date): Date {
     !MADE_AT_PATTERN.test(madeAt) ||
     Number.isNaN(at.getTime()) ||
     at.toISOString() !== madeAt ||
-    Math.abs(at.getTime() - now.getTime()) > DAY_MS
+    now.getTime() - at.getTime() > DAY_MS ||
+    at.getTime() - now.getTime() > AHEAD_MS
   ) {
     throw new InvalidInputError("made_at must be the time of the backup");
   }

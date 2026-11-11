@@ -168,6 +168,8 @@ describe("putting a backup in", () => {
       credential_id: CREDENTIAL,
       synced: true,
       made_at: fixture.backup.made_at,
+      counts: true,
+      check_due: false,
     });
     const [mine] = await keys.visible(ME, [ME]);
     expect(JSON.stringify(toPublicKeys(mine))).not.toContain(CREDENTIAL);
@@ -235,16 +237,21 @@ describe("putting a backup in", () => {
     await expect(backups.put(ME, backup)).rejects.toThrow(InvalidInputError);
   });
 
-  it("refuses a backup made more than a day from now: an old one sent again", async () => {
+  it("refuses a backup made more than a day before now (an old one sent again), or 5 minutes after", async () => {
+    const MINUTE = 60_000;
     clock.advance(DAY + 1);
     await expect(backups.put(ME, appBackup())).rejects.toThrow(
       new InvalidInputError("made_at must be the time of the backup"),
     );
-    clock.advance(-2 * (DAY + 1));
+    // A phone whose clock is ahead would hold off every later backup until then.
+    clock.advance(-(DAY + 1) - 5 * MINUTE - 1);
     await expect(backups.put(ME, appBackup())).rejects.toThrow(
       InvalidInputError,
     );
     expect(await storedBackups()).toEqual([]);
+    clock.advance(MINUTE);
+    await backups.put(ME, appBackup());
+    expect(await storedBackups()).toHaveLength(1);
   });
 
   it("replaces an older backup, never a newer one, whatever the order they come in", async () => {
@@ -376,12 +383,20 @@ describe("the care of keys in a passkey", () => {
     const { pair, backUp } = await otherAccount();
     const { fingerprint } = await keys.mine(OTHER);
     await backups.put(OTHER, backUp());
-    clock.advance(397 * DAY);
+    const backup = async () => (await care.mine(OTHER)).passkey_backup;
+    clock.advance(364 * DAY);
+    expect(await backup()).toMatchObject({ counts: true, check_due: false });
+    // A year on, the app asks to open the passkey once more.
+    clock.advance(DAY);
+    expect(await backup()).toMatchObject({ counts: true, check_due: true });
+    clock.advance(32 * DAY);
     // The phone is in use (not silent), but has not opened the passkey for 13 months.
     await care.prove(OTHER, pair.prove(OTHER, 1, utcDay(clock.now())));
     expect(await stateOf(OTHER, fingerprint)).toBe("not_saved");
+    expect(await backup()).toMatchObject({ counts: false, check_due: true });
     await backups.put(OTHER, backUp());
     expect(await stateOf(OTHER, fingerprint)).toBe("ok");
+    expect(await backup()).toMatchObject({ counts: true, check_due: false });
   });
 
   it("goes on counting the checks of the phrase, which comes back on schedule without the passkey", async () => {

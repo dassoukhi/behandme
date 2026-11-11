@@ -3208,12 +3208,22 @@
             "type": "string",
             "description": "When the phone made the backup, right after the passkey opened: a passkey that syncs counts for 13 months from then",
             "example": "2026-11-11T09:00:00.000Z"
+          },
+          "counts": {
+            "type": "boolean",
+            "description": "The keys count as kept without the recovery phrase: a passkey that syncs, made or confirmed less than 13 months ago"
+          },
+          "check_due": {
+            "type": "boolean",
+            "description": "Time to open the passkey once more (a year after made_at), so that it goes on counting"
           }
         },
         "required": [
           "credential_id",
           "synced",
-          "made_at"
+          "made_at",
+          "counts",
+          "check_due"
         ]
       },
       "MyKeysDto": {
