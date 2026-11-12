@@ -29,7 +29,8 @@ delivery order are in `docs/architecture.md`.
 - `npm run check:rls` — proves the anon key reads no table and calls no RPC (counts and status codes
   only). Run after every migration.
 - `npm run check:schema` — replays the migrations on PGlite and compares them with the hosted schema
-  captured in `supabase/introspection.json`. Run after the user applies a migration.
+  captured in `supabase/introspection.json`. Run after the user applies a migration. It runs in UTC, like the
+  hosted database: a constant timestamptz default (`'epoch'`) prints in the session's time zone.
 - Node 24 (`.nvmrc`; dependency-cruiser refuses Node 23). The repo `.npmrc` sets `legacy-peer-deps`, like the
   lockfile (pglite-socket lists every PGlite extension as a required peer).
 
