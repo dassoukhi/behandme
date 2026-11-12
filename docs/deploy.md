@@ -98,6 +98,8 @@ install every day, and a kernel update needs a reboot now and then (`sudo reboot
    | `NOTIFIER_URL`        | `http://${{notifier.RAILWAY_PRIVATE_DOMAIN}}:3001` |                    |                    |                  |
    | `HANDOVER_URL`        | `http://${{handover.RAILWAY_PRIVATE_DOMAIN}}:3003` |                    |                    |                  |
    | `EXPO_ACCESS_TOKEN`   |                                                    | optional           |                    |                  |
+   | `RESEND_API_KEY`      |                                                    | for e-mail         |                    |                  |
+   | `EMAIL_FROM`          |                                                    | optional           |                    |                  |
    | `SWAGGER_ENABLED`     | optional: `true` serves `/api/docs` in production  |                    |                    |                  |
 
    The services never get the Supabase service-role key: each reaches the database with its own role.
@@ -116,6 +118,21 @@ Every push to `main` or `develop` runs `npm run verify` on GitHub Actions (`.git
 Several instances of a service can run side by side: outbox rows and pending pushes are locked with
 `SKIP LOCKED`, queue messages are hidden while handled, and the worker's scheduled jobs are recorded once per
 period (`ops.job_runs`).
+
+## E-mail
+
+The notifier sends e-mails through Resend once `RESEND_API_KEY` is set; without it, e-mail is off and the
+notifier says so at start-up. To turn it on:
+
+1. At Resend, add the domain `behyndme.com` in the EU region (`eu-west-1`).
+2. At OVH, add the DNS records Resend shows: DKIM (`resend._domainkey`), and SPF and MX on the `send`
+   subdomain for bounces; add `_dmarc` with `v=DMARC1; p=none;` to start. They do not touch Vercel's A record.
+3. Create an API key with sending access only, limited to `behyndme.com`, and set it as `RESEND_API_KEY` on the
+   notifier. `EMAIL_FROM` defaults to `BehyndMe <alertes@behyndme.com>`.
+
+Resend's free plan sends 3,000 e-mails a month and 100 a day. Past the day's quota, e-mails wait for the next
+midnight UTC (logged as a warning); one not sent within 3 days is dropped. Move to a paid plan before the daily
+volume nears 100.
 
 ## Push notifications
 

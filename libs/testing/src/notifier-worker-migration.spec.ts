@@ -184,6 +184,7 @@ describe("routing", () => {
 });
 
 describe("prerequisites", () => {
+  // Starts a database of its own (every migration): the same time allowed as the other starts.
   it("stops with a clear message when pg_cron is not installed", async () => {
     const fresh = await startTestDatabase();
     try {
@@ -194,5 +195,5 @@ describe("prerequisites", () => {
     } finally {
       await fresh.close();
     }
-  });
+  }, 60_000);
 });

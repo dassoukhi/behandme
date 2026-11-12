@@ -15,7 +15,7 @@ One NestJS app per service in `apps/`, each deployed separately. The mobile app 
 | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- | --------------------------------------------------------------- |
 | `gateway`  | Clerk authentication, access control, response composition, public OpenAPI (`openapi.json`). Identity domain: profiles, trust links, public E2E keys | `core`: users, trusted, user_keys (+ history)                                   | Public REST API `/api/v1/*`                                     |
 | `handover` | Whole contract life cycle: draft, sealing (encrypted vault), claims, votes, deadlines, release, revocation; hash-chained audit log                   | `handover`: contracts, envelopes, key_wraps, claims, decisions, contract_events | Internal API (commands and queries from the gateway) and events |
-| `notifier` | In-app notifications, Expo push (and Resend email, phase 5), preferences, push tokens, deliveries and their receipts                                 | `notify`: notifications, push_tokens, preferences, deliveries                   | Internal API (inbox, devices, settings) and event consumers     |
+| `notifier` | In-app notifications, Expo push and e-mail (Resend), preferences, push tokens, deliveries and their receipts                                         | `notify`: notifications, push_tokens, preferences, deliveries, people, email_deliveries | Internal API (inbox, devices, settings) and event consumers     |
 | `worker`   | Schedules recurring jobs (push receipts, claims catch-up, audit-log verification, retention, key care)                                               | `ops`: job_runs                                                                 | Nothing public; driven by pg_cron ticks and its queue           |
 
 A service reads and writes **its own schema only**. Data owned by another service is obtained through that
@@ -98,12 +98,35 @@ public anon key has no access. One exception until the data moves to `core`: the
 writes `public.users` and `public.trusted` as `svc_gateway` (granted by migration 20261014180000). No service
 holds the Supabase service-role key.
 
-**Notifications.** A service publishes a business event; the notifier turns it into notifications (French
-copy in `apps/notifier/.../domain/templates.ts`) in the event's transaction: inbox rows, plus one row per
+**Notifications.** A service publishes a business event; the notifier turns it into notifications (French and
+English copy in `apps/notifier/.../domain/templates.ts`) in the event's transaction: inbox rows, plus one row per
 device in `notify.deliveries` for users who should be pushed (critical ones always are). A loop sends the due
 deliveries through Expo after commit, so a rolled-back event never pushes; a failed send is retried with a
 growing delay, then marked failed. Receipts are checked 15 minutes later; `DeviceNotRegistered` forgets the
 device. Lock-screen text never holds a secret or a contract description.
+
+**E-mail.** The same transaction queues one e-mail per notification in `notify.email_deliveries` for users who
+should get it (critical ones always do, the others unless `email_enabled` is off), when Resend is configured
+(`RESEND_API_KEY`) and the recipient has a verified address outside reserved domains (`example.com`, `.test`…).
+Non-critical e-mails are throttled per person: ten a day at most (`REGULAR_EMAILS_PER_DAY`), and "added you to
+their trusted contacts" once a day per person who added you (`ONCE_A_DAY_TYPES`), so that nobody can flood a
+mailbox (add someone, remove them, add them again…) or use up the provider's daily quota, which critical alerts
+need. The address and names come from `notify.people`, the notifier's copy of the gateway's profiles
+(`user.profile_changed`, published by `ensureMe` at each sign-in; the address is null until Clerk verified it).
+An older event never overwrites a newer copy (`occurred_at`), and `user.deleted` leaves a row without address or
+name, so that a late event cannot bring them back; the retention job deletes it a month later. Names are shown
+only when made of letters (`safeName`): anyone chooses theirs, and our domain signs the e-mail. The e-mail says more than the push: who acted and until when the
+recipient can react, in their language and time zone (`time_zone`, sent by the app; each date gives its UTC
+offset, so that a deadline read abroad is not misread), never more than the app
+shows them, never the place where the phrase is kept, and never a link: a real alert asks to open the app. Its
+content is written when the event happens (`content`), and rendered when sent (React to static HTML,
+`infrastructure/email/BehyndmeEmail.tsx`, the logo inline as `cid:logo`). A loop takes due e-mails for 10
+minutes (`claimDue`, `SKIP LOCKED`), sends them outside any transaction with the notification id as Resend's
+idempotency key, then records the result: retried with a growing delay (5 tries), postponed without counting a
+try on a rate limit (1 s), the day's quota (next midnight UTC) or settings Resend refuses (an hour: key, sender,
+domain not verified yet), failed at once when the e-mail itself is refused, and dropped when not sent within 3
+days, as its dates may be past. `npm run email:preview` writes every e-mail to
+`$TMPDIR/behyndme-emails/`.
 
 ## Contract life cycle (handover, pure domain)
 
@@ -167,7 +190,7 @@ phone for 13 months), `not_saved` (neither the phrase proved kept nor a passkey 
 worker's daily `key-care` job makes the gateway remind those who are due (`keys.care_reminder`): the phrase at 7,
 30 and 180 days, then in the yearly check-up, in January, twice at most; never the phrase of keys backed up in a
 passkey that syncs, for which it is only a fallback (a check made meanwhile still counts in its schedule). A push
-only: nothing yet reaches someone who refused notifications (e-mail: phase 5).
+and an e-mail.
 
 **Passkey backup.** The phone backs the keys up in a passkey (`PUT /users/me/keys/backup`, gateway `keys/`, table
 `core.key_backups`, one per account): the seed in an AES-256-GCM box under a key derived from the passkey's
@@ -220,7 +243,7 @@ every chain each night (`maintenance.audit_verify_due`); participants can check 
 
 - **Claim.** App → gateway (`POST /contracts/:id/claims`, role and access checks) → handover command →
   transaction { claim `open`, contract `claimed`, audit event, outbox `claim.filed` } → relay → notifier
-  (critical push and email to the owner, push to validators). Handover sends itself a delayed message due
+  (critical push and e-mail to the owner, push and e-mail to validators). Handover sends itself a delayed message due
   at the end of the contest window.
 - **Vote.** The validator re-wraps their share on their phone → gateway → handover records the decision
   (audit, outbox) → on quorum, `claim.quorum_reached` → notifier.
@@ -240,4 +263,4 @@ The full protocol goes to `docs/crypto-protocol.md` (phase 4) and is audited ext
 0A backend foundations (monorepo, libs, schemas, messaging) → 0B app hygiene → 1 app design system →
 2 notifier, worker and deployment → 3 handover and audit log → 4 keys and sealing → 5 claims and release →
 6 polish and external crypto audit. Done: 0A, 0B, 1, 2 (deployment prepared: `Dockerfile`, `railway/`,
-`docs/deploy.md`; email still deferred: it needs a verified domain), 3, 4, 5 (without email).
+`docs/deploy.md`), 3, 4, 5; e-mail built, on once a Resend key and the verified domain are configured.

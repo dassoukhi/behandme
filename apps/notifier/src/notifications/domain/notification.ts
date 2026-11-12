@@ -1,5 +1,7 @@
-/** The languages of the app, and so of its notifications. */
-export type Language = "fr" | "en";
+import { DEFAULT_TIME_ZONE, type EmailWriter } from "./email.js";
+import type { Language } from "./language.js";
+
+export type { Language };
 
 export interface NotificationCopy {
   title: string;
@@ -20,27 +22,37 @@ export interface NotificationDraft {
    * push off, with high priority and as time-sensitive on iOS.
    */
   critical: boolean;
+  /** The e-mail's own text (who, until when); without it, the e-mail says the body. */
+  email?: EmailWriter;
+  /** The users the e-mail may name: their names are looked up before it is written. */
+  mentions?: string[];
 }
 
 /** A draft in the language of its recipient: what is stored and pushed. */
-export type RenderedNotification = Omit<NotificationDraft, "copy"> &
+export type RenderedNotification = Omit<NotificationDraft, "copy" | "email"> &
   NotificationCopy;
 
 export function render(
-  { copy, ...draft }: NotificationDraft,
+  draft: NotificationDraft,
   language: Language,
 ): RenderedNotification {
-  return { ...draft, ...copy[language] };
+  const { userId, type, data, critical } = draft;
+  return { userId, type, data, critical, ...draft.copy[language] };
 }
 
 export interface Preferences {
   push_enabled: boolean;
+  email_enabled: boolean;
   language: Language;
+  /** IANA name, e.g. "Europe/Paris": the dates e-mails give are in it. */
+  time_zone: string;
 }
 
 export const DEFAULT_PREFERENCES: Preferences = {
   push_enabled: true,
+  email_enabled: true,
   language: "fr",
+  time_zone: DEFAULT_TIME_ZONE,
 };
 
 /** Whether this notification goes to the user's phones as well as their inbox. */

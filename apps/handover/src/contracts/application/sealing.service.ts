@@ -94,6 +94,7 @@ export class SealingService {
           ContractSealed.create({
             contractId: id,
             category: contract.category,
+            ownerId: contract.ownerId,
             newValidatorIds,
           }),
         );

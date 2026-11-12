@@ -140,6 +140,7 @@ describe("sealing", () => {
         {
           contractId: ID,
           category: "networks",
+          ownerId: OWNER,
           newValidatorIds: [P.v1.user_id, P.v2.user_id, P.v3.user_id],
         },
       ],

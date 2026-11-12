@@ -22,6 +22,7 @@ export {
   SchedulerTick,
   TrustAdded,
   UserDeleted,
+  UserProfileChanged,
 } from "./events.js";
 export {
   INBOX_LIMIT,

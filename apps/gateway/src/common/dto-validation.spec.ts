@@ -87,6 +87,25 @@ describe("notification DTOs", () => {
       validate(UpdateNotificationPreferencesDto, { language: "de" }),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
+
+  it("accepts the e-mail setting as a boolean, and IANA time zones only", async () => {
+    await expect(
+      validate(UpdateNotificationPreferencesDto, {
+        email_enabled: false,
+        time_zone: "America/Montreal",
+      }),
+    ).resolves.toEqual({ email_enabled: false, time_zone: "America/Montreal" });
+    for (const body of [
+      { email_enabled: "no" },
+      { time_zone: "Mars/Olympus" },
+      { time_zone: "" },
+      { time_zone: 2 },
+    ]) {
+      await expect(
+        validate(UpdateNotificationPreferencesDto, body),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    }
+  });
 });
 
 describe("contract DTOs", () => {

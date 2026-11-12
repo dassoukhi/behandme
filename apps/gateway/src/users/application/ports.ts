@@ -5,6 +5,8 @@ import type { TrustLink } from "../domain/trust.js";
 /** Identity data owned by the authentication provider (never by the client). */
 export interface IdentityProfile {
   email: string | null;
+  /** Whether the provider verified `email` (a code sent to it, or a trusted sign-in provider). */
+  email_verified: boolean;
   first_name: string | null;
   last_name: string | null;
   avatar_url: string | null;

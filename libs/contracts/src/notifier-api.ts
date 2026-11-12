@@ -31,8 +31,15 @@ export type NotificationLanguage = (typeof NOTIFICATION_LANGUAGES)[number];
 export interface NotificationPreferences {
   /** Push for non-critical notifications; critical ones are always pushed. */
   push_enabled: boolean;
+  /** E-mail for non-critical notifications; critical ones are always e-mailed. */
+  email_enabled: boolean;
   /** Language of new notifications; those already received keep theirs. */
   language: NotificationLanguage;
+  /**
+   * IANA time zone of the user's phone, for the dates e-mails give; "Europe/Paris" until the phone
+   * sends its own.
+   */
+  time_zone: string;
 }
 
 export interface PushTokenBody {

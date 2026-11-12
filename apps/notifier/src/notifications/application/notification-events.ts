@@ -34,69 +34,95 @@ export class NotificationEvents {
   async trustAdded(
     store: NotifierStore,
     event: { ownerId: string; trustedId: string; ownerName: string | null },
+    occurredAt?: string,
   ): Promise<void> {
-    await this.notifier.notify(store, [
-      trustAdded({
-        userId: event.trustedId,
-        ownerId: event.ownerId,
-        ownerName: event.ownerName,
-      }),
-    ]);
+    await this.notifier.notify(
+      store,
+      [
+        trustAdded({
+          userId: event.trustedId,
+          ownerId: event.ownerId,
+          ownerName: event.ownerName,
+        }),
+      ],
+      occurredAt,
+    );
   }
 
   /** Alert the user (it may not have been them), and tell the people who may encrypt to them. */
   async keysRotated(
     store: NotifierStore,
-    event: { userId: string; userName: string | null; trusterIds: string[] },
+    event: {
+      userId: string;
+      userName: string | null;
+      usableFrom: string;
+      trusterIds: string[];
+    },
+    occurredAt?: string,
   ): Promise<void> {
-    await this.notifier.notify(store, [
-      keysReset({ userId: event.userId }),
-      ...event.trusterIds.map((trusterId) =>
-        contactKeysReset({
-          trusterId,
-          userId: event.userId,
-          userName: event.userName,
-        }),
-      ),
-    ]);
+    await this.notifier.notify(
+      store,
+      [
+        keysReset({ userId: event.userId, usableFrom: event.usableFrom }),
+        ...event.trusterIds.map((trusterId) =>
+          contactKeysReset({
+            trusterId,
+            userId: event.userId,
+            userName: event.userName,
+          }),
+        ),
+      ],
+      occurredAt,
+    );
   }
 
   /** Alert the user: it may not have been them. */
   async keysTransferred(
     store: NotifierStore,
     event: { userId: string },
+    occurredAt?: string,
   ): Promise<void> {
-    await this.notifier.notify(store, [keysTransferred(event)]);
+    await this.notifier.notify(store, [keysTransferred(event)], occurredAt);
   }
 
   /** Alert the user: it may not have been them. */
   async keysBackupOpened(
     store: NotifierStore,
     event: { userId: string },
+    occurredAt?: string,
   ): Promise<void> {
-    await this.notifier.notify(store, [keysBackupOpened(event)]);
+    await this.notifier.notify(store, [keysBackupOpened(event)], occurredAt);
   }
 
   /** A check of the recovery phrase, or the yearly check-up, is due. */
   async keyCareReminder(
     store: NotifierStore,
     event: { userId: string; kind: "phrase_check" | "key_checkup" },
+    occurredAt?: string,
   ): Promise<void> {
-    await this.notifier.notify(store, [
-      event.kind === "phrase_check" ? phraseCheck(event) : keyCheckup(event),
-    ]);
+    await this.notifier.notify(
+      store,
+      [event.kind === "phrase_check" ? phraseCheck(event) : keyCheckup(event)],
+      occurredAt,
+    );
   }
 
   /** Those named validators for the first time. */
   async contractSealed(
     store: NotifierStore,
-    event: { category: string; newValidatorIds: string[] },
+    event: { category: string; ownerId: string; newValidatorIds: string[] },
+    occurredAt?: string,
   ): Promise<void> {
     await this.notifier.notify(
       store,
       event.newValidatorIds.map((validatorId) =>
-        chosenAsValidator({ validatorId, category: event.category }),
+        chosenAsValidator({
+          validatorId,
+          ownerId: event.ownerId,
+          category: event.category,
+        }),
       ),
+      occurredAt,
     );
   }
 
@@ -109,23 +135,35 @@ export class NotificationEvents {
       ownerId: string;
       claimantId: string;
       validatorIds: string[];
+      contestUntil: string;
     },
+    occurredAt?: string,
   ): Promise<void> {
-    await this.notifier.notify(store, [
-      claimFiledForOwner(event),
-      ...event.validatorIds
-        .filter((id) => id !== event.claimantId)
-        .map((validatorId) =>
-          claimFiledForValidator({ ...event, validatorId }),
-        ),
-    ]);
+    await this.notifier.notify(
+      store,
+      [
+        claimFiledForOwner(event),
+        ...event.validatorIds
+          .filter((id) => id !== event.claimantId)
+          .map((validatorId) =>
+            claimFiledForValidator({ ...event, validatorId }),
+          ),
+      ],
+      occurredAt,
+    );
   }
 
   async claimQuorumReached(
     store: NotifierStore,
-    event: { contractId: string; category: string; ownerId: string },
+    event: {
+      contractId: string;
+      category: string;
+      ownerId: string;
+      contestUntil: string;
+    },
+    occurredAt?: string,
   ): Promise<void> {
-    await this.notifier.notify(store, [claimQuorumReached(event)]);
+    await this.notifier.notify(store, [claimQuorumReached(event)], occurredAt);
   }
 
   /** The owner's last chance, and validators who have not decided yet. */
@@ -137,14 +175,20 @@ export class NotificationEvents {
       ownerId: string;
       pendingValidatorIds: string[];
       quorum: boolean;
+      contestUntil: string;
     },
+    occurredAt?: string,
   ): Promise<void> {
-    await this.notifier.notify(store, [
-      claimReminderForOwner(event),
-      ...event.pendingValidatorIds.map((validatorId) =>
-        claimReminderForValidator({ ...event, validatorId }),
-      ),
-    ]);
+    await this.notifier.notify(
+      store,
+      [
+        claimReminderForOwner(event),
+        ...event.pendingValidatorIds.map((validatorId) =>
+          claimReminderForValidator({ ...event, validatorId }),
+        ),
+      ],
+      occurredAt,
+    );
   }
 
   /** Everyone involved but whoever closed it. */
@@ -159,6 +203,7 @@ export class NotificationEvents {
       claimantId: string;
       validatorIds: string[];
     },
+    occurredAt?: string,
   ): Promise<void> {
     const people = new Set([
       event.ownerId,
@@ -169,14 +214,25 @@ export class NotificationEvents {
     await this.notifier.notify(
       store,
       [...people].map((userId) => claimClosed({ ...event, userId })),
+      occurredAt,
     );
   }
 
   async contractReleased(
     store: NotifierStore,
-    event: { contractId: string; category: string; accessorId: string },
+    event: {
+      contractId: string;
+      category: string;
+      ownerId: string;
+      accessorId: string;
+    },
+    occurredAt?: string,
   ): Promise<void> {
-    await this.notifier.notify(store, [contractReleasedForAccessor(event)]);
+    await this.notifier.notify(
+      store,
+      [contractReleasedForAccessor(event)],
+      occurredAt,
+    );
   }
 
   /** The accessor and validators: nobody can open the contract any more. */
@@ -186,15 +242,18 @@ export class NotificationEvents {
       contractId: string;
       category: string;
       reason: string;
+      ownerId: string;
       accessorId: string;
       validatorIds: string[];
     },
+    occurredAt?: string,
   ): Promise<void> {
     await this.notifier.notify(
       store,
       [event.accessorId, ...event.validatorIds].map((userId) =>
         contractRevoked({ ...event, userId }),
       ),
+      occurredAt,
     );
   }
 
@@ -206,21 +265,58 @@ export class NotificationEvents {
       ownerId: string;
       role: string;
     },
+    occurredAt?: string,
   ): Promise<void> {
-    await this.notifier.notify(store, [participantLeft(event)]);
+    await this.notifier.notify(store, [participantLeft(event)], occurredAt);
   }
 
-  /** The account is gone: forget its notifications, devices and settings. */
-  async userDeleted(store: NotifierStore, userId: string): Promise<void> {
+  /** The gateway synced a profile: keep the address and name e-mails use (the latest one seen). */
+  async userProfileChanged(
+    store: NotifierStore,
+    event: {
+      userId: string;
+      email: string | null;
+      firstName: string | null;
+      lastName: string | null;
+    },
+    occurredAt?: string,
+  ): Promise<void> {
+    await store.people.save(
+      event.userId,
+      {
+        email: event.email,
+        firstName: event.firstName,
+        lastName: event.lastName,
+      },
+      occurredAt ? new Date(occurredAt) : this.clock.now(),
+    );
+  }
+
+  /** The account is gone: forget its notifications (and their e-mails), devices, settings, address. */
+  async userDeleted(
+    store: NotifierStore,
+    userId: string,
+    occurredAt?: string,
+  ): Promise<void> {
     await store.notifications.deleteForUser(userId);
     await store.tokens.deleteForUser(userId);
     await store.preferences.deleteForUser(userId);
+    await store.people.forget(
+      userId,
+      occurredAt ? new Date(occurredAt) : this.clock.now(),
+    );
   }
 
-  /** Read notifications after 90 days, finished deliveries after 30. */
-  async retention(
-    store: NotifierStore,
-  ): Promise<{ notifications: number; deliveries: number }> {
+  /**
+   * Read notifications after 90 days; finished pushes and e-mails, and what is left of deleted
+   * accounts, after 30.
+   */
+  async retention(store: NotifierStore): Promise<{
+    notifications: number;
+    deliveries: number;
+    emails: number;
+    forgotten: number;
+  }> {
     const now = this.clock.now().getTime();
     const day = 86_400_000;
     return {
@@ -230,6 +326,8 @@ export class NotificationEvents {
       deliveries: await store.deliveries.purgeFinished(
         new Date(now - 30 * day),
       ),
+      emails: await store.emails.purgeFinished(new Date(now - 30 * day)),
+      forgotten: await store.people.purgeForgotten(new Date(now - 30 * day)),
     };
   }
 }

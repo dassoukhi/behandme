@@ -272,12 +272,24 @@ describe("users: profile visibility", () => {
 
   describe("profile provisioning", () => {
     const NEW_USER = "user_newcomer";
-    const identity = (email: string | null): IdentityProfile => ({
+    const identity = (
+      email: string | null,
+      email_verified = true,
+    ): IdentityProfile => ({
       email,
+      email_verified,
       first_name: "Nina",
       last_name: "Nouvelle",
       avatar_url: "https://img.clerk.com/a.png",
     });
+    const profileEvents = async () =>
+      (
+        await sql<{
+          envelope: { payload: unknown };
+        }>`select envelope from core.outbox where type = 'user.profile_changed' order by id`.execute(
+          pg,
+        )
+      ).rows.map((r) => r.envelope.payload);
 
     it("creates the profile with the email verified by Clerk", async () => {
       identities[NEW_USER] = identity("nina@example.com");
@@ -306,6 +318,51 @@ describe("users: profile visibility", () => {
           pg,
         );
       expect(rows).toHaveLength(1);
+    });
+
+    it("tells the notifier the address and name at each sync, with the profile write", async () => {
+      identities[NEW_USER] = identity("nina@example.com");
+      await users.ensureMe(NEW_USER);
+      identities[NEW_USER] = identity("nina.new@example.com");
+      await users.ensureMe(NEW_USER);
+      expect(await profileEvents()).toEqual([
+        {
+          userId: NEW_USER,
+          email: "nina@example.com",
+          firstName: "Nina",
+          lastName: "Nouvelle",
+        },
+        {
+          userId: NEW_USER,
+          email: "nina.new@example.com",
+          firstName: "Nina",
+          lastName: "Nouvelle",
+        },
+      ]);
+    });
+
+    it("gives the notifier the address once Clerk has verified it", async () => {
+      identities[NEW_USER] = identity("nina@example.com", false);
+      await users.ensureMe(NEW_USER);
+      identities[NEW_USER] = identity("nina@example.com", true);
+      await users.ensureMe(NEW_USER);
+      expect((await profileEvents()).map((p: any) => p.email)).toEqual([
+        null,
+        "nina@example.com",
+      ]);
+    });
+
+    it("gives the notifier no address the provider has not verified", async () => {
+      identities[NEW_USER] = identity("nina@example.com", false);
+      await users.ensureMe(NEW_USER);
+      expect(await profileEvents()).toEqual([
+        {
+          userId: NEW_USER,
+          email: null,
+          firstName: "Nina",
+          lastName: "Nouvelle",
+        },
+      ]);
     });
 
     it("refuses an account without a verified email", async () => {

@@ -125,7 +125,9 @@ must:
 
 ## Known gaps (decided, do not fix piecemeal)
 
-- Owner e-mail alerts (Resend) wait for a verified domain; deployment is set aside for now.
+- E-mail notifications are built (Resend, `apps/notifier/.../infrastructure/email/`) but off until
+  `RESEND_API_KEY` is set and behyndme.com is verified at Resend; deployment is set aside for now. SMS and a
+  mandatory phone number were set aside by the user (2026-11-12).
 
 ## Definition of done
 

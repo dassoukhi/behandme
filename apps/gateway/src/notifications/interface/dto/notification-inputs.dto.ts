@@ -4,6 +4,7 @@ import {
   IsIn,
   IsOptional,
   IsString,
+  IsTimeZone,
   Matches,
   MaxLength,
 } from "class-validator";
@@ -38,6 +39,14 @@ export class UpdateNotificationPreferencesDto {
   push_enabled?: boolean;
 
   @ApiPropertyOptional({
+    description: "E-mail for non-critical notifications",
+    example: true,
+  })
+  @IsOptional()
+  @IsBoolean()
+  email_enabled?: boolean;
+
+  @ApiPropertyOptional({
     description: "Language of new notifications",
     enum: NOTIFICATION_LANGUAGES,
     example: "en",
@@ -45,4 +54,13 @@ export class UpdateNotificationPreferencesDto {
   @IsOptional()
   @IsIn(NOTIFICATION_LANGUAGES)
   language?: NotificationLanguage;
+
+  @ApiPropertyOptional({
+    description: "IANA time zone of the phone, for the dates e-mails give",
+    example: "Europe/Paris",
+  })
+  @IsOptional()
+  @MaxLength(64)
+  @IsTimeZone()
+  time_zone?: string;
 }

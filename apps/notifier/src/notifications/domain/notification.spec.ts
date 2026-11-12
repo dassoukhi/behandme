@@ -50,6 +50,9 @@ describe("copy", () => {
     quorum: false,
     reason: "cancelled",
     role: "accessor",
+    claimantId: "a",
+    contestUntil: "2026-11-19T13:30:00.000Z",
+    usableFrom: "2026-11-15T13:30:00.000Z",
   };
   const categories = {
     networks: ["Réseaux sociaux", "Social media"],

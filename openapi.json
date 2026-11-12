@@ -2061,6 +2061,11 @@
             "description": "Push for non-critical notifications. Critical ones (a claim on your contract) are always pushed.",
             "example": true
           },
+          "email_enabled": {
+            "type": "boolean",
+            "description": "E-mail for non-critical notifications. Critical ones (a claim on your contract) are always e-mailed.",
+            "example": true
+          },
           "language": {
             "enum": [
               "fr",
@@ -2069,11 +2074,18 @@
             "type": "string",
             "description": "Language of new notifications; those already received keep theirs.",
             "example": "fr"
+          },
+          "time_zone": {
+            "type": "string",
+            "description": "IANA time zone of the user's phone, for the dates e-mails give; Europe/Paris until the phone sends its own.",
+            "example": "Europe/Paris"
           }
         },
         "required": [
           "push_enabled",
-          "language"
+          "email_enabled",
+          "language",
+          "time_zone"
         ]
       },
       "UpdateNotificationPreferencesDto": {
@@ -2083,6 +2095,11 @@
             "type": "boolean",
             "example": false
           },
+          "email_enabled": {
+            "type": "boolean",
+            "description": "E-mail for non-critical notifications",
+            "example": true
+          },
           "language": {
             "enum": [
               "fr",
@@ -2091,6 +2108,12 @@
             "type": "string",
             "description": "Language of new notifications",
             "example": "en"
+          },
+          "time_zone": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "IANA time zone of the phone, for the dates e-mails give",
+            "example": "Europe/Paris"
           }
         }
       },

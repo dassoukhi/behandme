@@ -17,6 +17,7 @@ export class ClerkIdentityProvider implements IdentityProvider {
     );
     return {
       email: primary?.emailAddress ?? null,
+      email_verified: primary?.verification?.status === "verified",
       first_name: user.firstName,
       last_name: user.lastName,
       avatar_url: user.imageUrl || null,

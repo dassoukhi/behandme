@@ -1,5 +1,5 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { UserDeleted } from "@lib/contracts";
+import { UserDeleted, UserProfileChanged } from "@lib/contracts";
 import {
   InvalidInputError,
   NotFoundError,
@@ -35,7 +35,10 @@ export class ProfileService {
   /**
    * Creates the caller's profile, or syncs it, from the verified identity (Clerk). The email is
    * never taken from the client, so nobody can claim someone else's address. Idempotent: safe
-   * to call after every sign-in.
+   * to call after every sign-in. Each sync tells the notifier the address and name
+   * (user.profile_changed), in the same transaction: the address only once the provider verified
+   * it. At every sync rather than on change, since the gateway does not keep whether the address
+   * was verified, and so that a lost event is made good at the next sign-in.
    */
   async ensureMe(
     me: string,
@@ -52,14 +55,24 @@ export class ProfileService {
       avatar_url: identity.avatar_url,
     };
 
-    const existing = await this.profiles.find(me);
-    const profile = existing
-      ? await this.profiles.update(me, fields)
-      : await this.profiles.create(me, fields);
-    if (!profile) {
-      throw new NotFoundError("Profile not found");
-    }
-    return { profile, created: !existing };
+    return this.unitOfWork.run(async ({ profiles, events }) => {
+      const existing = await profiles.find(me);
+      const profile = existing
+        ? await profiles.update(me, fields)
+        : await profiles.create(me, fields);
+      if (!profile) {
+        throw new NotFoundError("Profile not found");
+      }
+      await events.publish(
+        UserProfileChanged.create({
+          userId: me,
+          email: identity.email_verified ? (profile.email ?? null) : null,
+          firstName: profile.first_name ?? null,
+          lastName: profile.last_name ?? null,
+        }),
+      );
+      return { profile, created: !existing };
+    });
   }
 
   async findMe(me: string): Promise<Profile> {

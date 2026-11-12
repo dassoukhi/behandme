@@ -7,13 +7,18 @@ import {
   type Preferences,
   type RenderedNotification,
 } from "../domain/notification.js";
+import { type EmailContent, emailKind } from "../domain/email.js";
 import type { PushMessage } from "../domain/push.js";
 import type {
   Delivery,
   DeliveryRepository,
+  EmailDelivery,
+  EmailDeliveryRepository,
   NotificationRepository,
   NotifierStore,
   NotifierStores,
+  PeopleRepository,
+  Person,
   PreferenceRepository,
   PushTokenRepository,
   StoredNotification,
@@ -185,7 +190,13 @@ class KyselyPreferences implements PreferenceRepository {
     if (userIds.length === 0) return preferences;
     const rows = await this.db
       .selectFrom("preferences")
-      .select(["user_id", "push_enabled", "language"])
+      .select([
+        "user_id",
+        "push_enabled",
+        "email_enabled",
+        "language",
+        "time_zone",
+      ])
       .where("user_id", "in", userIds)
       .execute();
     for (const { user_id, ...prefs } of rows) preferences.set(user_id, prefs);
@@ -205,7 +216,7 @@ class KyselyPreferences implements PreferenceRepository {
           .column("user_id")
           .doUpdateSet({ ...changes, updated_at: sql<Date>`now()` }),
       )
-      .returning(["push_enabled", "language"])
+      .returning(["push_enabled", "email_enabled", "language", "time_zone"])
       .executeTakeFirstOrThrow();
     return row;
   }
@@ -346,6 +357,222 @@ class KyselyDeliveries implements DeliveryRepository {
   }
 }
 
+class KyselyPeople implements PeopleRepository {
+  constructor(private readonly db: Db) {}
+
+  async save(userId: string, person: Person, occurredAt: Date): Promise<void> {
+    const values = {
+      email: person.email,
+      first_name: person.firstName,
+      last_name: person.lastName,
+      occurred_at: occurredAt,
+    };
+    await this.db
+      .insertInto("people")
+      .values({ user_id: userId, ...values })
+      .onConflict((oc) =>
+        oc
+          .column("user_id")
+          .doUpdateSet({ ...values, updated_at: sql<Date>`now()` })
+          // The row being replaced, by its table's name: kept when newer, or when the account is gone.
+          .where(
+            sql<boolean>`not people.deleted and people.occurred_at < excluded.occurred_at`,
+          ),
+      )
+      .execute();
+  }
+
+  async getMany(userIds: string[]): Promise<Map<string, Person>> {
+    if (userIds.length === 0) return new Map();
+    const rows = await this.db
+      .selectFrom("people")
+      .select(["user_id", "email", "first_name", "last_name"])
+      .where("user_id", "in", userIds)
+      .where("deleted", "=", false)
+      .execute();
+    return new Map(
+      rows.map((r) => [
+        r.user_id,
+        { email: r.email, firstName: r.first_name, lastName: r.last_name },
+      ]),
+    );
+  }
+
+  async forget(userId: string, at: Date): Promise<void> {
+    const gone = {
+      email: null,
+      first_name: null,
+      last_name: null,
+      deleted: true,
+    };
+    await this.db
+      .insertInto("people")
+      .values({ user_id: userId, ...gone, occurred_at: at })
+      .onConflict((oc) =>
+        oc.column("user_id").doUpdateSet({
+          ...gone,
+          occurred_at: sql<Date>`greatest(people.occurred_at, excluded.occurred_at)`,
+          updated_at: sql<Date>`now()`,
+        }),
+      )
+      .execute();
+  }
+
+  async purgeForgotten(before: Date): Promise<number> {
+    const result = await this.db
+      .deleteFrom("people")
+      .where("deleted", "=", true)
+      .where("occurred_at", "<", before)
+      .executeTakeFirst();
+    return Number(result.numDeletedRows);
+  }
+}
+
+class KyselyEmailDeliveries implements EmailDeliveryRepository {
+  constructor(private readonly db: Db) {}
+
+  async enqueue(
+    emails: { notificationId: string; to: string; content: EmailContent }[],
+    now: Date,
+  ): Promise<void> {
+    if (emails.length === 0) return;
+    await this.db
+      .insertInto("email_deliveries")
+      .values(
+        emails.map((e) => ({
+          notification_id: e.notificationId,
+          to_address: e.to,
+          content: JSON.stringify(e.content),
+          next_attempt_at: now,
+          created_at: now,
+        })),
+      )
+      .execute();
+  }
+
+  async claimDue(
+    now: Date,
+    leaseUntil: Date,
+    limit: number,
+  ): Promise<EmailDelivery[]> {
+    // One statement: the rows it takes are locked until it commits, and skipped by other senders.
+    const rows = await this.db
+      .updateTable("email_deliveries")
+      .set((eb) => ({
+        status: "sending",
+        attempts: eb("attempts", "+", 1),
+        next_attempt_at: leaseUntil,
+      }))
+      .where("notification_id", "in", (eb) =>
+        eb
+          .selectFrom("email_deliveries")
+          .select("notification_id")
+          .where("status", "in", ["pending", "sending"])
+          .where("next_attempt_at", "<=", now)
+          .orderBy("next_attempt_at")
+          .limit(limit)
+          .forUpdate()
+          .skipLocked(),
+      )
+      .returning([
+        "notification_id",
+        "to_address",
+        "content",
+        "attempts",
+        "created_at",
+      ])
+      .execute();
+    return rows
+      .map((r) => ({
+        notificationId: r.notification_id,
+        to: r.to_address,
+        content: r.content,
+        attempts: r.attempts,
+        createdAt: r.created_at,
+      }))
+      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+  }
+
+  async markSent(
+    notificationId: string,
+    providerId: string | null,
+    now: Date,
+  ): Promise<void> {
+    await this.db
+      .updateTable("email_deliveries")
+      .set({
+        status: "sent",
+        provider_id: providerId,
+        error: null,
+        finished_at: now,
+      })
+      .where("notification_id", "=", notificationId)
+      .execute();
+  }
+
+  async markFailed(
+    notificationId: string,
+    error: string,
+    now: Date,
+  ): Promise<void> {
+    await this.db
+      .updateTable("email_deliveries")
+      .set({ status: "failed", error, finished_at: now })
+      .where("notification_id", "=", notificationId)
+      .execute();
+  }
+
+  async postpone(
+    notificationId: string,
+    error: string,
+    nextAttemptAt: Date,
+    countAttempt: boolean,
+  ): Promise<void> {
+    await this.db
+      .updateTable("email_deliveries")
+      .set((eb) => ({
+        status: "pending",
+        error,
+        next_attempt_at: nextAttemptAt,
+        attempts: eb("attempts", "-", countAttempt ? 0 : 1),
+      }))
+      .where("notification_id", "=", notificationId)
+      .execute();
+  }
+
+  async purgeFinished(before: Date): Promise<number> {
+    const result = await this.db
+      .deleteFrom("email_deliveries")
+      .where("status", "in", ["sent", "failed"])
+      .where("finished_at", "<", before)
+      .executeTakeFirst();
+    return Number(result.numDeletedRows);
+  }
+
+  async recentRegular(
+    userIds: string[],
+    since: Date,
+  ): Promise<Map<string, { count: number; kinds: Set<string> }>> {
+    const recent = new Map<string, { count: number; kinds: Set<string> }>();
+    if (userIds.length === 0) return recent;
+    const rows = await this.db
+      .selectFrom("email_deliveries as e")
+      .innerJoin("notifications as n", "n.id", "e.notification_id")
+      .select(["n.user_id", "n.type", sql<string>`n.data->>'url'`.as("url")])
+      .where("n.user_id", "in", userIds)
+      .where("e.created_at", ">", since)
+      .where(sql<boolean>`(e.content->>'critical')::boolean`, "=", false)
+      .execute();
+    for (const row of rows) {
+      const entry = recent.get(row.user_id) ?? { count: 0, kinds: new Set() };
+      entry.count++;
+      entry.kinds.add(emailKind(row.type, row.url ?? ""));
+      recent.set(row.user_id, entry);
+    }
+    return recent;
+  }
+}
+
 function store(db: Executor): NotifierStore {
   const scoped = notify(db);
   return {
@@ -353,6 +580,8 @@ function store(db: Executor): NotifierStore {
     tokens: new KyselyPushTokens(scoped),
     preferences: new KyselyPreferences(scoped),
     deliveries: new KyselyDeliveries(scoped),
+    people: new KyselyPeople(scoped),
+    emails: new KyselyEmailDeliveries(scoped),
   };
 }
 

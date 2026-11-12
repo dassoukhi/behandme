@@ -3,6 +3,7 @@ import {
   IsIn,
   IsOptional,
   IsString,
+  IsTimeZone,
   Matches,
   MaxLength,
 } from "class-validator";
@@ -31,6 +32,15 @@ export class UpdatePreferencesDto {
   push_enabled?: boolean;
 
   @IsOptional()
+  @IsBoolean()
+  email_enabled?: boolean;
+
+  @IsOptional()
   @IsIn(NOTIFICATION_LANGUAGES)
   language?: NotificationLanguage;
+
+  @IsOptional()
+  @MaxLength(64)
+  @IsTimeZone()
+  time_zone?: string;
 }

@@ -65,9 +65,23 @@ export class NotificationPreferencesDto implements NotificationPreferences {
 
   @ApiProperty({
     description:
+      "E-mail for non-critical notifications. Critical ones (a claim on your contract) are always e-mailed.",
+    example: true,
+  })
+  email_enabled: boolean;
+
+  @ApiProperty({
+    description:
       "Language of new notifications; those already received keep theirs.",
     enum: NOTIFICATION_LANGUAGES,
     example: "fr",
   })
   language: NotificationLanguage;
+
+  @ApiProperty({
+    description:
+      "IANA time zone of the user's phone, for the dates e-mails give; Europe/Paris until the phone sends its own.",
+    example: "Europe/Paris",
+  })
+  time_zone: string;
 }

@@ -55,13 +55,17 @@ export const ClaimFiled = defineEvent(
   }),
 );
 
-/** Handover: the owner sealed a contract; those it names as validators for the first time are told. */
+/**
+ * Handover: the owner sealed a contract; those it names as validators for the first time are told who
+ * chose them (v2: `ownerId`, for the e-mail).
+ */
 export const ContractSealed = defineEvent(
   "contract.sealed",
-  1,
+  2,
   z.object({
     contractId,
     category,
+    ownerId: userId,
     newValidatorIds: z.array(userId).min(1),
   }),
 );
@@ -179,6 +183,22 @@ export const ClaimsDue = defineEvent("maintenance.claims_due", 1, z.object({}));
 
 /** Gateway: the profile is gone; every service forgets the user's data. */
 export const UserDeleted = defineEvent("user.deleted", 1, z.object({ userId }));
+
+/**
+ * Gateway: a profile was created or synced (each sign-in). The notifier keeps a copy of the address and
+ * name, to send e-mails and to name people in them. `email` is null while the address is not verified;
+ * it is checked by Clerk, not here (a stricter check than Clerk's would break the sign-in).
+ */
+export const UserProfileChanged = defineEvent(
+  "user.profile_changed",
+  1,
+  z.object({
+    userId,
+    email: z.string().min(3).max(320).nullable(),
+    firstName: z.string().nullable(),
+    lastName: z.string().nullable(),
+  }),
+);
 
 /** pg_cron (ops.send_tick), every minute, to the worker. */
 export const SchedulerTick = defineEvent("scheduler.tick", 1, z.object({}));

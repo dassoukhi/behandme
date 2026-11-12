@@ -99,6 +99,7 @@ describe("ProfileService", () => {
   describe("ensureMe", () => {
     const identity = (email: string | null) => ({
       email,
+      email_verified: true,
       first_name: "Nina",
       last_name: "Nouvelle",
       avatar_url: null,
@@ -134,6 +135,34 @@ describe("ProfileService", () => {
       store.identities.set("me", identity(null));
       await expect(profiles.ensureMe("me")).rejects.toThrow(UnprocessableError);
       expect(store.profiles.size).toBe(0);
+      expect(store.published).toEqual([]);
+    });
+
+    it("tells the notifier the address and name at every sync", async () => {
+      store.identities.set("me", identity("nina@example.com"));
+      await profiles.ensureMe("me");
+      await profiles.ensureMe("me", { last_name: "Durand" });
+      const event = (lastName: string) => ({
+        type: "user.profile_changed",
+        version: 1,
+        payload: {
+          userId: "me",
+          email: "nina@example.com",
+          firstName: "Nina",
+          lastName,
+        },
+      });
+      expect(store.published).toEqual([event("Nouvelle"), event("Durand")]);
+    });
+
+    it("accepts any address Clerk verified, even one a strict pattern would refuse", async () => {
+      store.identities.set("me", identity("nina@exemple.xn--p1ai"));
+      await expect(profiles.ensureMe("me")).resolves.toMatchObject({
+        created: true,
+      });
+      expect(store.published[0].payload).toMatchObject({
+        email: "nina@exemple.xn--p1ai",
+      });
     });
   });
 
