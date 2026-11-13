@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
   EMAIL_COPY,
@@ -69,6 +69,35 @@ body { margin: 0; padding: 0; -webkit-text-size-adjust: 100%; }
 }
 `;
 
+// Gmail's app inverts the colors of every e-mail in dark mode, dark ones included, and no setting of the
+// sender's stops it. Two known counters, for Gmail only (`u + .body` matches the markup Gmail wraps the
+// body in; other clients ignore it):
+// - backgrounds painted as one-color gradients, which Gmail leaves alone (fill());
+// - every text inside two spans (Keep): Gmail turns their black background white and inverts the text;
+//   the `difference` with that white undoes the inversion, the `screen` lays the text back on the dark
+//   background. Out of dark mode the two blends leave the text as it is.
+const GMAIL_CSS = `
+u + .body .gmail-screen { background: #000; mix-blend-mode: screen; }
+u + .body .gmail-difference { background: #000; mix-blend-mode: difference; }
+`;
+
+/** A background Gmail's dark mode does not invert: the color, and the same color as a gradient. */
+function fill(color: string): CSSProperties {
+  return {
+    backgroundColor: color,
+    backgroundImage: `linear-gradient(${color}, ${color})`,
+  };
+}
+
+/** A text whose color Gmail's dark mode does not invert. */
+function Keep({ children }: { children: ReactNode }) {
+  return (
+    <span className="gmail-screen">
+      <span className="gmail-difference">{children}</span>
+    </span>
+  );
+}
+
 const presentation = {
   role: "presentation",
   cellPadding: 0,
@@ -99,13 +128,10 @@ function BehyndmeEmail({
         <meta name="x-apple-disable-message-reformatting" />
         <title>{content.subject}</title>
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
+        <style dangerouslySetInnerHTML={{ __html: GMAIL_CSS }} />
       </head>
-      <body style={{ backgroundColor: COLORS.canvas }}>
-        <table
-          {...presentation}
-          width="100%"
-          style={{ backgroundColor: COLORS.canvas }}
-        >
+      <body className="body" style={fill(COLORS.canvas)}>
+        <table {...presentation} width="100%" style={fill(COLORS.canvas)}>
           <tbody>
             <tr>
               <td
@@ -124,7 +150,7 @@ function BehyndmeEmail({
                       <td
                         className="bm-pad"
                         style={{
-                          backgroundColor: COLORS.surface,
+                          ...fill(COLORS.surface),
                           border: `1px solid ${COLORS.border}`,
                           borderRadius: 16,
                           padding: "32px",
@@ -143,7 +169,7 @@ function BehyndmeEmail({
                             color: COLORS.accent,
                           }}
                         >
-                          {content.subject}
+                          <Keep>{content.subject}</Keep>
                         </h1>
                         <p
                           style={{
@@ -152,7 +178,7 @@ function BehyndmeEmail({
                             color: COLORS.ink,
                           }}
                         >
-                          {copy.greeting(content.greetingName)}
+                          <Keep>{copy.greeting(content.greetingName)}</Keep>
                         </p>
                         {content.paragraphs.map((paragraph, i) => (
                           <p
@@ -164,7 +190,7 @@ function BehyndmeEmail({
                               color: i === 0 ? COLORS.ink : COLORS.muted,
                             }}
                           >
-                            {paragraph}
+                            <Keep>{paragraph}</Keep>
                           </p>
                         ))}
                         {content.facts.length > 0 && (
@@ -180,7 +206,7 @@ function BehyndmeEmail({
                               <td
                                 style={{
                                   ...text,
-                                  backgroundColor: COLORS.canvas,
+                                  ...fill(COLORS.canvas),
                                   border: `1px solid ${COLORS.accentLine}`,
                                   borderRadius: 12,
                                   padding: "14px 16px",
@@ -189,7 +215,7 @@ function BehyndmeEmail({
                                   color: COLORS.ink,
                                 }}
                               >
-                                {copy.openApp}
+                                <Keep>{copy.openApp}</Keep>
                               </td>
                             </tr>
                           </tbody>
@@ -217,13 +243,15 @@ function BehyndmeEmail({
                                     color: COLORS.subtle,
                                   }}
                                 >
-                                  {content.critical
-                                    ? copy.why.critical
-                                    : copy.why.regular}
+                                  <Keep>
+                                    {content.critical
+                                      ? copy.why.critical
+                                      : copy.why.regular}
+                                  </Keep>
                                 </p>
                                 {/* A security message: readable (#94A3B8, 6.8:1), not the footer's grey. */}
                                 <p style={{ margin: 0, color: COLORS.muted }}>
-                                  {copy.noLinks}
+                                  <Keep>{copy.noLinks}</Keep>
                                 </p>
                               </td>
                             </tr>
@@ -271,7 +299,7 @@ function Brand({ logoSrc }: { logoSrc: string }) {
               color: COLORS.accent,
             }}
           >
-            BehyndMe
+            <Keep>BehyndMe</Keep>
           </td>
         </tr>
       </tbody>
@@ -305,7 +333,7 @@ function Facts({ facts }: { facts: EmailFact[] }) {
                   color: COLORS.muted,
                 }}
               >
-                {fact.label}
+                <Keep>{fact.label}</Keep>
               </div>
               <div
                 style={{
@@ -316,7 +344,7 @@ function Facts({ facts }: { facts: EmailFact[] }) {
                   color: COLORS.ink,
                 }}
               >
-                {fact.value}
+                <Keep>{fact.value}</Keep>
               </div>
             </td>
           </tr>
@@ -333,7 +361,7 @@ function SecurityBadge({ label }: { label: string }) {
         <tr>
           <td
             style={{
-              backgroundColor: COLORS.dangerSoft,
+              ...fill(COLORS.dangerSoft),
               color: COLORS.danger,
               borderRadius: 999,
               padding: "4px 12px",
@@ -345,7 +373,7 @@ function SecurityBadge({ label }: { label: string }) {
               textTransform: "uppercase",
             }}
           >
-            {label}
+            <Keep>{label}</Keep>
           </td>
         </tr>
       </tbody>

@@ -124,7 +124,7 @@ describe("renderEmail", () => {
     // The slate background, the card and its border, the gold title.
     expect(html).toContain("background-color:#131A24");
     expect(html).toMatch(
-      /background-color:#1B2432;border:1px solid #2A3648;border-radius:16px/,
+      /background-color:#1B2432;background-image:linear-gradient\(#1B2432, #1B2432\);border:1px solid #2A3648;border-radius:16px/,
     );
     expect(html).toMatch(/<h1 style="[^"]*color:#E2C275/);
     // None of the former light theme's colors is left.
@@ -136,8 +136,51 @@ describe("renderEmail", () => {
       ...base,
       paragraphs: ["Fait.", "Explication."],
     }).html;
-    expect(html).toMatch(/color:#F8FAFC">Fait\.</);
-    expect(html).toMatch(/color:#94A3B8">Explication\.</);
+    const kept = (text: string) =>
+      `<span class="gmail-screen"><span class="gmail-difference">${text}</span></span>`;
+    expect(html).toContain(`color:#F8FAFC">${kept("Fait.")}`);
+    expect(html).toContain(`color:#94A3B8">${kept("Explication.")}`);
+  });
+
+  it("keeps its dark design in Gmail's dark mode, which inverts every e-mail", () => {
+    const email = renderEmail({
+      ...base,
+      critical: true,
+      facts: [{ label: "Contrat", value: "Réseaux sociaux" }],
+    });
+    const html = email.html;
+    // The blends, for Gmail only: `u + .body` matches the markup Gmail wraps the body in.
+    expect(html).toContain('<body class="body"');
+    expect(html).toContain(
+      "u + .body .gmail-screen { background: #000; mix-blend-mode: screen; }",
+    );
+    expect(html).toContain(
+      "u + .body .gmail-difference { background: #000; mix-blend-mode: difference; }",
+    );
+    // Every background it paints is also a one-color gradient, which Gmail leaves alone.
+    for (const color of ["#131A24", "#1B2432", "#342834"]) {
+      expect(html).toContain(
+        `background-color:${color};background-image:linear-gradient(${color}, ${color})`,
+      );
+    }
+    // Every text sits in the two spans: the name, the subject, the greeting, the badge, the facts, the box
+    // and the footer.
+    const copy = EMAIL_COPY.fr;
+    for (const text of [
+      "BehyndMe",
+      "Sujet",
+      "Bonjour,",
+      copy.securityAlert,
+      "Contrat",
+      "Réseaux sociaux",
+      copy.openApp,
+      copy.why.critical,
+      copy.noLinks,
+    ]) {
+      expect(html).toContain(
+        `<span class="gmail-difference">${escapeHtml(text)}</span>`,
+      );
+    }
   });
 
   it("shows the logo from a data URL in a preview", () => {
