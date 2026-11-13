@@ -29,6 +29,14 @@ const cases = Object.entries(templates).flatMap(([name, template]) =>
 describe.each(cases)("$name", ({ content }) => {
   const email = renderEmail(content);
 
+  it("hides no text and avoids unsubscribe wording, which Gmail files under Promotions", () => {
+    expect(email.html).not.toMatch(/display:\s*none/i);
+    expect(email.html).not.toMatch(/\u200c/);
+    expect(`${email.html} ${email.text}`).not.toMatch(
+      /ne plus recevoir|unsubscribe|se désabonner|stop these/i,
+    );
+  });
+
   it("holds no link and loads nothing: its one image is the logo sent with it", () => {
     expect(email.html).not.toMatch(/href=/i);
     expect(email.html).not.toMatch(/https?:\/\//i);

@@ -10,7 +10,8 @@ import { BAND, DARK, LIGHT, SANS, SERIF } from "./theme.js";
 // The BehyndMe e-mail: a midnight band with the logo, a card with the notification (greeting, its text,
 // the key facts such as a deadline), and the reasons for the e-mail under it. Tables and inline styles,
 // as e-mail clients ignore most modern CSS; React escapes every text it writes, so a name cannot inject
-// markup.
+// markup. No hidden text (no preheader filler) and no unsubscribe wording: Gmail reads both as marketing
+// and files the e-mail under Promotions, where a security alert must not end up.
 
 /** Content-ID of the logo sent inline with each e-mail: the HTML shows it as `cid:logo`. */
 export const LOGO_CONTENT_ID = "logo";
@@ -109,7 +110,6 @@ function BehyndmeEmail({
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
       </head>
       <body className="bm-canvas" style={{ backgroundColor: LIGHT.canvas }}>
-        <Preheader text={content.paragraphs[0] ?? content.subject} />
         <table
           {...presentation}
           width="100%"
@@ -352,27 +352,5 @@ function SecurityBadge({ label }: { label: string }) {
         </tr>
       </tbody>
     </table>
-  );
-}
-
-/**
- * The line inboxes show after the subject: the first paragraph, then invisible filler so that the inbox
- * does not pull in the text that follows.
- */
-function Preheader({ text }: { text: string }) {
-  return (
-    <div
-      style={{
-        display: "none",
-        overflow: "hidden",
-        lineHeight: "1px",
-        opacity: 0,
-        maxHeight: 0,
-        maxWidth: 0,
-      }}
-    >
-      {text}
-      {" ‌".repeat(80)}
-    </div>
   );
 }

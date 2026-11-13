@@ -173,7 +173,10 @@ export interface EmailCopy {
   securityAlert: string;
   /** Replaces the button other e-mails would have. */
   openApp: string;
-  /** Why the e-mail came, and how to stop it (non-critical) or why it cannot be (critical). */
+  /**
+   * Why the e-mail came: where the user chooses (non-critical) or why it always comes (critical). Never
+   * unsubscribe wording, which Gmail reads as marketing.
+   */
   why: { critical: string; regular: string };
   noLinks: string;
 }
@@ -188,7 +191,7 @@ export const EMAIL_COPY: Record<Language, EmailCopy> = {
       critical:
         "Les alertes de sécurité vous parviennent toujours, même si vous avez coupé les autres e-mails.",
       regular:
-        "Pour ne plus recevoir ces e-mails : Réglages › Notifications, dans l'app. Les alertes de sécurité continueront de vous parvenir.",
+        "Dans l'app, Réglages › Notifications règle les notifications qui vous arrivent aussi par e-mail. Les alertes de sécurité arrivent toujours.",
     },
     noLinks:
       "BehyndMe ne vous enverra jamais de lien de connexion et ne vous demandera jamais votre phrase de récupération ni votre mot de passe.",
@@ -202,7 +205,7 @@ export const EMAIL_COPY: Record<Language, EmailCopy> = {
       critical:
         "Security alerts always reach you, even if you turned other emails off.",
       regular:
-        "To stop these emails: Settings › Notifications, in the app. Security alerts will still reach you.",
+        "In the app, Settings › Notifications sets which notifications also come by email. Security alerts always do.",
     },
     noLinks:
       "BehyndMe will never send you a sign-in link, and will never ask for your recovery phrase or your password.",
