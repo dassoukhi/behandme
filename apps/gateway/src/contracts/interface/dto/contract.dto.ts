@@ -213,15 +213,17 @@ export class ContractDTO {
     nullable: true,
   })
   accessor: UserProfileDto | null;
-}
 
-export class ContractDetailDTO extends ContractDTO {
   @ApiProperty({
-    description: "Validator profiles, in the order of `validator_ids`",
+    description:
+      "Validator profiles, in the order of `validator_ids` (a profile that no longer exists is left out)",
     type: () => [UserProfileDto],
   })
   validators_list: UserProfileDto[];
 }
+
+/** One contract: the same fields as in the list. */
+export class ContractDetailDTO extends ContractDTO {}
 
 export class ContractEventDTO implements AuditEvent {
   @ApiProperty({

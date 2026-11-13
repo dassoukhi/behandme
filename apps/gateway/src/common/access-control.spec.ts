@@ -192,6 +192,17 @@ describe("contracts: role × action", () => {
     });
   });
 
+  it("lists every participant's profile, with the same visibility rule as one contract", async () => {
+    const [asOwner] = await contracts.list(OWNER);
+    expect(asOwner.validators_list.map((p) => p.id)).toEqual([VALIDATOR]);
+    // The validator does not trust the owner: their e-mail stays hidden in the list too.
+    expect(asOwner.validators_list[0]).not.toHaveProperty("email");
+    const [asValidator] = await contracts.list(VALIDATOR);
+    expect(asValidator.validators_list[0].email).toBe(
+      `${VALIDATOR}@example.com`,
+    );
+  });
+
   it("applies the profile visibility rule to the participants", async () => {
     const asOwner = await contracts.get(OWNER, contractId);
     // The accessor trusts the owner; the validator does not.

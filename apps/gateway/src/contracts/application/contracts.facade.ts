@@ -41,10 +41,13 @@ export interface Health {
 export type ContractView = Omit<ContractRecord, "sealed_validators"> & {
   owner: Profile | null;
   accessor: Profile | null;
+  /** In the order of `validator_ids`; a profile that no longer exists is left out. */
+  validators_list: Profile[];
   /** Null while never sealed. */
   health: Health | null;
 };
-export type ContractDetail = ContractView & { validators_list: Profile[] };
+/** The same as a listed contract: the list shows every participant too (their avatars on each card). */
+export type ContractDetail = ContractView;
 
 /** Sealed material, with the keys the caller's phone needs to check and use it. */
 export type SealedMaterialView = SealedMaterial & {
@@ -77,7 +80,7 @@ export class ContractsFacade {
     const [profiles, health] = await Promise.all([
       this.profiles.visibleProfiles(
         me,
-        records.flatMap((r) => [r.owner_id, r.accessor_id]),
+        records.flatMap((r) => [r.owner_id, r.accessor_id, ...r.validator_ids]),
       ),
       this.health(me, records),
     ]);
@@ -294,12 +297,7 @@ export class ContractsFacade {
       ]),
       this.health(me, [record]),
     ]);
-    return {
-      ...view(record, profiles, health),
-      validators_list: record.validator_ids
-        .map((id) => profiles.get(id))
-        .filter((p): p is Profile => p !== undefined),
-    };
+    return view(record, profiles, health);
   }
 }
 
@@ -317,6 +315,9 @@ function view(
     ...visible,
     owner: profiles.get(record.owner_id) ?? null,
     accessor: profiles.get(record.accessor_id) ?? null,
+    validators_list: record.validator_ids
+      .map((id) => profiles.get(id))
+      .filter((p): p is Profile => p !== undefined),
     health: health.get(record.id) ?? null,
   };
 }

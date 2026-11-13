@@ -2508,7 +2508,7 @@
             ]
           },
           "validators_list": {
-            "description": "Validator profiles, in the order of `validator_ids`",
+            "description": "Validator profiles, in the order of `validator_ids` (a profile that no longer exists is left out)",
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/UserProfileDto"
@@ -2683,6 +2683,13 @@
                 "$ref": "#/components/schemas/UserProfileDto"
               }
             ]
+          },
+          "validators_list": {
+            "description": "Validator profiles, in the order of `validator_ids` (a profile that no longer exists is left out)",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserProfileDto"
+            }
           }
         },
         "required": [
@@ -2704,7 +2711,8 @@
           "claim_cooldown_until",
           "health",
           "owner",
-          "accessor"
+          "accessor",
+          "validators_list"
         ]
       },
       "UpdateContractDTO": {
