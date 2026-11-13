@@ -1,35 +1,22 @@
-// Colors and fonts of the e-mails: the app's "Coffre-fort" theme (midnight blue and brass), copied
-// from behindMe/theme/tokens.js, whose contrast check covers these pairs. The repos share no code:
-// keep them in step by hand.
+// Colors and fonts of the e-mails: the app's "Ardoise & Or" theme (slate blue and champagne gold, dark
+// only), copied from behindMe/theme/tokens.js. The repos share no code: keep them in step by hand. E-mail
+// clients take no translucent colors reliably, so the app's rgba hairlines and soft fills are given here
+// as the solid color they make on the card.
 
-export const LIGHT = {
-  canvas: "#EEF1F5",
-  surface: "#FFFFFF",
-  ink: "#121A2A",
-  muted: "#4E5868",
-  border: "#D6DCE5",
-  accent: "#23406B",
-  danger: "#A8322A",
-  dangerSoft: "#F7DFDB",
+export const COLORS = {
+  canvas: "#131A24", // the e-mail's background
+  surface: "#1B2432", // the card
+  border: "#2A3648", // the card's border, the hairlines between facts, the footer's rule
+  accent: "#E2C275", // the name, the title
+  accentLine: "#756B50", // the border of the "open the app" box (gold at 45 % on the card)
+  ink: "#F8FAFC", // the greeting, the key facts
+  muted: "#94A3B8", // explanations, fact labels, the anti-phishing line
+  subtle: "#64748B", // the footer
+  danger: "#FCA5A5", // the security badge
+  dangerSoft: "#342834", // its background (red at 12 % on the card)
 };
 
-/** Apple Mail and other clients that honour prefers-color-scheme. */
-export const DARK = {
-  canvas: "#0B1220",
-  surface: "#131C2E",
-  sunken: "#1B2539",
-  ink: "#EEF1F6",
-  muted: "#A3ADBF",
-  border: "#27324A",
-  accent: "#D9B36A",
-  danger: "#F09484",
-  dangerSoft: "#3A1F1E",
-};
-
-/** The band at the top, in both schemes: midnight, with the logo and name in brass. */
-export const BAND = { background: "#0B1220", brass: "#D9B36A" };
-
-// No web font is loaded (nothing remote): Bodoni 72 and Didot ship with iPhones and Macs, Avenir Next
-// stands in for Jost there; the others fall back to Georgia and Helvetica.
-export const SERIF = `"Bodoni Moda", "Bodoni 72", Didot, Georgia, "Times New Roman", serif`;
+// No web font is loaded (nothing remote): Georgia for titles, Avenir Next standing in for Jost on iPhones
+// and Macs, Helvetica or Arial elsewhere.
+export const SERIF = `Georgia, "Times New Roman", serif`;
 export const SANS = `Jost, "Avenir Next", Avenir, "Helvetica Neue", Helvetica, Arial, sans-serif`;

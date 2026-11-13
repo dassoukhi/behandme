@@ -5,10 +5,11 @@ import {
   type EmailContent,
   type EmailFact,
 } from "../../domain/email.js";
-import { BAND, DARK, LIGHT, SANS, SERIF } from "./theme.js";
+import { COLORS, SANS, SERIF } from "./theme.js";
 
-// The BehyndMe e-mail: a midnight band with the logo, a card with the notification (greeting, its text,
-// the key facts such as a deadline), and the reasons for the e-mail under it. Tables and inline styles,
+// The BehyndMe e-mail, in the app's dark "Ardoise & Or" theme: the gold logo and name on the slate
+// background, a card with the notification (greeting, its text, the key facts such as a deadline, and a
+// box that says to open the app: never a link), and the reasons for the e-mail under a fine rule. Tables and inline styles,
 // as e-mail clients ignore most modern CSS; React escapes every text it writes, so a name cannot inject
 // markup. No hidden text (no preheader filler) and no unsubscribe wording: Gmail reads both as marketing
 // and files the e-mail under Promotions, where a security alert must not end up.
@@ -57,23 +58,14 @@ function plainText(content: EmailContent): string {
   ].join("\n\n");
 }
 
-// Dark mode, for the clients that honour it (Apple Mail): classes override the inline light colors.
+// One theme, dark: the e-mail says so, so that Apple Mail does not repaint it. Narrow screens get less
+// padding.
 const CSS = `
-:root { color-scheme: light dark; supported-color-schemes: light dark; }
+:root { color-scheme: dark; supported-color-schemes: dark; }
 body { margin: 0; padding: 0; -webkit-text-size-adjust: 100%; }
 @media (max-width: 600px) {
   .bm-outer { padding: 16px 8px !important; }
   .bm-pad { padding-left: 24px !important; padding-right: 24px !important; }
-}
-@media (prefers-color-scheme: dark) {
-  .bm-canvas { background-color: ${DARK.canvas} !important; }
-  .bm-band { border-color: ${DARK.border} !important; }
-  .bm-card { background-color: ${DARK.surface} !important; border-color: ${DARK.border} !important; }
-  .bm-ink { color: ${DARK.ink} !important; }
-  .bm-muted { color: ${DARK.muted} !important; }
-  .bm-rule { border-color: ${DARK.border} !important; }
-  .bm-callout { background-color: ${DARK.sunken} !important; border-color: ${DARK.accent} !important; color: ${DARK.ink} !important; }
-  .bm-badge { background-color: ${DARK.dangerSoft} !important; color: ${DARK.danger} !important; }
 }
 `;
 
@@ -94,7 +86,6 @@ function BehyndmeEmail({
   const copy = EMAIL_COPY[content.language];
   const text: CSSProperties = {
     fontFamily: SANS,
-    color: LIGHT.ink,
     fontSize: 16,
     lineHeight: "24px",
   };
@@ -103,18 +94,17 @@ function BehyndmeEmail({
       <head>
         <meta httpEquiv="Content-Type" content="text/html; charset=UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="color-scheme" content="light dark" />
-        <meta name="supported-color-schemes" content="light dark" />
+        <meta name="color-scheme" content="dark" />
+        <meta name="supported-color-schemes" content="dark" />
         <meta name="x-apple-disable-message-reformatting" />
         <title>{content.subject}</title>
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
       </head>
-      <body className="bm-canvas" style={{ backgroundColor: LIGHT.canvas }}>
+      <body style={{ backgroundColor: COLORS.canvas }}>
         <table
           {...presentation}
           width="100%"
-          className="bm-canvas"
-          style={{ backgroundColor: LIGHT.canvas }}
+          style={{ backgroundColor: COLORS.canvas }}
         >
           <tbody>
             <tr>
@@ -126,27 +116,17 @@ function BehyndmeEmail({
                 <table {...presentation} width="100%" style={{ maxWidth: 560 }}>
                   <tbody>
                     <tr>
-                      <td
-                        className="bm-band bm-pad"
-                        style={{
-                          backgroundColor: BAND.background,
-                          border: `1px solid ${BAND.background}`,
-                          borderBottom: 0,
-                          borderRadius: "16px 16px 0 0",
-                          padding: "22px 32px",
-                        }}
-                      >
+                      <td style={{ padding: "0 8px 20px" }}>
                         <Brand logoSrc={logoSrc} />
                       </td>
                     </tr>
                     <tr>
                       <td
-                        className="bm-card bm-pad"
+                        className="bm-pad"
                         style={{
-                          backgroundColor: LIGHT.surface,
-                          border: `1px solid ${LIGHT.border}`,
-                          borderTop: 0,
-                          borderRadius: "0 0 16px 16px",
+                          backgroundColor: COLORS.surface,
+                          border: `1px solid ${COLORS.border}`,
+                          borderRadius: 16,
                           padding: "32px",
                         }}
                       >
@@ -154,29 +134,35 @@ function BehyndmeEmail({
                           <SecurityBadge label={copy.securityAlert} />
                         )}
                         <h1
-                          className="bm-ink"
                           style={{
                             margin: "0 0 20px",
                             fontFamily: SERIF,
-                            fontWeight: 500,
-                            fontSize: 28,
-                            lineHeight: "34px",
-                            color: LIGHT.ink,
+                            fontWeight: 400,
+                            fontSize: 26,
+                            lineHeight: "32px",
+                            color: COLORS.accent,
                           }}
                         >
                           {content.subject}
                         </h1>
                         <p
-                          className="bm-ink"
-                          style={{ ...text, margin: "0 0 16px" }}
+                          style={{
+                            ...text,
+                            margin: "0 0 16px",
+                            color: COLORS.ink,
+                          }}
                         >
                           {copy.greeting(content.greetingName)}
                         </p>
                         {content.paragraphs.map((paragraph, i) => (
                           <p
                             key={i}
-                            className="bm-ink"
-                            style={{ ...text, margin: "0 0 16px" }}
+                            style={{
+                              ...text,
+                              margin: "0 0 16px",
+                              // The first paragraph says what happened; the others explain.
+                              color: i === 0 ? COLORS.ink : COLORS.muted,
+                            }}
                           >
                             {paragraph}
                           </p>
@@ -192,15 +178,15 @@ function BehyndmeEmail({
                           <tbody>
                             <tr>
                               <td
-                                className="bm-callout"
                                 style={{
                                   ...text,
-                                  backgroundColor: LIGHT.canvas,
-                                  borderLeft: `3px solid ${LIGHT.accent}`,
-                                  borderRadius: 8,
+                                  backgroundColor: COLORS.canvas,
+                                  border: `1px solid ${COLORS.accentLine}`,
+                                  borderRadius: 12,
                                   padding: "14px 16px",
                                   fontSize: 15,
                                   lineHeight: "22px",
+                                  color: COLORS.ink,
                                 }}
                               >
                                 {copy.openApp}
@@ -211,22 +197,38 @@ function BehyndmeEmail({
                       </td>
                     </tr>
                     <tr>
-                      <td
-                        className="bm-muted bm-pad"
-                        style={{
-                          padding: "24px 32px 0",
-                          fontFamily: SANS,
-                          fontSize: 13,
-                          lineHeight: "20px",
-                          color: LIGHT.muted,
-                        }}
-                      >
-                        <p style={{ margin: "0 0 8px" }}>
-                          {content.critical
-                            ? copy.why.critical
-                            : copy.why.regular}
-                        </p>
-                        <p style={{ margin: 0 }}>{copy.noLinks}</p>
+                      <td style={{ paddingTop: 24 }}>
+                        <table {...presentation} width="100%">
+                          <tbody>
+                            <tr>
+                              <td
+                                className="bm-pad"
+                                style={{
+                                  borderTop: `1px solid ${COLORS.border}`,
+                                  padding: "20px 8px 0",
+                                  fontFamily: SANS,
+                                  fontSize: 13,
+                                  lineHeight: "20px",
+                                }}
+                              >
+                                <p
+                                  style={{
+                                    margin: "0 0 8px",
+                                    color: COLORS.subtle,
+                                  }}
+                                >
+                                  {content.critical
+                                    ? copy.why.critical
+                                    : copy.why.regular}
+                                </p>
+                                {/* A security message: readable (#94A3B8, 6.8:1), not the footer's grey. */}
+                                <p style={{ margin: 0, color: COLORS.muted }}>
+                                  {copy.noLinks}
+                                </p>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
                       </td>
                     </tr>
                   </tbody>
@@ -252,8 +254,8 @@ function Brand({ logoSrc }: { logoSrc: string }) {
             */}
             <img
               src={logoSrc}
-              width={48}
-              height={48}
+              width={44}
+              height={44}
               alt=""
               fetchPriority="low"
               style={{ display: "block", border: 0, outline: "none" }}
@@ -263,10 +265,10 @@ function Brand({ logoSrc }: { logoSrc: string }) {
             style={{
               verticalAlign: "middle",
               fontFamily: SERIF,
-              fontSize: 26,
-              lineHeight: "32px",
+              fontSize: 24,
+              lineHeight: "30px",
               letterSpacing: "0.5px",
-              color: BAND.brass,
+              color: COLORS.accent,
             }}
           >
             BehyndMe
@@ -285,16 +287,14 @@ function Facts({ facts }: { facts: EmailFact[] }) {
         {facts.map((fact, i) => (
           <tr key={i}>
             <td
-              className="bm-rule"
               style={{
-                borderTop: `1px solid ${LIGHT.border}`,
+                borderTop: `1px solid ${COLORS.border}`,
                 borderBottom:
-                  i === facts.length - 1 ? `1px solid ${LIGHT.border}` : 0,
+                  i === facts.length - 1 ? `1px solid ${COLORS.border}` : 0,
                 padding: "10px 0",
               }}
             >
               <div
-                className="bm-muted"
                 style={{
                   fontFamily: SANS,
                   fontSize: 12,
@@ -302,19 +302,18 @@ function Facts({ facts }: { facts: EmailFact[] }) {
                   fontWeight: 600,
                   letterSpacing: "0.6px",
                   textTransform: "uppercase",
-                  color: LIGHT.muted,
+                  color: COLORS.muted,
                 }}
               >
                 {fact.label}
               </div>
               <div
-                className="bm-ink"
                 style={{
                   fontFamily: SANS,
                   fontSize: 16,
                   lineHeight: "24px",
                   fontWeight: 500,
-                  color: LIGHT.ink,
+                  color: COLORS.ink,
                 }}
               >
                 {fact.value}
@@ -333,10 +332,9 @@ function SecurityBadge({ label }: { label: string }) {
       <tbody>
         <tr>
           <td
-            className="bm-badge"
             style={{
-              backgroundColor: LIGHT.dangerSoft,
-              color: LIGHT.danger,
+              backgroundColor: COLORS.dangerSoft,
+              color: COLORS.danger,
               borderRadius: 999,
               padding: "4px 12px",
               fontFamily: SANS,

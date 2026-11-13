@@ -117,6 +117,29 @@ describe("renderEmail", () => {
     ).toContain("Can be cancelled until: Thursday");
   });
 
+  it("is dark only, in the app's Ardoise & Or colors", () => {
+    const html = renderEmail({ ...base, critical: true }).html;
+    expect(html).toContain('<meta name="color-scheme" content="dark"/>');
+    expect(html).not.toMatch(/prefers-color-scheme|light dark/);
+    // The slate background, the card and its border, the gold title.
+    expect(html).toContain("background-color:#131A24");
+    expect(html).toMatch(
+      /background-color:#1B2432;border:1px solid #2A3648;border-radius:16px/,
+    );
+    expect(html).toMatch(/<h1 style="[^"]*color:#E2C275/);
+    // None of the former light theme's colors is left.
+    expect(html).not.toMatch(/#FFFFFF|#EEF1F5|#121A2A|#23406B|#D9B36A/i);
+  });
+
+  it("writes what happened in white and the explanations in grey", () => {
+    const html = renderEmail({
+      ...base,
+      paragraphs: ["Fait.", "Explication."],
+    }).html;
+    expect(html).toMatch(/color:#F8FAFC">Fait\.</);
+    expect(html).toMatch(/color:#94A3B8">Explication\.</);
+  });
+
   it("shows the logo from a data URL in a preview", () => {
     expect(renderEmail(base, "data:image/png;base64,AAAA").html).toContain(
       'src="data:image/png;base64,AAAA"',
