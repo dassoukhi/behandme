@@ -20,7 +20,9 @@ export class ClerkIdentityProvider implements IdentityProvider {
       email_verified: primary?.verification?.status === "verified",
       first_name: user.firstName,
       last_name: user.lastName,
-      avatar_url: user.imageUrl || null,
+      // Clerk gives everyone an image, generated (colored initials) for those who set none: the app draws
+      // its own initials in gold instead.
+      avatar_url: user.hasImage ? user.imageUrl || null : null,
     };
   }
 
