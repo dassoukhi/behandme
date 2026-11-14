@@ -5,9 +5,10 @@ import {
   type EmailContent,
   type EmailFact,
 } from "../../domain/email.js";
-import { COLORS, SANS, SERIF } from "./theme.js";
+import { LOGO_SIZE } from "./logo.js";
+import { COLORS, GMAIL_GREYS, SANS, SERIF } from "./theme.js";
 
-// The BehyndMe e-mail, in the app's dark "Ardoise & Or" theme: the gold logo and name on the slate
+// The BehyndMe e-mail, in the app's dark "Ardoise & Or" theme: the gold logo and name (one image) on the slate
 // background, a card with the notification (greeting, its text, the key facts such as a deadline, and a
 // box that says to open the app: never a link), and the reasons for the e-mail under a fine rule. Tables and inline styles,
 // as e-mail clients ignore most modern CSS; React escapes every text it writes, so a name cannot inject
@@ -69,19 +70,28 @@ body { margin: 0; padding: 0; -webkit-text-size-adjust: 100%; }
 }
 `;
 
-// Gmail's app inverts the colors of every e-mail in dark mode, dark ones included, and no setting of the
-// sender's stops it. Two known counters, for Gmail only (`u + .body` matches the markup Gmail wraps the
-// body in; other clients ignore it):
-// - backgrounds painted as one-color gradients, which Gmail leaves alone (fill());
-// - every text inside two spans (Keep): Gmail turns their black background white and inverts the text;
-//   the `difference` with that white undoes the inversion, the `screen` lays the text back on the dark
-//   background. Out of dark mode the two blends leave the text as it is.
+// Gmail's app, in dark mode, recolors every e-mail, dark ones included: each color keeps its hue and gets the
+// opposite lightness. No setting of the sender's stops it. The counters, for Gmail only (`u + .body` matches
+// the markup Gmail wraps the body in; other clients ignore it):
+// - backgrounds, borders and rules are painted as one-color gradients, which Gmail leaves alone (fill(),
+//   Frame, Rule); the logo is an image, which it leaves alone too;
+// - every text sits inside two spans (Keep): Gmail turns their black background white, and the `difference`
+//   with that white inverts the text back; the `screen` lays it on the dark background. Out of dark mode the
+//   two blends leave the text as it is;
+// - that inversion gives a grey back, not a color (the gold would turn lavender): in Gmail, each text is the
+//   neutral grey as light as its color (GMAIL_GREYS).
 const GMAIL_CSS = `
 u + .body .gmail-screen { background: #000; mix-blend-mode: screen; }
 u + .body .gmail-difference { background: #000; mix-blend-mode: difference; }
+${Object.entries(GMAIL_GREYS)
+  .map(
+    ([grey, color]) =>
+      `u + .body .gmail-${grey} { color: ${color} !important; }`,
+  )
+  .join("\n")}
 `;
 
-/** A background Gmail's dark mode does not invert: the color, and the same color as a gradient. */
+/** A background Gmail's dark mode does not recolor: the color, and the same color as a gradient. */
 function fill(color: string): CSSProperties {
   return {
     backgroundColor: color,
@@ -89,11 +99,29 @@ function fill(color: string): CSSProperties {
   };
 }
 
-/** A text whose color Gmail's dark mode does not invert. */
-function Keep({ children }: { children: ReactNode }) {
+/** The colors a text can have, and the grey it takes in Gmail. */
+const TONES = {
+  accent: { color: COLORS.accent, gmail: "ink" },
+  ink: { color: COLORS.ink, gmail: "ink" },
+  muted: { color: COLORS.muted, gmail: "muted" },
+  subtle: { color: COLORS.subtle, gmail: "subtle" },
+  danger: { color: COLORS.danger, gmail: "ink" },
+} satisfies Record<string, { color: string; gmail: keyof typeof GMAIL_GREYS }>;
+
+/** A text in its color, which Gmail's dark mode does not recolor. */
+function Keep({
+  tone,
+  children,
+}: {
+  tone: keyof typeof TONES;
+  children: ReactNode;
+}) {
+  const { color, gmail } = TONES[tone];
   return (
     <span className="gmail-screen">
-      <span className="gmail-difference">{children}</span>
+      <span className={`gmail-difference gmail-${gmail}`} style={{ color }}>
+        {children}
+      </span>
     </span>
   );
 }
@@ -104,6 +132,82 @@ const presentation = {
   cellSpacing: 0,
   border: 0,
 } as const;
+
+/**
+ * A box with a 1 px border, the border drawn as a fill (a CSS border's color is recolored by Gmail): the
+ * border's color shows through the 1 px padding around the box. As wide as its container, or as its content
+ * with `fit`.
+ */
+function Frame({
+  line,
+  background,
+  radius,
+  padding,
+  fit = false,
+  className,
+  style,
+  children,
+}: {
+  line: string;
+  background: string;
+  radius: number;
+  padding: string;
+  fit?: boolean;
+  className?: string;
+  style?: CSSProperties;
+  children: ReactNode;
+}) {
+  const width = fit ? undefined : "100%";
+  return (
+    <table {...presentation} width={width} style={style}>
+      <tbody>
+        <tr>
+          <td style={{ ...fill(line), borderRadius: radius, padding: 1 }}>
+            <table {...presentation} width={width}>
+              <tbody>
+                <tr>
+                  <td
+                    className={className}
+                    style={{
+                      ...fill(background),
+                      borderRadius: radius - 1,
+                      padding,
+                    }}
+                  >
+                    {children}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  );
+}
+
+/** A 1 px hairline, drawn as a fill. */
+function Rule() {
+  return (
+    <table {...presentation} width="100%">
+      <tbody>
+        <tr>
+          <td
+            height={1}
+            style={{
+              ...fill(COLORS.border),
+              height: 1,
+              fontSize: 1,
+              lineHeight: "1px",
+            }}
+          >
+            {" "}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  );
+}
 
 function BehyndmeEmail({
   content,
@@ -147,111 +251,89 @@ function BehyndmeEmail({
                       </td>
                     </tr>
                     <tr>
-                      <td
-                        className="bm-pad"
-                        style={{
-                          ...fill(COLORS.surface),
-                          border: `1px solid ${COLORS.border}`,
-                          borderRadius: 16,
-                          padding: "32px",
-                        }}
-                      >
-                        {content.critical && (
-                          <SecurityBadge label={copy.securityAlert} />
-                        )}
-                        <h1
-                          style={{
-                            margin: "0 0 20px",
-                            fontFamily: SERIF,
-                            fontWeight: 400,
-                            fontSize: 26,
-                            lineHeight: "32px",
-                            color: COLORS.accent,
-                          }}
+                      <td>
+                        <Frame
+                          line={COLORS.border}
+                          background={COLORS.surface}
+                          radius={16}
+                          padding="32px"
+                          className="bm-pad"
                         >
-                          <Keep>{content.subject}</Keep>
-                        </h1>
-                        <p
-                          style={{
-                            ...text,
-                            margin: "0 0 16px",
-                            color: COLORS.ink,
-                          }}
-                        >
-                          <Keep>{copy.greeting(content.greetingName)}</Keep>
-                        </p>
-                        {content.paragraphs.map((paragraph, i) => (
-                          <p
-                            key={i}
+                          {content.critical && (
+                            <SecurityBadge label={copy.securityAlert} />
+                          )}
+                          <h1
                             style={{
-                              ...text,
-                              margin: "0 0 16px",
-                              // The first paragraph says what happened; the others explain.
-                              color: i === 0 ? COLORS.ink : COLORS.muted,
+                              margin: "0 0 20px",
+                              fontFamily: SERIF,
+                              fontWeight: 400,
+                              fontSize: 26,
+                              lineHeight: "32px",
                             }}
                           >
-                            <Keep>{paragraph}</Keep>
+                            <Keep tone="accent">{content.subject}</Keep>
+                          </h1>
+                          <p style={{ ...text, margin: "0 0 16px" }}>
+                            <Keep tone="ink">
+                              {copy.greeting(content.greetingName)}
+                            </Keep>
                           </p>
-                        ))}
-                        {content.facts.length > 0 && (
-                          <Facts facts={content.facts} />
-                        )}
-                        <table
-                          {...presentation}
-                          width="100%"
-                          style={{ marginTop: 8 }}
-                        >
-                          <tbody>
-                            <tr>
-                              <td
-                                style={{
-                                  ...text,
-                                  ...fill(COLORS.canvas),
-                                  border: `1px solid ${COLORS.accentLine}`,
-                                  borderRadius: 12,
-                                  padding: "14px 16px",
-                                  fontSize: 15,
-                                  lineHeight: "22px",
-                                  color: COLORS.ink,
-                                }}
-                              >
-                                <Keep>{copy.openApp}</Keep>
-                              </td>
-                            </tr>
-                          </tbody>
-                        </table>
+                          {content.paragraphs.map((paragraph, i) => (
+                            <p key={i} style={{ ...text, margin: "0 0 16px" }}>
+                              {/* The first paragraph says what happened; the others explain. */}
+                              <Keep tone={i === 0 ? "ink" : "muted"}>
+                                {paragraph}
+                              </Keep>
+                            </p>
+                          ))}
+                          {content.facts.length > 0 && (
+                            <Facts facts={content.facts} />
+                          )}
+                          <Frame
+                            line={COLORS.accentLine}
+                            background={COLORS.canvas}
+                            radius={12}
+                            padding="14px 16px"
+                            style={{ marginTop: 8 }}
+                          >
+                            <div
+                              style={{
+                                ...text,
+                                fontSize: 15,
+                                lineHeight: "22px",
+                              }}
+                            >
+                              <Keep tone="ink">{copy.openApp}</Keep>
+                            </div>
+                          </Frame>
+                        </Frame>
                       </td>
                     </tr>
                     <tr>
                       <td style={{ paddingTop: 24 }}>
+                        <Rule />
                         <table {...presentation} width="100%">
                           <tbody>
                             <tr>
                               <td
                                 className="bm-pad"
                                 style={{
-                                  borderTop: `1px solid ${COLORS.border}`,
                                   padding: "20px 8px 0",
                                   fontFamily: SANS,
                                   fontSize: 13,
                                   lineHeight: "20px",
                                 }}
                               >
-                                <p
-                                  style={{
-                                    margin: "0 0 8px",
-                                    color: COLORS.subtle,
-                                  }}
-                                >
-                                  <Keep>
+                                <p style={{ margin: "0 0 8px" }}>
+                                  <Keep tone="subtle">
                                     {content.critical
                                       ? copy.why.critical
                                       : copy.why.regular}
                                   </Keep>
                                 </p>
                                 {/* A security message: readable (#94A3B8, 6.8:1), not the footer's grey. */}
-                                <p style={{ margin: 0, color: COLORS.muted }}>
-                                  <Keep>{copy.noLinks}</Keep>
+                                <p style={{ margin: 0 }}>
+                                  <Keep tone="muted">{copy.noLinks}</Keep>
                                 </p>
                               </td>
                             </tr>
@@ -270,40 +352,30 @@ function BehyndmeEmail({
   );
 }
 
+/**
+ * The symbol and the name in gold, one image (Gmail's dark mode would recolor a gold text). With images off,
+ * the alternative text says BehyndMe in the title's style.
+ */
 function Brand({ logoSrc }: { logoSrc: string }) {
   return (
-    <table {...presentation}>
-      <tbody>
-        <tr>
-          <td style={{ verticalAlign: "middle", paddingRight: 12 }}>
-            {/*
-              Decorative: the name next to it says BehyndMe. fetchPriority "low" keeps React from adding a
-              <link rel="preload"> for it to the head (an e-mail holds no link).
-            */}
-            <img
-              src={logoSrc}
-              width={44}
-              height={44}
-              alt=""
-              fetchPriority="low"
-              style={{ display: "block", border: 0, outline: "none" }}
-            />
-          </td>
-          <td
-            style={{
-              verticalAlign: "middle",
-              fontFamily: SERIF,
-              fontSize: 24,
-              lineHeight: "30px",
-              letterSpacing: "0.5px",
-              color: COLORS.accent,
-            }}
-          >
-            <Keep>BehyndMe</Keep>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    // fetchPriority "low" keeps React from adding a <link rel="preload"> for it to the head (an e-mail holds
+    // no link).
+    <img
+      src={logoSrc}
+      width={LOGO_SIZE.width}
+      height={LOGO_SIZE.height}
+      alt="BehyndMe"
+      fetchPriority="low"
+      style={{
+        display: "block",
+        border: 0,
+        outline: "none",
+        fontFamily: SERIF,
+        fontSize: 24,
+        lineHeight: "30px",
+        color: COLORS.accent,
+      }}
+    />
   );
 }
 
@@ -313,58 +385,30 @@ function Facts({ facts }: { facts: EmailFact[] }) {
     <table {...presentation} width="100%" style={{ margin: "8px 0 16px" }}>
       <tbody>
         {facts.map((fact, i) => (
-          <tr key={i}>
-            <td
-              style={{
-                borderTop: `1px solid ${COLORS.border}`,
-                borderBottom:
-                  i === facts.length - 1 ? `1px solid ${COLORS.border}` : 0,
-                padding: "10px 0",
-              }}
-            >
-              <div
-                style={{
-                  fontFamily: SANS,
-                  fontSize: 12,
-                  lineHeight: "18px",
-                  fontWeight: 600,
-                  letterSpacing: "0.6px",
-                  textTransform: "uppercase",
-                  color: COLORS.muted,
-                }}
-              >
-                <Keep>{fact.label}</Keep>
-              </div>
-              <div
-                style={{
-                  fontFamily: SANS,
-                  fontSize: 16,
-                  lineHeight: "24px",
-                  fontWeight: 500,
-                  color: COLORS.ink,
-                }}
-              >
-                <Keep>{fact.value}</Keep>
-              </div>
-            </td>
-          </tr>
+          <FactRow key={i} fact={fact} />
         ))}
+        <tr>
+          <td>
+            <Rule />
+          </td>
+        </tr>
       </tbody>
     </table>
   );
 }
 
-function SecurityBadge({ label }: { label: string }) {
+function FactRow({ fact }: { fact: EmailFact }) {
   return (
-    <table {...presentation} style={{ marginBottom: 16 }}>
-      <tbody>
-        <tr>
-          <td
+    <>
+      <tr>
+        <td>
+          <Rule />
+        </td>
+      </tr>
+      <tr>
+        <td style={{ padding: "10px 0" }}>
+          <div
             style={{
-              ...fill(COLORS.dangerSoft),
-              color: COLORS.danger,
-              borderRadius: 999,
-              padding: "4px 12px",
               fontFamily: SANS,
               fontSize: 12,
               lineHeight: "18px",
@@ -373,10 +417,50 @@ function SecurityBadge({ label }: { label: string }) {
               textTransform: "uppercase",
             }}
           >
-            <Keep>{label}</Keep>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+            <Keep tone="muted">{fact.label}</Keep>
+          </div>
+          <div
+            style={{
+              fontFamily: SANS,
+              fontSize: 16,
+              lineHeight: "24px",
+              fontWeight: 500,
+            }}
+          >
+            <Keep tone="ink">{fact.value}</Keep>
+          </div>
+        </td>
+      </tr>
+    </>
+  );
+}
+
+/**
+ * The badge of a critical alert: the label in red on soft red, as the app's danger pill, with a red border that
+ * Gmail keeps when it turns the label grey.
+ */
+function SecurityBadge({ label }: { label: string }) {
+  return (
+    <Frame
+      line={COLORS.dangerLine}
+      background={COLORS.dangerSoft}
+      radius={999}
+      padding="4px 12px"
+      fit
+      style={{ marginBottom: 16 }}
+    >
+      <div
+        style={{
+          fontFamily: SANS,
+          fontSize: 12,
+          lineHeight: "18px",
+          fontWeight: 600,
+          letterSpacing: "0.6px",
+          textTransform: "uppercase",
+        }}
+      >
+        <Keep tone="danger">{label}</Keep>
+      </div>
+    </Frame>
   );
 }

@@ -8,6 +8,7 @@ import {
 import { render } from "../../domain/notification.js";
 import * as templates from "../../domain/templates.js";
 import { renderEmail } from "./BehyndmeEmail.js";
+import { LOGO_SIZE } from "./logo.js";
 import { OCCURRED_AT, PEOPLE, SAMPLE } from "../../testing/email-samples.js";
 
 // Every notification's e-mail, in both languages: what each one must and must not hold.
@@ -121,12 +122,15 @@ describe("renderEmail", () => {
     const html = renderEmail({ ...base, critical: true }).html;
     expect(html).toContain('<meta name="color-scheme" content="dark"/>');
     expect(html).not.toMatch(/prefers-color-scheme|light dark/);
-    // The slate background, the card and its border, the gold title.
+    // The slate background, the card inside its border, the gold title.
     expect(html).toContain("background-color:#131A24");
-    expect(html).toMatch(
-      /background-color:#1B2432;background-image:linear-gradient\(#1B2432, #1B2432\);border:1px solid #2A3648;border-radius:16px/,
+    expect(html).toContain(
+      `<td style="${fill("#2A3648")};border-radius:16px;padding:1px">`,
     );
-    expect(html).toMatch(/<h1 style="[^"]*color:#E2C275/);
+    expect(html).toContain(
+      `<td class="bm-pad" style="${fill("#1B2432")};border-radius:15px;padding:32px">`,
+    );
+    expect(html).toMatch(/<h1 style="[^"]*">[^]*?style="color:#E2C275">Sujet</);
     // None of the former light theme's colors is left.
     expect(html).not.toMatch(/#FFFFFF|#EEF1F5|#121A2A|#23406B|#D9B36A/i);
   });
@@ -136,16 +140,23 @@ describe("renderEmail", () => {
       ...base,
       paragraphs: ["Fait.", "Explication."],
     }).html;
-    const kept = (text: string) =>
-      `<span class="gmail-screen"><span class="gmail-difference">${text}</span></span>`;
-    expect(html).toContain(`color:#F8FAFC">${kept("Fait.")}`);
-    expect(html).toContain(`color:#94A3B8">${kept("Explication.")}`);
+    expect(html).toContain(kept("ink", "#F8FAFC", "Fait."));
+    expect(html).toContain(kept("muted", "#94A3B8", "Explication."));
   });
 
-  it("keeps its dark design in Gmail's dark mode, which inverts every e-mail", () => {
+  it("shows the gold logo and name as one image, which says BehyndMe when images are off", () => {
+    const html = renderEmail(base).html;
+    expect(html).toContain(
+      `<img src="cid:logo" width="${LOGO_SIZE.width}" height="${LOGO_SIZE.height}" alt="BehyndMe"`,
+    );
+    expect(html).not.toContain(">BehyndMe<");
+  });
+
+  it("keeps its dark design in Gmail's dark mode, which recolors every e-mail", () => {
     const email = renderEmail({
       ...base,
       critical: true,
+      paragraphs: ["Fait.", "Explication."],
       facts: [{ label: "Contrat", value: "Réseaux sociaux" }],
     });
     const html = email.html;
@@ -157,29 +168,68 @@ describe("renderEmail", () => {
     expect(html).toContain(
       "u + .body .gmail-difference { background: #000; mix-blend-mode: difference; }",
     );
-    // Every background it paints is also a one-color gradient, which Gmail leaves alone.
-    for (const color of ["#131A24", "#1B2432", "#342834"]) {
-      expect(html).toContain(
-        `background-color:${color};background-image:linear-gradient(${color}, ${color})`,
-      );
-    }
-    // Every text sits in the two spans: the name, the subject, the greeting, the badge, the facts, the box
-    // and the footer.
-    const copy = EMAIL_COPY.fr;
-    for (const text of [
-      "BehyndMe",
-      "Sujet",
-      "Bonjour,",
-      copy.securityAlert,
-      "Contrat",
-      "Réseaux sociaux",
-      copy.openApp,
-      copy.why.critical,
-      copy.noLinks,
+    // Every background, border and rule it paints is also a one-color gradient, which Gmail leaves alone:
+    // the page, the card and its border, the badge and its border, the box and its gold border, the
+    // hairlines. No CSS border is left for Gmail to recolor.
+    for (const color of [
+      "#131A24",
+      "#1B2432",
+      "#2A3648",
+      "#342834",
+      "#652F38",
+      "#756B50",
     ]) {
-      expect(html).toContain(
-        `<span class="gmail-difference">${escapeHtml(text)}</span>`,
-      );
+      expect(html).toContain(fill(color));
+    }
+    expect(html).not.toMatch(/border(-top|-bottom)?:\s*\d+px/);
+    // Every text sits in the two spans, in its color, with the grey Gmail shows instead: the subject, the
+    // greeting, the badge, the paragraphs, the facts, the box and the footer.
+    const copy = EMAIL_COPY.fr;
+    for (const [grey, color, text] of [
+      ["ink", "#E2C275", "Sujet"],
+      ["ink", "#F8FAFC", "Bonjour,"],
+      ["ink", "#FCA5A5", copy.securityAlert],
+      ["ink", "#F8FAFC", "Fait."],
+      ["muted", "#94A3B8", "Explication."],
+      ["muted", "#94A3B8", "Contrat"],
+      ["ink", "#F8FAFC", "Réseaux sociaux"],
+      ["ink", "#F8FAFC", copy.openApp],
+      ["subtle", "#64748B", copy.why.critical],
+      ["muted", "#94A3B8", copy.noLinks],
+    ] as const) {
+      expect(html).toContain(kept(grey, color, escapeHtml(text)));
+    }
+    // A text colored anywhere else would be recolored (the logo's color only styles its alternative text).
+    const colored = [...html.matchAll(/<(\w+)[^>]*style="(?:[^"]*;)?color:#/g)];
+    expect(colored.map((m) => m[1]).sort()).toEqual(
+      [...Array(10).fill("span"), "img"].sort(),
+    );
+  });
+
+  it("gives every text, in Gmail, a neutral grey as light as its color", () => {
+    const html = renderEmail({ ...base, critical: true }).html;
+    const greys = Object.fromEntries(
+      [
+        ...html.matchAll(
+          /u \+ \.body \.gmail-(\w+) \{ color: (#[0-9A-F]{6}) !important; \}/g,
+        ),
+      ].map((m) => [m[1], m[2]]),
+    );
+    expect(Object.keys(greys).sort()).toEqual(["ink", "muted", "subtle"]);
+    for (const [grey, color] of Object.entries(greys)) {
+      // Neutral: Gmail's counter turns any hue into its opposite, but leaves a grey a grey.
+      expect(
+        new Set([color.slice(1, 3), color.slice(3, 5), color.slice(5)]).size,
+      ).toBe(1);
+      // As light as the color it stands for (CIELAB lightness, within 1).
+      const stands = { ink: "#F8FAFC", muted: "#94A3B8", subtle: "#64748B" }[
+        grey
+      ]!;
+      expect(Math.abs(lightness(color) - lightness(stands))).toBeLessThan(1);
+    }
+    // Every text's grey has its rule.
+    for (const m of html.matchAll(/class="gmail-difference gmail-(\w+)"/g)) {
+      expect(greys[m[1]]).toBeDefined();
     }
   });
 
@@ -189,6 +239,26 @@ describe("renderEmail", () => {
     );
   });
 });
+
+/** A background as the e-mail paints it: the color, and the same color as a gradient Gmail leaves alone. */
+function fill(color: string): string {
+  return `background-color:${color};background-image:linear-gradient(${color}, ${color})`;
+}
+
+/** A text in the two spans that undo Gmail's dark mode, in its color and with its Gmail grey. */
+function kept(grey: string, color: string, text: string): string {
+  return `<span class="gmail-screen"><span class="gmail-difference gmail-${grey}" style="color:${color}">${text}</span></span>`;
+}
+
+/** CIELAB lightness (L*) of a #RRGGBB color. */
+function lightness(hex: string): number {
+  const linear = (i: number) => {
+    const c = parseInt(hex.slice(i, i + 2), 16) / 255;
+    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  };
+  const y = 0.2126 * linear(1) + 0.7152 * linear(3) + 0.0722 * linear(5);
+  return y > 0.008856 ? 116 * Math.cbrt(y) - 16 : 903.3 * y;
+}
 
 /** As React writes text into HTML. */
 function escapeHtml(text: string): string {
