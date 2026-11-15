@@ -71,7 +71,7 @@ delivery order are in `docs/architecture.md`.
   exception. Any other error is a 500 whose message stays in the logs ("Internal server error" to the client).
 - `users/` is layered (domain: visibility and trust rules; application: `ProfileService`, `TrustService`,
   their ports and a unit of work; infrastructure: Kysely repositories on `public.users`/`public.trusted` as
-  `svc_gateway`, Clerk; interface: controller and DTOs) and is the model for new modules. Writes that other
+  `svc_gateway`, Clerk; interface: controller and DTOs; invitations in `InvitationService`) and is the model for new modules. Writes that other
   services must hear about go through `USERS_UNIT_OF_WORK`: the change and its event (`core.outbox`) commit
   together. Application specs run on in-memory ports (`users/testing/`), adapters on PGlite.
 - `notifications/` relays the caller's requests to the notifier (`NotifierClient` port, `HttpNotifierClient`).
@@ -112,6 +112,12 @@ must:
   distinctness by handover); a contract's audit log is append-only and readable by its participants; profiles expose
   email/phone only to yourself and to users who trust you (`apps/gateway/src/users/domain/profile.ts`);
   a profile's email comes from Clerk, never from the client; a trust link is removed by its owner only;
+  there is no search of the user base: people are added by an invitation link (`core.invitations`, used once,
+  within 7 days, by someone other than its inviter, who then trusts them; listed and cancelled by the inviter only)
+  or a contact code shown in person (`core.contact_codes`, 10 minutes: whoever holds it reads its owner's profile and
+  public keys, and may add them); `POST /users/me/trusteds` adds only someone who trusts the caller or whose valid
+  contact code the caller sends; both keep only the SHA-256 of their token (`secretTokenHash`), tokens travel in
+  request bodies only (URLs are logged), and each lookup route is rate-limited;
   an account is deleted by its owner only, after a Clerk reverification (docs/architecture.md, "Account deletion");
   a user's public keys are readable by them, the people they trust and the people who trust them, and replaced
   only by them after a Clerk reverification (`POST /users/me/keys/reset`), usable by others after a quarantine;

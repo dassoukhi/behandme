@@ -11,6 +11,7 @@ import {
   contactKeysReset,
   contractReleasedForAccessor,
   contractRevoked,
+  invitationAccepted,
   keyCheckup,
   keysBackupOpened,
   keysReset,
@@ -43,6 +44,31 @@ export class NotificationEvents {
           userId: event.trustedId,
           ownerId: event.ownerId,
           ownerName: event.ownerName,
+        }),
+      ],
+      occurredAt,
+    );
+  }
+
+  /** Tell the inviter who accepted, and whether they trust the inviter back. */
+  async invitationAccepted(
+    store: NotifierStore,
+    event: {
+      inviterId: string;
+      inviteeId: string;
+      inviteeName: string | null;
+      trustedBack: boolean;
+    },
+    occurredAt?: string,
+  ): Promise<void> {
+    await this.notifier.notify(
+      store,
+      [
+        invitationAccepted({
+          userId: event.inviterId,
+          inviteeId: event.inviteeId,
+          inviteeName: event.inviteeName,
+          trustedBack: event.trustedBack,
         }),
       ],
       occurredAt,

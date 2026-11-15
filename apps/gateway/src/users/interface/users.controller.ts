@@ -6,17 +6,14 @@ import {
   Patch,
   Param,
   Delete,
-  Query,
   Res,
 } from "@nestjs/common";
 import type { Response } from "express";
-import { Throttle } from "@nestjs/throttler";
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
-  ApiQuery,
 } from "@nestjs/swagger";
 import { ProfileService } from "../application/profile.service.js";
 import { TrustService } from "../application/trust.service.js";
@@ -29,7 +26,6 @@ import {
   CurrentVerificationAge,
 } from "../../auth/current-user.decorator.js";
 import { reverified } from "../../auth/reverified.js";
-import { RATE_LIMIT } from "../../common/throttle/user-throttler.guard.js";
 
 @ApiTags("users")
 @ApiBearerAuth()
@@ -40,7 +36,7 @@ export class UsersController {
     private readonly trust: TrustService,
   ) {}
 
-  // Static routes (me, search) must be declared before ":id".
+  // Static routes (me…) must be declared before ":id".
 
   @Post("me")
   @ApiOperation({
@@ -120,15 +116,26 @@ export class UsersController {
   }
 
   @Post("me/trusteds")
-  @ApiOperation({ summary: "Trust a user" })
+  @ApiOperation({
+    summary:
+      "Trust a user who already trusts the caller, or whose contact code the caller scanned (contact_code). Anyone else: an invitation.",
+  })
   @ApiResponse({ status: 201, type: TrustedLinkDto })
-  @ApiResponse({ status: 404, description: "User not found" })
+  @ApiResponse({
+    status: 404,
+    description:
+      "User not found, or neither trusting the caller nor shown by a valid contact code",
+  })
   @ApiResponse({ status: 409, description: "User is already trusted" })
   addTrusted(
     @CurrentUserId() me: string,
     @Body() addTrustedDto: AddTrustedDto,
   ): Promise<TrustedLinkDto> {
-    return this.trust.add(me, addTrustedDto.trusted_id);
+    return this.trust.add(
+      me,
+      addTrustedDto.trusted_id,
+      addTrustedDto.contact_code,
+    );
   }
 
   @Delete("me/trusteds/:trustedId")
@@ -150,25 +157,6 @@ export class UsersController {
   @ApiResponse({ status: 200, type: [UserProfileDto] })
   getTrustedBy(@CurrentUserId() me: string): Promise<UserProfileDto[]> {
     return this.trust.listTrustedBy(me);
-  }
-
-  // Tighter: a search by exact email tells whether someone has an account.
-  @Throttle({
-    default: { limit: RATE_LIMIT.searchPerMinute, ttl: RATE_LIMIT.windowMs },
-  })
-  @Get("search")
-  @ApiOperation({
-    summary:
-      "Search users by first/last name (partial) or email (exact), excluding the caller and users they already trust",
-  })
-  @ApiQuery({ name: "q", required: true, description: "Search query" })
-  @ApiResponse({ status: 200, type: [UserProfileDto] })
-  @ApiResponse({ status: 429, description: "Too many searches in a minute" })
-  searchUsers(
-    @CurrentUserId() me: string,
-    @Query("q") query: string,
-  ): Promise<UserProfileDto[]> {
-    return this.profiles.search(me, query);
   }
 
   @Get(":id")

@@ -5,6 +5,7 @@ import { UsersModule } from "../users/users.module.js";
 import { KeyBackupService } from "./application/key-backup.service.js";
 import { KeyCareService } from "./application/key-care.service.js";
 import { KeyTransferService } from "./application/key-transfer.service.js";
+import { ScannedContactService } from "./application/scanned-contact.service.js";
 import { KEYS_CLOCK, KeysService } from "./application/keys.service.js";
 import {
   KEY_BACKUP_REPOSITORY,
@@ -22,17 +23,19 @@ import { KyselyKeyRepository } from "./infrastructure/kysely-key.repository.js";
 import { KyselyKeysUnitOfWork } from "./infrastructure/kysely-keys.unit-of-work.js";
 import { nodeKeyCryptography } from "./infrastructure/node-key-cryptography.js";
 import { UsersKeyHolderDirectory } from "./infrastructure/users-key-holder-directory.js";
+import { ContactCodesController } from "./interface/contact-codes.controller.js";
 import { KeyTransfersController } from "./interface/key-transfers.controller.js";
 import { KeysController } from "./interface/keys.controller.js";
 
 @Module({
   imports: [UsersModule],
-  controllers: [KeysController, KeyTransfersController],
+  controllers: [KeysController, KeyTransfersController, ContactCodesController],
   providers: [
     KeysService,
     KeyCareService,
     KeyTransferService,
     KeyBackupService,
+    ScannedContactService,
     { provide: KEY_REPOSITORY, useClass: KyselyKeyRepository },
     { provide: KEY_TRANSFER_REPOSITORY, useClass: KyselyKeyTransferRepository },
     { provide: KEY_BACKUP_REPOSITORY, useClass: KyselyKeyBackupRepository },

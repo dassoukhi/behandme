@@ -1227,7 +1227,7 @@
             }
           },
           "404": {
-            "description": "User not found"
+            "description": "User not found, or neither trusting the caller nor shown by a valid contact code"
           },
           "409": {
             "description": "User is already trusted"
@@ -1238,7 +1238,7 @@
             "bearer": []
           }
         ],
-        "summary": "Trust a user",
+        "summary": "Trust a user who already trusts the caller, or whose contact code the caller scanned (contact_code). Anyone else: an invitation.",
         "tags": [
           "users"
         ]
@@ -1306,49 +1306,6 @@
         ]
       }
     },
-    "/api/v1/users/search": {
-      "get": {
-        "operationId": "UsersController_searchUsers",
-        "parameters": [
-          {
-            "name": "q",
-            "required": true,
-            "in": "query",
-            "description": "Search query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/UserProfileDto"
-                  }
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too many searches in a minute"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Search users by first/last name (partial) or email (exact), excluding the caller and users they already trust",
-        "tags": [
-          "users"
-        ]
-      }
-    },
     "/api/v1/users/{id}": {
       "get": {
         "operationId": "UsersController_findOne",
@@ -1383,6 +1340,185 @@
           }
         ],
         "summary": "Get a user profile (contact details only if they trust you)",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/api/v1/users/me/invitations": {
+      "post": {
+        "operationId": "InvitationsController_create",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedInvitationDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "20 invitations already pending"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create an invitation link of the caller: used once, within 7 days, by someone else, who then enters the caller's trusted contacts",
+        "tags": [
+          "users"
+        ]
+      },
+      "get": {
+        "operationId": "InvitationsController_pending",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InvitationDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The caller's invitations nobody has accepted yet, newest first",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/api/v1/users/me/invitations/{id}": {
+      "delete": {
+        "operationId": "InvitationsController_cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Its link no longer works"
+          },
+          "404": {
+            "description": "No such pending invitation of the caller"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cancel one of the caller's pending invitations",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/api/v1/invitations/lookup": {
+      "post": {
+        "operationId": "InvitationsController_preview",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvitationTokenDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationPreviewDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown, used, cancelled or expired"
+          },
+          "429": {
+            "description": "Too many lookups in a minute"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Who sent the invitation link the caller holds (the token in the body: URLs are logged)",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/api/v1/invitations/accept": {
+      "post": {
+        "operationId": "InvitationsController_accept",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcceptInvitationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcceptedInvitationDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The caller's own invitation"
+          },
+          "404": {
+            "description": "Unknown, used, cancelled or expired"
+          },
+          "429": {
+            "description": "Too many lookups in a minute"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Accept an invitation: the inviter now trusts the caller (and the caller the inviter, with trust_back). The inviter is told.",
         "tags": [
           "users"
         ]
@@ -1941,6 +2077,79 @@
           }
         ],
         "summary": "The new phone takes the keys the old one sent; the transfer is then gone and the user alerted",
+        "tags": [
+          "keys"
+        ]
+      }
+    },
+    "/api/v1/users/me/contact-code": {
+      "put": {
+        "operationId": "ContactCodesController_create",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactCodeDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The caller has no keys yet"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A contact code for the caller to show in person, valid 10 minutes; replaces the previous one",
+        "tags": [
+          "keys"
+        ]
+      }
+    },
+    "/api/v1/contact-codes/lookup": {
+      "post": {
+        "operationId": "ContactCodesController_resolve",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContactCodeTokenDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResolvedContactCodeDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown or expired"
+          },
+          "429": {
+            "description": "Too many lookups in a minute"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Whose contact code the caller scanned: their profile and public keys (the token in the body: URLs are logged)",
         "tags": [
           "keys"
         ]
@@ -3190,6 +3399,11 @@
             "type": "string",
             "description": "Clerk ID of the user to trust. The owner is the caller.",
             "example": "user_2abc123def456"
+          },
+          "contact_code": {
+            "type": "string",
+            "description": "The token of their contact code, scanned in person. Needed unless they already trust the caller.",
+            "example": "q3V1Zk9n0xg2l6m8b4Jr7Yp5tHc1aW9sE0dQ2uK8vXy"
           }
         },
         "required": [
@@ -3222,6 +3436,133 @@
           "owner_id",
           "trusted_id",
           "created_at"
+        ]
+      },
+      "CreatedInvitationDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "4bce1a03-3fa5-4d39-8c7e-7f3b7e3468a5"
+          },
+          "created_at": {
+            "type": "string",
+            "example": "2026-11-15T10:00:00.000Z"
+          },
+          "expires_at": {
+            "type": "string",
+            "description": "Past this date the link no longer works (7 days)",
+            "example": "2026-11-22T10:00:00.000Z"
+          },
+          "token": {
+            "type": "string",
+            "description": "Secret of the link https://behyndme.com/i#<token> (in the fragment, which browsers never send), sent by the inviter's own phone. Returned once: the server keeps its hash only.",
+            "example": "q3V1Zk9n0xg2l6m8b4Jr7Yp5tHc1aW9sE0dQ2uK8vXy"
+          }
+        },
+        "required": [
+          "id",
+          "created_at",
+          "expires_at",
+          "token"
+        ]
+      },
+      "InvitationDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "4bce1a03-3fa5-4d39-8c7e-7f3b7e3468a5"
+          },
+          "created_at": {
+            "type": "string",
+            "example": "2026-11-15T10:00:00.000Z"
+          },
+          "expires_at": {
+            "type": "string",
+            "description": "Past this date the link no longer works (7 days)",
+            "example": "2026-11-22T10:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "created_at",
+          "expires_at"
+        ]
+      },
+      "InvitationTokenDto": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "The token of the invitation link (its fragment)",
+            "example": "q3V1Zk9n0xg2l6m8b4Jr7Yp5tHc1aW9sE0dQ2uK8vXy"
+          }
+        },
+        "required": [
+          "token"
+        ]
+      },
+      "InvitationPreviewDto": {
+        "type": "object",
+        "properties": {
+          "inviter": {
+            "description": "The inviter, with their contact details only if they already trust the caller",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserProfileDto"
+              }
+            ]
+          },
+          "expires_at": {
+            "type": "string",
+            "example": "2026-11-22T10:00:00.000Z"
+          },
+          "own": {
+            "type": "boolean",
+            "description": "The caller is the inviter: they opened their own link"
+          }
+        },
+        "required": [
+          "inviter",
+          "expires_at",
+          "own"
+        ]
+      },
+      "AcceptInvitationDto": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "The token of the invitation link (its fragment)",
+            "example": "q3V1Zk9n0xg2l6m8b4Jr7Yp5tHc1aW9sE0dQ2uK8vXy"
+          },
+          "trust_back": {
+            "type": "boolean",
+            "description": "Also trust the inviter, who then sees the caller's contact details"
+          }
+        },
+        "required": [
+          "token",
+          "trust_back"
+        ]
+      },
+      "AcceptedInvitationDto": {
+        "type": "object",
+        "properties": {
+          "inviter_id": {
+            "type": "string",
+            "description": "The inviter, who now trusts the caller",
+            "example": "user_2abc123def456"
+          },
+          "trusted_back": {
+            "type": "boolean",
+            "description": "The caller trusts the inviter too, newly (trust_back) or from before"
+          }
+        },
+        "required": [
+          "inviter_id",
+          "trusted_back"
         ]
       },
       "PasskeyBackupDto": {
@@ -3610,6 +3951,68 @@
         "required": [
           "key_version",
           "wrap"
+        ]
+      },
+      "ContactCodeDto": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Secret of the QR code behyndme-contact/v1/<token>/<fingerprint>. Returned once: the server keeps its hash only.",
+            "example": "q3V1Zk9n0xg2l6m8b4Jr7Yp5tHc1aW9sE0dQ2uK8vXy"
+          },
+          "expires_at": {
+            "type": "string",
+            "description": "Past this date the code no longer resolves (10 minutes)",
+            "example": "2026-11-15T10:10:00.000Z"
+          }
+        },
+        "required": [
+          "token",
+          "expires_at"
+        ]
+      },
+      "ContactCodeTokenDto": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "The token read from the QR code",
+            "example": "q3V1Zk9n0xg2l6m8b4Jr7Yp5tHc1aW9sE0dQ2uK8vXy"
+          }
+        },
+        "required": [
+          "token"
+        ]
+      },
+      "ResolvedContactCodeDto": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "description": "The code's owner, with their contact details only if they already trust the caller",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserProfileDto"
+              }
+            ]
+          },
+          "keys": {
+            "description": "The keys the server holds for them: the app compares their fingerprint with the code's",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PublicKeysDto"
+              }
+            ]
+          },
+          "own": {
+            "type": "boolean",
+            "description": "The caller scanned their own code"
+          }
+        },
+        "required": [
+          "user",
+          "keys",
+          "own"
         ]
       }
     }

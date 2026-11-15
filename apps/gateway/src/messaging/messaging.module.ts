@@ -15,6 +15,9 @@ import { DATABASE, MessagingRuntime } from "@lib/platform";
 import { KeyCareService } from "../keys/application/key-care.service.js";
 import { KyselyKeysUnitOfWork } from "../keys/infrastructure/kysely-keys.unit-of-work.js";
 import { KeysModule } from "../keys/keys.module.js";
+import { invitationsKeptAfter } from "../users/domain/invitation.js";
+import { KyselyUsersUnitOfWork } from "../users/infrastructure/kysely-users.unit-of-work.js";
+import { UsersModule } from "../users/users.module.js";
 
 /** Relays core.outbox to the other services and handles the events sent to the gateway's queue. */
 @Injectable()
@@ -27,6 +30,7 @@ class GatewayMessaging implements OnApplicationBootstrap, OnModuleDestroy {
     private readonly config: ConfigService,
     keyCare: KeyCareService,
     keysUnitOfWork: KyselyKeysUnitOfWork,
+    usersUnitOfWork: KyselyUsersUnitOfWork,
   ) {
     this.runtime = new MessagingRuntime({
       db,
@@ -40,12 +44,18 @@ class GatewayMessaging implements OnApplicationBootstrap, OnModuleDestroy {
             "core",
             systemClock.now(),
           );
+          const now = systemClock.now();
           // Transfers nobody took: their wraps go too.
           const transfers = await keysUnitOfWork
             .bind(tx as Kysely<any>)
-            .transfers.deleteExpired(systemClock.now());
+            .transfers.deleteExpired(now);
+          const users = usersUnitOfWork.bind(tx as Kysely<any>);
+          const codes = await users.contactCodes.deleteExpired(now);
+          const invitations = await users.invitations.deleteExpiredBefore(
+            invitationsKeptAfter(now),
+          );
           this.logger.log(
-            `Retention: ${purged.outbox} outbox rows, ${purged.processed} processed ids, ${transfers} expired key transfers deleted`,
+            `Retention: ${purged.outbox} outbox rows, ${purged.processed} processed ids, ${transfers} expired key transfers, ${codes} contact codes, ${invitations} invitations deleted`,
           );
         }),
         on(KeyCareDue, async (_payload, _event, tx) => {
@@ -67,5 +77,5 @@ class GatewayMessaging implements OnApplicationBootstrap, OnModuleDestroy {
   }
 }
 
-@Module({ imports: [KeysModule], providers: [GatewayMessaging] })
+@Module({ imports: [KeysModule, UsersModule], providers: [GatewayMessaging] })
 export class MessagingModule {}

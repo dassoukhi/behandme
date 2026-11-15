@@ -56,26 +56,14 @@ export class KyselyProfileRepository implements ProfileRepository {
     return result.numDeletedRows > 0n;
   }
 
-  async search(term: string, limit: number): Promise<Profile[]> {
-    // Bound parameters, LIKE wildcards escaped: the term is matched literally.
-    const literal = escapeLike(term);
-    const byColumn = (
-      column: "first_name" | "last_name" | "email",
-      pattern: string,
-    ) =>
-      this.db
-        .selectFrom("users")
-        .selectAll()
-        .where(column, "ilike", pattern)
-        .orderBy("id")
-        .limit(limit)
-        .execute();
-    const results = await Promise.all([
-      byColumn("first_name", `%${literal}%`),
-      byColumn("last_name", `%${literal}%`),
-      byColumn("email", literal),
-    ]);
-    return results.flat().map(toProfile);
+  async lock(id: string): Promise<boolean> {
+    const row = await this.db
+      .selectFrom("users")
+      .select("id")
+      .where("id", "=", id)
+      .forUpdate()
+      .executeTakeFirst();
+    return row !== undefined;
   }
 }
 
@@ -85,9 +73,4 @@ export function toProfile(row: Selectable<UsersTable>): Profile {
     created_at: row.created_at.toISOString(),
     updated_at: row.updated_at.toISOString(),
   };
-}
-
-/** Escapes LIKE wildcards (backslash is Postgres's default escape character). */
-function escapeLike(value: string): string {
-  return value.replace(/[\\%_]/g, (c) => `\\${c}`);
 }

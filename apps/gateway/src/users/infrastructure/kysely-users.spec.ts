@@ -1,6 +1,7 @@
 import { type Kysely, sql } from "kysely";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { startTestDatabase, type TestDatabase } from "@lib/testing";
+import { KyselyInvitationRepository } from "./kysely-invitation.repository.js";
 import { KyselyProfileRepository } from "./kysely-profile.repository.js";
 import { KyselyTrustRepository } from "./kysely-trust.repository.js";
 import { KyselyUsersUnitOfWork } from "./kysely-users.unit-of-work.js";
@@ -15,6 +16,7 @@ afterAll(() => t?.close());
 
 beforeEach(async () => {
   await sql`
+    delete from core.invitations;
     delete from public.trusted; delete from public.users;
     delete from core.outbox;
     insert into public.users (id, email, first_name, last_name) values
@@ -27,26 +29,103 @@ beforeEach(async () => {
 const asGateway = <T>(work: (db: Kysely<any>) => Promise<T>) =>
   t.asRole("svc_gateway", work);
 
-describe("profile search", () => {
-  const ids = (term: string) =>
-    asGateway(async (db) =>
-      (await new KyselyProfileRepository(db).search(term, 20)).map((p) => p.id),
+const DAY = 24 * 60 * 60_000;
+
+describe("invitations", () => {
+  const repo = (db: Kysely<any>) => new KyselyInvitationRepository(db);
+  const now = new Date("2026-11-15T10:00:00.000Z");
+  const later = (ms: number) => new Date(now.getTime() + ms);
+  const hash = (n: number) => new Uint8Array(32).fill(n);
+  const invite = (n: number, expiresAt = later(DAY)) =>
+    asGateway((db) =>
+      repo(db).create({ inviterId: "u1", tokenHash: hash(n), expiresAt }),
     );
 
-  it("matches names partially, whatever the case", async () => {
-    expect(await ids("ALI")).toEqual(["u1"]);
+  it("finds an invitation by the hash of its token only", async () => {
+    const created = await invite(1);
+    const found = await asGateway((db) => repo(db).findByToken(hash(1)));
+    expect(found).toEqual(created);
+    expect(found).toMatchObject({
+      inviterId: "u1",
+      acceptedBy: null,
+      acceptedAt: null,
+      cancelledAt: null,
+    });
+    expect(await asGateway((db) => repo(db).findByToken(hash(2)))).toBeNull();
   });
 
-  it("matches an email only when given in full, so addresses cannot be harvested", async () => {
-    expect(await ids("alice.martin@")).toEqual([]);
-    expect(await ids("@example.com")).toEqual([]);
-    expect(await ids("Alice.Martin@Example.com")).toEqual(["u1"]);
+  it("is accepted once, and no longer pending then", async () => {
+    const { id } = await invite(1);
+    expect(await asGateway((db) => repo(db).accept(id, "u2", now))).toBe(true);
+    expect(await asGateway((db) => repo(db).accept(id, "u3", now))).toBe(false);
+    expect(
+      await asGateway((db) => repo(db).findByToken(hash(1))),
+    ).toMatchObject({ acceptedBy: "u2", acceptedAt: now });
+    expect(await asGateway((db) => repo(db).pending("u1", now))).toEqual([]);
   });
 
-  it("treats % and _ in the query as plain characters", async () => {
-    expect(await ids("%")).toEqual(["u3"]);
-    expect(await ids("_")).toEqual(["u3"]);
-    expect(await ids("b_b@example.com")).toEqual([]);
+  it("is cancelled by its inviter only, and then cannot be accepted", async () => {
+    const { id } = await invite(1);
+    expect(await asGateway((db) => repo(db).cancel("u2", id, now))).toBe(false);
+    expect(await asGateway((db) => repo(db).cancel("u1", id, now))).toBe(true);
+    expect(await asGateway((db) => repo(db).accept(id, "u2", now))).toBe(false);
+  });
+
+  it("lists the pending ones newest first, leaving out the expired", async () => {
+    const old = await invite(1);
+    await sql`update core.invitations set created_at = created_at - interval '1 hour' where id = ${old.id}`.execute(
+      t.db,
+    );
+    const recent = await invite(2);
+    await invite(3, later(-1));
+    expect(
+      (await asGateway((db) => repo(db).pending("u1", now))).map((i) => i.id),
+    ).toEqual([recent.id, old.id]);
+    expect(
+      await asGateway((db) => repo(db).accept(old.id, "u2", later(2 * DAY))),
+    ).toBe(false);
+  });
+
+  it("goes with the inviter's account, and forgets a deleted invitee", async () => {
+    const { id } = await invite(1);
+    await asGateway((db) => repo(db).accept(id, "u2", now));
+    await sql`delete from public.users where id = 'u2'`.execute(t.db);
+    expect(
+      await asGateway((db) => repo(db).findByToken(hash(1))),
+    ).toMatchObject({ acceptedBy: null });
+    await sql`delete from public.users where id = 'u1'`.execute(t.db);
+    expect(await asGateway((db) => repo(db).findByToken(hash(1)))).toBeNull();
+  });
+
+  it("deletes those that expired before a date, whatever their state", async () => {
+    await invite(1, later(-2 * DAY));
+    const { id } = await invite(2, later(-2 * DAY));
+    await asGateway((db) => repo(db).cancel("u1", id, later(-3 * DAY)));
+    await invite(3, later(DAY));
+    expect(
+      await asGateway((db) => repo(db).deleteExpiredBefore(later(-DAY))),
+    ).toBe(2);
+    expect(
+      await asGateway((db) => repo(db).findByToken(hash(3))),
+    ).not.toBeNull();
+  });
+
+  it("routes invitation.accepted to the notifier, which tells the inviter", async () => {
+    const { rows } = await sql<{
+      queue: string;
+    }>`select queue from messaging.subscriptions where event_type = 'invitation.accepted'`.execute(
+      t.db,
+    );
+    expect(rows).toEqual([{ queue: "notifier" }]);
+  });
+
+  // The lock itself needs two connections, which PGlite does not have: this checks the query runs in a transaction.
+  it("reads the invitation to accept with a row lock inside a transaction", async () => {
+    await invite(1);
+    const found = await asGateway((db) =>
+      db.transaction().execute((tx) => repo(tx).findByTokenForUpdate(hash(1))),
+    );
+    expect(found?.inviterId).toBe("u1");
   });
 });
 

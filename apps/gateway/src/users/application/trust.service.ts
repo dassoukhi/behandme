@@ -1,14 +1,23 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { TrustAdded } from "@lib/contracts";
-import { ConflictError, NotFoundError } from "@lib/kernel";
+import {
+  type Clock,
+  ConflictError,
+  isSecretToken,
+  NotFoundError,
+  secretTokenHash,
+  systemClock,
+} from "@lib/kernel";
 import { type Profile, visibleTo } from "../domain/profile.js";
 import {
   assertCanTrust,
   displayName,
   type TrustLink,
 } from "../domain/trust.js";
+import { validOwner } from "./contact-code.service.js";
 import {
   TRUST_REPOSITORY,
+  USERS_CLOCK,
   USERS_UNIT_OF_WORK,
   type TrustRepository,
   type UsersUnitOfWork,
@@ -19,35 +28,59 @@ export class TrustService {
   constructor(
     @Inject(TRUST_REPOSITORY) private readonly trust: TrustRepository,
     @Inject(USERS_UNIT_OF_WORK) private readonly unitOfWork: UsersUnitOfWork,
+    @Inject(USERS_CLOCK) private readonly clock: Clock = systemClock,
   ) {}
 
-  /** `me` trusts `trustedId`, who is told about it (event trust.added). */
-  async add(me: string, trustedId: string): Promise<TrustLink> {
+  /**
+   * `me` trusts `trustedId`, who is told about it (event trust.added). There is no search of the user base: only
+   * someone who already trusts `me` (added back), or whose contact code `me` scanned in person (`contactCode`, still
+   * valid), may be added this way; anyone else through an invitation they accept (InvitationService).
+   */
+  async add(
+    me: string,
+    trustedId: string,
+    contactCode?: string,
+  ): Promise<TrustLink> {
     assertCanTrust(me, trustedId);
-    return this.unitOfWork.run(async ({ profiles, trust, events }) => {
-      const [owner, trusted] = await Promise.all([
-        profiles.find(me),
-        profiles.find(trustedId),
-      ]);
-      if (!trusted) {
-        throw new NotFoundError(`User with ID ${trustedId} not found`);
-      }
-      if (!owner) {
-        throw new NotFoundError("Profile not found");
-      }
-      const link = await trust.add(me, trustedId);
-      if (!link) {
-        throw new ConflictError("User is already trusted");
-      }
-      await events.publish(
-        TrustAdded.create({
-          ownerId: me,
-          trustedId,
-          ownerName: displayName(owner),
-        }),
-      );
-      return link;
-    });
+    const now = this.clock.now();
+    return this.unitOfWork.run(
+      async ({ profiles, trust, contactCodes, events }) => {
+        const [owner, trusted] = await Promise.all([
+          profiles.find(me),
+          profiles.find(trustedId),
+        ]);
+        if (!trusted) {
+          throw new NotFoundError(`User with ID ${trustedId} not found`);
+        }
+        if (!owner) {
+          throw new NotFoundError("Profile not found");
+        }
+        const addedBack = (await trust.trusters(me, [trustedId])).length > 0;
+        const shownInPerson =
+          isSecretToken(contactCode) &&
+          validOwner(
+            await contactCodes.findByToken(secretTokenHash(contactCode)),
+            now,
+          ) === trustedId;
+        if (!addedBack && !shownInPerson) {
+          throw new NotFoundError(
+            "Scan their contact code, or send them an invitation",
+          );
+        }
+        const link = await trust.add(me, trustedId);
+        if (!link) {
+          throw new ConflictError("User is already trusted");
+        }
+        await events.publish(
+          TrustAdded.create({
+            ownerId: me,
+            trustedId,
+            ownerName: displayName(owner),
+          }),
+        );
+        return link;
+      },
+    );
   }
 
   /** `me` stops trusting `trustedId`. */

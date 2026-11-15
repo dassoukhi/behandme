@@ -1,4 +1,6 @@
 import type { NewEvent } from "@lib/messaging";
+import type { ContactCode } from "../domain/contact-code.js";
+import type { Invitation } from "../domain/invitation.js";
 import type { Profile } from "../domain/profile.js";
 import type { TrustLink } from "../domain/trust.js";
 
@@ -40,12 +42,8 @@ export interface ProfileRepository {
   update(id: string, fields: ProfileFields): Promise<Profile | null>;
   /** False when there was no such profile. */
   delete(id: string): Promise<boolean>;
-  /**
-   * Profiles whose first or last name contains `term`, then those whose email equals it (case
-   * ignored), at most `limit` of each kind, in that order. A fragment never matches an email, so
-   * addresses cannot be harvested.
-   */
-  search(term: string, limit: number): Promise<Profile[]>;
+  /** Locks the profile's row until the transaction ends (false when there is none): one change at a time. */
+  lock(id: string): Promise<boolean>;
 }
 export const PROFILE_REPOSITORY = Symbol("ProfileRepository");
 
@@ -65,6 +63,39 @@ export interface TrustRepository {
 }
 export const TRUST_REPOSITORY = Symbol("TrustRepository");
 
+/** core.invitations. Tokens are looked up by their hash only (`secretTokenHash`). */
+export interface InvitationRepository {
+  create(invitation: {
+    inviterId: string;
+    tokenHash: Uint8Array;
+    expiresAt: Date;
+  }): Promise<Invitation>;
+  /** The invitation whose token hashes to `tokenHash`, in any state. */
+  findByToken(tokenHash: Uint8Array): Promise<Invitation | null>;
+  /** The same, locked until the transaction ends: two acceptances of one link cannot both pass. */
+  findByTokenForUpdate(tokenHash: Uint8Array): Promise<Invitation | null>;
+  /** `inviterId`'s invitations still pending at `now`, newest first. */
+  pending(inviterId: string, now: Date): Promise<Invitation[]>;
+  /** How many of them. */
+  countPending(inviterId: string, now: Date): Promise<number>;
+  /** False when `inviterId` has no pending invitation `id`. */
+  cancel(inviterId: string, id: string, now: Date): Promise<boolean>;
+  /** Marks a pending invitation used by `inviteeId`; false when it no longer is pending. */
+  accept(id: string, inviteeId: string, now: Date): Promise<boolean>;
+  /** Deletes the invitations that expired before `before`, whatever their state; returns how many. */
+  deleteExpiredBefore(before: Date): Promise<number>;
+}
+export const INVITATION_REPOSITORY = Symbol("InvitationRepository");
+
+/** core.contact_codes: one per user. Tokens are looked up by their hash only (`secretTokenHash`). */
+export interface ContactCodeRepository {
+  /** The user's only code: replaces the one they had. */
+  replace(code: ContactCode & { tokenHash: Uint8Array }): Promise<void>;
+  findByToken(tokenHash: Uint8Array): Promise<ContactCode | null>;
+  deleteExpired(now: Date): Promise<number>;
+}
+export const CONTACT_CODE_REPOSITORY = Symbol("ContactCodeRepository");
+
 /** Events for the other services, published only if the transaction commits. */
 export interface EventPublisher {
   publish(event: NewEvent): Promise<void>;
@@ -74,6 +105,8 @@ export interface EventPublisher {
 export interface UsersTransaction {
   profiles: ProfileRepository;
   trust: TrustRepository;
+  invitations: InvitationRepository;
+  contactCodes: ContactCodeRepository;
   events: EventPublisher;
 }
 
@@ -82,3 +115,5 @@ export interface UsersUnitOfWork {
   run<T>(work: (tx: UsersTransaction) => Promise<T>): Promise<T>;
 }
 export const USERS_UNIT_OF_WORK = Symbol("UsersUnitOfWork");
+
+export const USERS_CLOCK = Symbol("UsersClock");

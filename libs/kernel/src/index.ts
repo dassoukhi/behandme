@@ -8,4 +8,10 @@ export {
   UnprocessableError,
 } from "./errors.js";
 export { newId } from "./ids.js";
+export {
+  isSecretToken,
+  newSecretToken,
+  SECRET_TOKEN_PATTERN,
+  secretTokenHash,
+} from "./secret-token.js";
 export type { Logger } from "./logger.js";

@@ -34,7 +34,7 @@ class FakeClerkStrategy extends PassportStrategy(Strategy, "clerk") {
 let t: TestDatabase;
 let app: INestApplication;
 let base: string;
-let RATE_LIMIT: { perMinute: number; searchPerMinute: number };
+let RATE_LIMIT: { perMinute: number; lookupPerMinute: number };
 
 beforeAll(async () => {
   t = await startTestDatabase();
@@ -61,23 +61,29 @@ afterAll(async () => {
   await t?.close();
 });
 
-const search = (as: string) =>
-  fetch(`${base}/api/v1/users/search?q=nina`, {
-    headers: { authorization: `Bearer ${as}` },
+// A well-formed token nobody holds: each lookup answers 404, and counts.
+const lookup = (as: string) =>
+  fetch(`${base}/api/v1/invitations/lookup`, {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${as}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ token: "a".repeat(43) }),
   });
 
 describe("rate limit", () => {
-  it("stops one person's searches after the limit, in French, and not someone else's", async () => {
-    for (let i = 0; i < RATE_LIMIT.searchPerMinute; i++) {
-      expect((await search("user_alice")).status).toBe(200);
+  it("stops one person's token lookups after the limit, in French, and not someone else's", async () => {
+    for (let i = 0; i < RATE_LIMIT.lookupPerMinute; i++) {
+      expect((await lookup("user_alice")).status).toBe(404);
     }
-    const refused = await search("user_alice");
+    const refused = await lookup("user_alice");
     expect(refused.status).toBe(429);
     expect(await refused.json()).toMatchObject({
       message: "Trop de requêtes : réessayez dans une minute.",
     });
     expect(refused.headers.get("retry-after")).toBeTruthy();
-    expect((await search("user_bob")).status).toBe(200);
+    expect((await lookup("user_bob")).status).toBe(404);
   });
 
   it("never limits the host's health check", async () => {

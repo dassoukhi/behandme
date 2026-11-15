@@ -11,6 +11,7 @@ export {
   ContractReleased,
   ContractRevoked,
   ContractSealed,
+  InvitationAccepted,
   KeyCareDue,
   KeyCareReminder,
   KeysBackupOpened,

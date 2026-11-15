@@ -18,6 +18,7 @@ import { ContractsFacade } from "../contracts/application/contracts.facade.js";
 import { KeyBackupService } from "../keys/application/key-backup.service.js";
 import { KeyCareService } from "../keys/application/key-care.service.js";
 import { KeyTransferService } from "../keys/application/key-transfer.service.js";
+import { ScannedContactService } from "../keys/application/scanned-contact.service.js";
 import { KeysService } from "../keys/application/keys.service.js";
 import { KEY_QUARANTINE_MS } from "../keys/domain/keys.js";
 import { KyselyKeyBackupRepository } from "../keys/infrastructure/kysely-key-backup.repository.js";
@@ -28,9 +29,13 @@ import { UsersKeyHolderDirectory } from "../keys/infrastructure/users-key-holder
 import { nodeKeyCryptography } from "../keys/infrastructure/node-key-cryptography.js";
 import { keyPair } from "../keys/testing/key-pair.js";
 import { InMemoryHandover } from "../handover/testing/in-memory-handover.js";
+import { ContactCodeService } from "../users/application/contact-code.service.js";
+import { InvitationService } from "../users/application/invitation.service.js";
 import type { IdentityProfile } from "../users/application/ports.js";
 import { ProfileService } from "../users/application/profile.service.js";
 import { TrustService } from "../users/application/trust.service.js";
+import { KyselyContactCodeRepository } from "../users/infrastructure/kysely-contact-code.repository.js";
+import { KyselyInvitationRepository } from "../users/infrastructure/kysely-invitation.repository.js";
 import { KyselyProfileRepository } from "../users/infrastructure/kysely-profile.repository.js";
 import { KyselyTrustRepository } from "../users/infrastructure/kysely-trust.repository.js";
 import { KyselyUsersUnitOfWork } from "../users/infrastructure/kysely-users.unit-of-work.js";
@@ -390,9 +395,22 @@ describe("users: profile visibility", () => {
 
 describe("trust links: only the caller's own", () => {
   it("only trusts on behalf of the caller, and tells the person added", async () => {
+    // The owner trusts the stranger first: the stranger may add them back.
+    await trusts(OWNER, STRANGER);
     const link = await trust.add(STRANGER, OWNER);
     expect(link.owner_id).toBe(STRANGER);
     expect(await outboxTypes()).toEqual(["trust.added"]);
+  });
+
+  it("adds no one without a proof: they trust the caller, or showed them a valid contact code", async () => {
+    // VALIDATOR trusts no one: neither the owner nor a stranger may add them on their id alone.
+    await expect(trust.add(STRANGER, VALIDATOR)).rejects.toThrow(NotFoundError);
+    const code = await new ContactCodeService(
+      new KyselyContactCodeRepository(pg),
+      new FakeClock(new Date()),
+    ).issue(VALIDATOR);
+    await trust.add(STRANGER, VALIDATOR, code.token);
+    expect(await trust.trustedIds(STRANGER)).toEqual(new Set([VALIDATOR]));
   });
 
   it("removes the caller's own link only (404 for someone else's)", async () => {
@@ -468,6 +486,73 @@ describe("key transfers: the account's own only", () => {
       await expect(transfers.take(other, id)).rejects.toThrow(NotFoundError);
     }
     expect(await transfers.take(OWNER, id)).toMatchObject({ key_version: 1 });
+  });
+});
+
+describe("invitations: the inviter's own, used once by someone else", () => {
+  const invitations = () =>
+    new InvitationService(
+      new KyselyInvitationRepository(pg),
+      users,
+      new KyselyUsersUnitOfWork(pg),
+      new FakeClock(new Date()),
+    );
+
+  it("lets only the inviter list or cancel their invitations", async () => {
+    const service = invitations();
+    const { invitation } = await service.create(OWNER);
+    for (const other of [ACCESSOR, VALIDATOR, STRANGER]) {
+      expect(await service.pending(other)).toEqual([]);
+      await expect(service.cancel(other, invitation.id)).rejects.toThrow(
+        NotFoundError,
+      );
+    }
+    expect((await service.pending(OWNER)).map((i) => i.id)).toEqual([
+      invitation.id,
+    ]);
+  });
+
+  it("links the inviter to whoever accepts, and the caller to no one but the inviter", async () => {
+    const service = invitations();
+    const { token } = await service.create(VALIDATOR);
+    await service.accept(STRANGER, token, true);
+    expect(await trust.trustedIds(VALIDATOR)).toEqual(new Set([STRANGER]));
+    expect(await trust.trustedIds(STRANGER)).toEqual(new Set([VALIDATOR]));
+    expect(await outboxTypes()).toEqual(["invitation.accepted"]);
+    await expect(service.accept(ACCESSOR, token, true)).rejects.toThrow(
+      NotFoundError,
+    );
+  });
+
+  it("shows the holder of a link the inviter without their contact details", async () => {
+    const service = invitations();
+    const { token } = await service.create(VALIDATOR);
+    const { inviter } = await service.preview(STRANGER, token);
+    expect(inviter.id).toBe(VALIDATOR);
+    expect(inviter).not.toHaveProperty("email");
+    expect(inviter).not.toHaveProperty("phone_number");
+  });
+});
+
+describe("contact codes: their owner's profile and keys, to whoever holds the code", () => {
+  it("resolves only a code the owner made, without their contact details", async () => {
+    await withKeys(VALIDATOR);
+    const codes = new ScannedContactService(
+      new ContactCodeService(
+        new KyselyContactCodeRepository(pg),
+        new FakeClock(new Date()),
+      ),
+      new KyselyKeyRepository(pg),
+      users,
+    );
+    await expect(codes.issue(STRANGER)).rejects.toThrow(NotFoundError);
+    const { token } = await codes.issue(VALIDATOR);
+    const resolved = await codes.resolve(STRANGER, token);
+    expect(resolved.user.id).toBe(VALIDATOR);
+    expect(resolved.user).not.toHaveProperty("email");
+    expect(resolved.keys.userId).toBe(VALIDATOR);
+    // Resolving links no one: the scanner adds the owner afterwards, if they choose to.
+    expect(await trust.trustedIds(STRANGER)).toEqual(new Set());
   });
 });
 

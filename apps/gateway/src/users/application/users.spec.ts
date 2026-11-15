@@ -6,23 +6,30 @@ import {
   NotFoundError,
   UnprocessableError,
 } from "@lib/kernel";
+import { FakeClock } from "@lib/testing";
+import { CONTACT_CODE_TTL_MS } from "../domain/contact-code.js";
 import { InMemoryUsers } from "../testing/in-memory-ports.js";
+import { ContactCodeService } from "./contact-code.service.js";
 import { ProfileService } from "./profile.service.js";
 import { TrustService } from "./trust.service.js";
 
 let store: InMemoryUsers;
 let profiles: ProfileService;
 let trust: TrustService;
+let clock: FakeClock;
+let codes: ContactCodeService;
 
 beforeEach(() => {
   store = new InMemoryUsers();
-  trust = new TrustService(store, store);
+  clock = new FakeClock();
+  trust = new TrustService(store, store, clock);
   profiles = new ProfileService(store, store, trust, store);
+  codes = new ContactCodeService(store.contactCodes, clock);
 });
 
 describe("TrustService", () => {
-  it("records that the caller trusts someone, and tells them", async () => {
-    store.person("me", "Sam").person("bob");
+  it("records that the caller trusts someone who trusts them, and tells them", async () => {
+    store.person("me", "Sam").person("bob").trusts("bob", "me");
     store.profiles.get("me")!.last_name = "Durand";
     const link = await trust.add("me", "bob");
     expect(link).toMatchObject({ owner_id: "me", trusted_id: "bob" });
@@ -36,7 +43,7 @@ describe("TrustService", () => {
   });
 
   it("names nobody in the event when the caller has no name", async () => {
-    store.person("me").person("bob");
+    store.person("me").person("bob").trusts("bob", "me");
     Object.assign(store.profiles.get("me")!, {
       first_name: null,
       last_name: "  ",
@@ -46,7 +53,7 @@ describe("TrustService", () => {
   });
 
   it("refuses to trust oneself, an unknown user, or someone already trusted", async () => {
-    store.person("me").person("bob").trusts("me", "bob");
+    store.person("me").person("bob").trusts("me", "bob").trusts("bob", "me");
     await expect(trust.add("me", "me")).rejects.toThrow(InvalidInputError);
     await expect(trust.add("me", "ghost")).rejects.toThrow(
       new NotFoundError("User with ID ghost not found"),
@@ -55,6 +62,34 @@ describe("TrustService", () => {
       new ConflictError("User is already trusted"),
     );
     expect(store.published).toEqual([]);
+  });
+
+  it("refuses someone who neither trusts the caller nor showed them their contact code", async () => {
+    store.person("me").person("bob").person("eve");
+    await expect(trust.add("me", "bob")).rejects.toThrow(
+      new NotFoundError("Scan their contact code, or send them an invitation"),
+    );
+    // Eve's code is no proof for Bob, nor a token that is not one of ours.
+    const { token } = await codes.issue("eve");
+    await expect(trust.add("me", "bob", token)).rejects.toThrow(NotFoundError);
+    await expect(trust.add("me", "bob", "not-a-token")).rejects.toThrow(
+      NotFoundError,
+    );
+    expect(store.links).toEqual([]);
+    expect(store.published).toEqual([]);
+  });
+
+  it("adds someone whose contact code the caller scanned, while it is valid", async () => {
+    store.person("me").person("bob").person("eve");
+    const { token } = await codes.issue("bob");
+    await trust.add("me", "bob", token);
+    expect(await trust.trustedIds("me")).toEqual(new Set(["bob"]));
+
+    const eve = await codes.issue("eve");
+    clock.advance(CONTACT_CODE_TTL_MS);
+    await expect(trust.add("me", "eve", eve.token)).rejects.toThrow(
+      NotFoundError,
+    );
   });
 
   it("stops trusting someone, and says when there was no link", async () => {
@@ -208,45 +243,5 @@ describe("ProfileService", () => {
     await profiles.removeMe("me", FRESH);
     expect(store.published).toEqual([]);
     expect(store.deletedUsers).toEqual(["me"]);
-  });
-
-  describe("search", () => {
-    it("refuses an empty query", async () => {
-      await expect(profiles.search("me", "  ")).rejects.toThrow(
-        new InvalidInputError("Search query cannot be empty"),
-      );
-    });
-
-    it("leaves out the caller and the users they already trust, sorted by first name", async () => {
-      store
-        .person("me", "Martin")
-        .person("u1", "Marc")
-        .person("u2", "Mar")
-        .person("u3", "Maria")
-        .trusts("me", "u3");
-
-      const found = await profiles.search("me", "mar");
-
-      expect(found.map((p) => p.id)).toEqual(["u2", "u1"]);
-    });
-
-    it("lists a user matched several ways once, and applies the visibility rule", async () => {
-      store.person("me").person("bob", "Test");
-
-      const found = await profiles.search("me", "test");
-
-      expect(found.map((p) => p.id)).toEqual(["bob"]);
-      expect(found[0]).not.toHaveProperty("email");
-    });
-
-    it("returns at most 20 users, even when first and last names each give 15", async () => {
-      store.person("me");
-      for (let i = 0; i < 15; i++) store.person(`first${i}`, `Sam${i}`);
-      for (let i = 0; i < 15; i++) {
-        store.person(`last${i}`, `Zoe${i}`);
-        store.profiles.get(`last${i}`)!.last_name = "Samson";
-      }
-      expect(await profiles.search("me", "sam")).toHaveLength(20);
-    });
   });
 });

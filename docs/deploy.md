@@ -109,7 +109,7 @@ install every day, and a kernel update needs a reboot now and then (`sudo reboot
 4. The app: `EXPO_PUBLIC_API_URL=https://<gateway domain>/api/v1`.
 
 The gateway counts requests per signed-in user (else per client address, read from the proxy's
-`X-Forwarded-For`): 120 a minute, 30 for the user search, then 429 with a `Retry-After` header. Counts are
+`X-Forwarded-For`): 120 a minute, 30 on each route that looks up an invitation or a contact code, then 429 with a `Retry-After` header. Counts are
 kept per instance, in memory. `/health` is never limited, and `/api/docs` is off in production unless
 `SWAGGER_ENABLED=true`.
 

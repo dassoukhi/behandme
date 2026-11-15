@@ -2,11 +2,19 @@ import { type ExecutionContext, Injectable } from "@nestjs/common";
 import { ThrottlerGuard } from "@nestjs/throttler";
 import { isOpenRoute } from "@lib/platform";
 
-/** Requests per minute for one person on any route, and on the user search (who uses the app). */
+/** Requests per minute for one person on any route, and on each route that looks up a secret token. */
 export const RATE_LIMIT = {
   perMinute: 120,
-  searchPerMinute: 30,
+  lookupPerMinute: 30,
   windowMs: 60_000,
+};
+
+/**
+ * For `@Throttle` on a route that looks up a secret token (an invitation, a contact code): it tells nothing without
+ * the token, which cannot be guessed; the limit, counted per route, keeps it that way.
+ */
+export const LOOKUP_THROTTLE = {
+  default: { limit: RATE_LIMIT.lookupPerMinute, ttl: RATE_LIMIT.windowMs },
 };
 
 /**

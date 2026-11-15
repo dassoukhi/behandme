@@ -19,6 +19,22 @@ export const TrustAdded = defineEvent(
 );
 
 /**
+ * Gateway: `inviteeId` accepted an invitation of `inviterId`, who now trusts them; `trustedBack` when the invitee
+ * also chose to trust the inviter.
+ */
+export const InvitationAccepted = defineEvent(
+  "invitation.accepted",
+  1,
+  z.object({
+    inviterId: userId,
+    inviteeId: userId,
+    /** How the invitee is shown to the inviter; null when they have no name. */
+    inviteeName: z.string().min(1).nullable(),
+    trustedBack: z.boolean(),
+  }),
+);
+
+/**
  * Gateway: `userId` replaced their end-to-end keys (lost or compromised). Others may encrypt to the new
  * keys from `usableFrom`, after a quarantine that leaves time to react if it was not them.
  */

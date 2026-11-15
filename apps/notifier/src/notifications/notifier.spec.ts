@@ -22,6 +22,7 @@ import {
   KeysTransferred,
   ParticipantLeft,
   TrustAdded,
+  InvitationAccepted,
   UserDeleted,
   UserProfileChanged,
 } from "@lib/contracts";
@@ -95,6 +96,9 @@ async function receive(...envelopes: ReturnType<typeof createEnvelope>[]) {
     handlers: Object.fromEntries([
       on(TrustAdded, (payload, e, tx) =>
         events.trustAdded(stores.bind(tx), payload, e.occurredAt),
+      ),
+      on(InvitationAccepted, (payload, e, tx) =>
+        events.invitationAccepted(stores.bind(tx), payload, e.occurredAt),
       ),
       on(KeysRotated, (payload, e, tx) =>
         events.keysRotated(stores.bind(tx), payload, e.occurredAt),
@@ -195,6 +199,30 @@ async function emailRows() {
   );
   return rows;
 }
+
+describe("invitation.accepted", () => {
+  it("tells the inviter, and only them, who accepted", async () => {
+    const accepted = createEnvelope(
+      InvitationAccepted.create({
+        inviterId: ALICE,
+        inviteeId: BOB,
+        inviteeName: "Bob Durand",
+        trustedBack: true,
+      }),
+      { correlationId: "c" },
+      clock,
+    );
+    expect(await receive(accepted)).toMatchObject({ handled: 1 });
+    const [notification] = await inbox.list(ALICE);
+    expect(notification).toMatchObject({
+      type: "invitation_accepted",
+      title: "Invitation acceptée",
+      body: "Bob Durand a accepté votre invitation et vous a ajouté à ses proches.",
+      data: { url: `/people/${BOB}` },
+    });
+    expect(await inbox.list(BOB)).toEqual([]);
+  });
+});
 
 describe("trust.added", () => {
   it("puts a notification in the inbox and a push per device of the person added", async () => {

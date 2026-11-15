@@ -7,7 +7,7 @@ import {
   retryDelayMs,
 } from "./push.js";
 import * as templates from "./templates.js";
-import { trustAdded } from "./templates.js";
+import { invitationAccepted, trustAdded } from "./templates.js";
 
 describe("trust_added", () => {
   it("names the person who added you and opens their profile", () => {
@@ -37,6 +37,40 @@ describe("trust_added", () => {
   });
 });
 
+describe("invitation_accepted", () => {
+  it("tells the inviter who accepted, and opens their profile", () => {
+    const draft = invitationAccepted({
+      userId: "user_marie",
+      inviteeId: "user_bruno",
+      inviteeName: "Bruno Martin",
+      trustedBack: false,
+    });
+    expect(render(draft, "fr")).toEqual({
+      userId: "user_marie",
+      type: "invitation_accepted",
+      title: "Invitation acceptée",
+      body: "Bruno Martin a accepté votre invitation : cette personne fait partie de vos proches.",
+      data: { url: "/people/user_bruno" },
+      critical: false,
+    });
+  });
+
+  it("says when the invitee trusts the inviter back", () => {
+    const draft = invitationAccepted({
+      userId: "a",
+      inviteeId: "b",
+      inviteeName: null,
+      trustedBack: true,
+    });
+    expect(render(draft, "fr").body).toBe(
+      "Quelqu'un a accepté votre invitation et vous a ajouté à ses proches.",
+    );
+    expect(render(draft, "en").body).toBe(
+      "Someone accepted your invitation and added you as a trusted contact.",
+    );
+  });
+});
+
 describe("copy", () => {
   const ids = {
     userId: "u",
@@ -44,6 +78,9 @@ describe("copy", () => {
     validatorId: "v",
     accessorId: "a",
     trusterId: "t",
+    inviteeId: "i",
+    inviteeName: null,
+    trustedBack: false,
     contractId: "c",
     ownerName: null,
     userName: null,

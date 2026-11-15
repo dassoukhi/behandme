@@ -24,6 +24,7 @@ import {
   PushReceiptsDue,
   RetentionDue,
   TrustAdded,
+  InvitationAccepted,
   UserDeleted,
   UserProfileChanged,
 } from "@lib/contracts";
@@ -75,6 +76,9 @@ export class NotifierMessaging
       handlers: Object.fromEntries([
         on(TrustAdded, (payload, event, tx) =>
           events.trustAdded(stores.bind(tx), payload, event.occurredAt),
+        ),
+        on(InvitationAccepted, (payload, event, tx) =>
+          events.invitationAccepted(stores.bind(tx), payload, event.occurredAt),
         ),
         on(KeysRotated, (payload, event, tx) =>
           events.keysRotated(stores.bind(tx), payload, event.occurredAt),

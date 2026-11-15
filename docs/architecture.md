@@ -13,7 +13,7 @@ One NestJS app per service in `apps/`, each deployed separately. The mobile app 
 
 | Service    | Responsibility                                                                                                                                       | Owns (Postgres schema)                                                          | Exposes                                                         |
 | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| `gateway`  | Clerk authentication, access control, response composition, public OpenAPI (`openapi.json`). Identity domain: profiles, trust links, public E2E keys | `core`: users, trusted, user_keys (+ history)                                   | Public REST API `/api/v1/*`                                     |
+| `gateway`  | Clerk authentication, access control, response composition, public OpenAPI (`openapi.json`). Identity domain: profiles, trust links, public E2E keys | `core`: users, trusted, user_keys (+ history), invitations, contact_codes       | Public REST API `/api/v1/*`                                     |
 | `handover` | Whole contract life cycle: draft, sealing (encrypted vault), claims, votes, deadlines, release, revocation; hash-chained audit log                   | `handover`: contracts, envelopes, key_wraps, claims, decisions, contract_events | Internal API (commands and queries from the gateway) and events |
 | `notifier` | In-app notifications, Expo push and e-mail (Resend), preferences, push tokens, deliveries and their receipts                                         | `notify`: notifications, push_tokens, preferences, deliveries, people, email_deliveries | Internal API (inbox, devices, settings) and event consumers     |
 | `worker`   | Schedules recurring jobs (push receipts, claims catch-up, audit-log verification, retention, key care)                                               | `ops`: job_runs                                                                 | Nothing public; driven by pg_cron ticks and its queue           |
@@ -61,7 +61,8 @@ shared through `libs/contracts` (e.g. `notifier-api.ts`); the gateway keeps its 
   validators a sealing names: someone counts on them, keep your keys; not to the accessor, whose keys can be
   replaced up to the claim, since validators re-wrap their shares to the accessor's current keys),
   `keys.transferred` (to the user: their keys were copied to a new phone), `keys.backup_opened` (to the user:
-  a phone took their passkey backup).
+  a phone took their passkey backup), `invitation.accepted` (to the inviter: who accepted, and whether they trust
+  the inviter back).
 - **Correlation.** The gateway gives each request a correlation id (`x-correlation-id`, kept from the caller
   when valid); it travels in internal calls and in every event's envelope, consumers run with it, and every
   log line carries it (`ServiceLogger`, JSON in production).
@@ -218,6 +219,25 @@ Face ID, deposits the seed wrapped to it (HPKE in PSK mode with the QR secret: t
 wrap nor forge one). The new phone takes it once (`POST …/take`): the row is deleted in the transaction that
 publishes `keys.transferred`, a critical alert to the user. A transfer lasts 5 minutes and the daily retention
 deletes those left behind. The server checks sizes and key versions only. A transfer is not a phrase check.
+
+**Adding a proche.** There is no search of the user base: it let anyone read the directory and could not tell
+namesakes apart. Two ways instead, both with a secret token of which the server keeps only the SHA-256:
+- an **invitation** (`/users/me/invitations`, `POST /invitations/lookup` and `/invitations/accept`, gateway `users/`,
+  table `core.invitations`):
+  the inviter's phone shares a link `https://behyndme.com/i#<token>` (the token in the fragment, so that it reaches
+  neither the site's logs nor link previews); it works once, for 7 days, for someone other
+  than the inviter. Accepting it makes the inviter trust the invitee, and the invitee the inviter if they choose
+  (`trust_back`), in the transaction that publishes `invitation.accepted`. A user has at most 20 pending.
+- a **contact code** (`PUT /users/me/contact-code`, `POST /contact-codes/lookup`, gateway `keys/` over the codes
+  `users/` keeps, table `core.contact_codes`): a QR code shown in person for 10 minutes, one per user. Whoever scans it reads its
+  owner's profile and public keys; the scanner's phone compares their fingerprint with the one the code carries
+  (the app's docs/crypto-protocol.md, "Contact code") and then adds them with `POST /users/me/trusteds`, the code's
+  token as `contact_code`.
+`POST /users/me/trusteds` adds only someone who already trusts the caller (adding back) or whose valid contact code
+the caller holds: nobody is added on their id alone. Tokens travel in request bodies, never in a URL, since URLs are
+logged (the gateway's request log, the exception filter, any proxy).
+Each route that looks up a token is rate-limited (30 a minute per route), and the daily retention deletes expired
+codes and invitations expired for a month.
 
 **Account deletion.** `DELETE /users/me` needs a recent Clerk reverification, like a key reset. The gateway
 deletes the profile (keys and trust links go with it) and publishes `user.deleted` in the same transaction, then

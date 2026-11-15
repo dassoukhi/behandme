@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsNotEmpty, IsString } from "class-validator";
+import { IsNotEmpty, IsOptional, IsString } from "class-validator";
 
 export class AddTrustedDto {
   @ApiProperty({
@@ -9,6 +9,16 @@ export class AddTrustedDto {
   @IsString()
   @IsNotEmpty()
   trusted_id: string;
+
+  @ApiProperty({
+    description:
+      "The token of their contact code, scanned in person. Needed unless they already trust the caller.",
+    required: false,
+    example: "q3V1Zk9n0xg2l6m8b4Jr7Yp5tHc1aW9sE0dQ2uK8vXy",
+  })
+  @IsOptional()
+  @IsString()
+  contact_code?: string;
 }
 
 export class TrustedLinkDto {

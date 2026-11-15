@@ -55,6 +55,66 @@ export function trustAdded(params: {
   };
 }
 
+/** `inviteeName` accepted an invitation of `userId`, who now trusts them (and is trusted back if `trustedBack`). */
+export function invitationAccepted(params: {
+  userId: string;
+  inviteeId: string;
+  inviteeName: string | null;
+  trustedBack: boolean;
+}): NotificationDraft {
+  const fr = params.inviteeName ?? "Quelqu'un";
+  const en = params.inviteeName ?? "Someone";
+  return {
+    userId: params.userId,
+    type: "invitation_accepted",
+    copy: {
+      fr: {
+        title: "Invitation acceptée",
+        body: params.trustedBack
+          ? `${fr} a accepté votre invitation et vous a ajouté à ses proches.`
+          : `${fr} a accepté votre invitation : cette personne fait partie de vos proches.`,
+      },
+      en: {
+        title: "Invitation accepted",
+        body: params.trustedBack
+          ? `${en} accepted your invitation and added you as a trusted contact.`
+          : `${en} accepted your invitation and is now one of your trusted contacts.`,
+      },
+    },
+    data: { url: `/people/${params.inviteeId}` },
+    critical: false,
+    mentions: [params.inviteeId],
+    email: (ctx) => {
+      const invitee = ctx.name(params.inviteeId);
+      const first = ctx.firstName(params.inviteeId);
+      return {
+        fr: {
+          subject: invitee
+            ? `${invitee} a accepté votre invitation`
+            : undefined,
+          paragraphs: [
+            `${invitee ?? "La personne que vous avez invitée"} a accepté votre invitation sur BehyndMe : elle fait désormais partie de vos proches.`,
+            params.trustedBack
+              ? `${first ?? "Elle"} vous a aussi ajouté à ses proches.`
+              : `Vous pouvez désormais lui confier un accès, ou lui demander de valider sa transmission.`,
+            `Avant de confier un accès à ${first ?? "cette personne"}, scannez son code quand vous la voyez : vous saurez que ses clés sont bien les siennes. Vous la retrouverez dans l'app, onglet Proches.`,
+          ],
+        },
+        en: {
+          subject: invitee ? `${invitee} accepted your invitation` : undefined,
+          paragraphs: [
+            `${invitee ?? "The person you invited"} accepted your invitation on BehyndMe and is now one of your trusted contacts.`,
+            params.trustedBack
+              ? `${first ?? "They"} also added you as a trusted contact.`
+              : `You can now entrust them with an access, or ask them to validate its handover.`,
+            `Before entrusting ${first ?? "them"} with an access, scan their code when you see them: you will know their keys are really theirs. You will find them in the app, in the Contacts tab.`,
+          ],
+        },
+      };
+    },
+  };
+}
+
 /**
  * The user's end-to-end keys were reset. If it was not them, someone holds their session: pushed even
  * when push is off, while the quarantine still protects their contacts.

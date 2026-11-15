@@ -7,6 +7,8 @@ import type {
   UsersTransaction,
   UsersUnitOfWork,
 } from "../application/ports.js";
+import { KyselyContactCodeRepository } from "./kysely-contact-code.repository.js";
+import { KyselyInvitationRepository } from "./kysely-invitation.repository.js";
 import { KyselyProfileRepository } from "./kysely-profile.repository.js";
 import { KyselyTrustRepository } from "./kysely-trust.repository.js";
 import type { UsersDatabase } from "./tables.js";
@@ -26,6 +28,8 @@ export class KyselyUsersUnitOfWork implements UsersUnitOfWork {
       return work({
         profiles: new KyselyProfileRepository(tx),
         trust: new KyselyTrustRepository(tx),
+        invitations: new KyselyInvitationRepository(tx),
+        contactCodes: new KyselyContactCodeRepository(tx),
         events: {
           publish: async (event) => {
             await outbox.publish(event);
@@ -33,5 +37,15 @@ export class KyselyUsersUnitOfWork implements UsersUnitOfWork {
         },
       });
     });
+  }
+
+  /** The repositories on `db`, a transaction another service's handler runs in (the daily retention). */
+  bind(db: Kysely<any>): Omit<UsersTransaction, "events"> {
+    return {
+      profiles: new KyselyProfileRepository(db),
+      trust: new KyselyTrustRepository(db),
+      invitations: new KyselyInvitationRepository(db),
+      contactCodes: new KyselyContactCodeRepository(db),
+    };
   }
 }

@@ -1,10 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { UserDeleted, UserProfileChanged } from "@lib/contracts";
-import {
-  InvalidInputError,
-  NotFoundError,
-  UnprocessableError,
-} from "@lib/kernel";
+import { NotFoundError, UnprocessableError } from "@lib/kernel";
 import type { Profile } from "../domain/profile.js";
 import {
   type FactorVerificationAge,
@@ -20,8 +16,6 @@ import {
   type UsersUnitOfWork,
 } from "./ports.js";
 import { TrustService } from "./trust.service.js";
-
-const SEARCH_LIMIT = 20;
 
 @Injectable()
 export class ProfileService {
@@ -129,32 +123,5 @@ export class ProfileService {
       }
     });
     await this.identity.deleteUser(me);
-  }
-
-  /**
-   * Partial match on first/last name, exact (case-insensitive) match on email. Excludes the
-   * caller and the users they already trust; sorted by first name.
-   */
-  async search(me: string, query: string): Promise<Profile[]> {
-    const term = query?.trim();
-    if (!term) {
-      throw new InvalidInputError("Search query cannot be empty");
-    }
-
-    const [candidates, trusted] = await Promise.all([
-      this.profiles.search(term, SEARCH_LIMIT),
-      this.trust.trustedIds(me),
-    ]);
-    const unique = new Map<string, Profile>();
-    for (const profile of candidates) {
-      if (profile.id !== me && !trusted.has(profile.id)) {
-        unique.set(profile.id, profile);
-      }
-    }
-
-    const results = [...unique.values()]
-      .sort((a, b) => (a.first_name ?? "").localeCompare(b.first_name ?? ""))
-      .slice(0, SEARCH_LIMIT);
-    return this.trust.asSeenBy(me, results);
   }
 }
