@@ -4,6 +4,138 @@
       "columns": [
         {
           "table_schema": "core",
+          "table_name": "contact_codes",
+          "column_name": "user_id",
+          "ordinal_position": 1,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "contact_codes",
+          "column_name": "token_hash",
+          "ordinal_position": 2,
+          "data_type": "bytea",
+          "udt_name": "bytea",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "contact_codes",
+          "column_name": "expires_at",
+          "ordinal_position": 3,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "invitations",
+          "column_name": "id",
+          "ordinal_position": 1,
+          "data_type": "uuid",
+          "udt_name": "uuid",
+          "is_nullable": "NO",
+          "column_default": "gen_random_uuid()",
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "invitations",
+          "column_name": "inviter_id",
+          "ordinal_position": 2,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "invitations",
+          "column_name": "token_hash",
+          "ordinal_position": 3,
+          "data_type": "bytea",
+          "udt_name": "bytea",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "invitations",
+          "column_name": "created_at",
+          "ordinal_position": 4,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "is_nullable": "NO",
+          "column_default": "now()",
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "invitations",
+          "column_name": "expires_at",
+          "ordinal_position": 5,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "is_nullable": "NO",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "invitations",
+          "column_name": "accepted_by",
+          "ordinal_position": 6,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "invitations",
+          "column_name": "accepted_at",
+          "ordinal_position": 7,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "invitations",
+          "column_name": "cancelled_at",
+          "ordinal_position": 8,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "core",
           "table_name": "key_backups",
           "column_name": "user_id",
           "ordinal_position": 1,
@@ -2370,6 +2502,76 @@
       "constraints": [
         {
           "schema": "core",
+          "table_name": "core.contact_codes",
+          "conname": "contact_codes_pkey",
+          "contype": "p",
+          "definition": "PRIMARY KEY (user_id)"
+        },
+        {
+          "schema": "core",
+          "table_name": "core.contact_codes",
+          "conname": "contact_codes_token_hash_check",
+          "contype": "c",
+          "definition": "CHECK ((octet_length(token_hash) = 32))"
+        },
+        {
+          "schema": "core",
+          "table_name": "core.contact_codes",
+          "conname": "contact_codes_token_hash_key",
+          "contype": "u",
+          "definition": "UNIQUE (token_hash)"
+        },
+        {
+          "schema": "core",
+          "table_name": "core.contact_codes",
+          "conname": "contact_codes_user_id_fkey",
+          "contype": "f",
+          "definition": "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE"
+        },
+        {
+          "schema": "core",
+          "table_name": "core.invitations",
+          "conname": "invitations_accepted_by_fkey",
+          "contype": "f",
+          "definition": "FOREIGN KEY (accepted_by) REFERENCES users(id) ON DELETE SET NULL"
+        },
+        {
+          "schema": "core",
+          "table_name": "core.invitations",
+          "conname": "invitations_check",
+          "contype": "c",
+          "definition": "CHECK (((accepted_at IS NULL) OR (cancelled_at IS NULL)))"
+        },
+        {
+          "schema": "core",
+          "table_name": "core.invitations",
+          "conname": "invitations_inviter_id_fkey",
+          "contype": "f",
+          "definition": "FOREIGN KEY (inviter_id) REFERENCES users(id) ON DELETE CASCADE"
+        },
+        {
+          "schema": "core",
+          "table_name": "core.invitations",
+          "conname": "invitations_pkey",
+          "contype": "p",
+          "definition": "PRIMARY KEY (id)"
+        },
+        {
+          "schema": "core",
+          "table_name": "core.invitations",
+          "conname": "invitations_token_hash_check",
+          "contype": "c",
+          "definition": "CHECK ((octet_length(token_hash) = 32))"
+        },
+        {
+          "schema": "core",
+          "table_name": "core.invitations",
+          "conname": "invitations_token_hash_key",
+          "contype": "u",
+          "definition": "UNIQUE (token_hash)"
+        },
+        {
+          "schema": "core",
           "table_name": "core.key_backups",
           "conname": "key_backups_box_check",
           "contype": "c",
@@ -3051,6 +3253,36 @@
       "indexes": [
         {
           "schemaname": "core",
+          "tablename": "contact_codes",
+          "indexname": "contact_codes_pkey",
+          "indexdef": "CREATE UNIQUE INDEX contact_codes_pkey ON core.contact_codes USING btree (user_id)"
+        },
+        {
+          "schemaname": "core",
+          "tablename": "contact_codes",
+          "indexname": "contact_codes_token_hash_key",
+          "indexdef": "CREATE UNIQUE INDEX contact_codes_token_hash_key ON core.contact_codes USING btree (token_hash)"
+        },
+        {
+          "schemaname": "core",
+          "tablename": "invitations",
+          "indexname": "invitations_inviter_id_idx",
+          "indexdef": "CREATE INDEX invitations_inviter_id_idx ON core.invitations USING btree (inviter_id)"
+        },
+        {
+          "schemaname": "core",
+          "tablename": "invitations",
+          "indexname": "invitations_pkey",
+          "indexdef": "CREATE UNIQUE INDEX invitations_pkey ON core.invitations USING btree (id)"
+        },
+        {
+          "schemaname": "core",
+          "tablename": "invitations",
+          "indexname": "invitations_token_hash_key",
+          "indexdef": "CREATE UNIQUE INDEX invitations_token_hash_key ON core.invitations USING btree (token_hash)"
+        },
+        {
+          "schemaname": "core",
           "tablename": "key_backups",
           "indexname": "key_backups_pkey",
           "indexdef": "CREATE UNIQUE INDEX key_backups_pkey ON core.key_backups USING btree (user_id)"
@@ -3459,6 +3691,18 @@
       "rls": [
         {
           "schema": "core",
+          "table_name": "contact_codes",
+          "rls_enabled": true,
+          "rls_forced": false
+        },
+        {
+          "schema": "core",
+          "table_name": "invitations",
+          "rls_enabled": true,
+          "rls_forced": false
+        },
+        {
+          "schema": "core",
           "table_name": "key_backups",
           "rls_enabled": true,
           "rls_forced": false
@@ -3681,6 +3925,28 @@
         }
       ],
       "policies": [
+        {
+          "schemaname": "core",
+          "tablename": "contact_codes",
+          "policyname": "service_access",
+          "roles": [
+            "svc_gateway"
+          ],
+          "cmd": "ALL",
+          "qual": "true",
+          "with_check": "true"
+        },
+        {
+          "schemaname": "core",
+          "tablename": "invitations",
+          "policyname": "service_access",
+          "roles": [
+            "svc_gateway"
+          ],
+          "cmd": "ALL",
+          "qual": "true",
+          "with_check": "true"
+        },
         {
           "schemaname": "core",
           "tablename": "key_backups",
@@ -4093,6 +4359,30 @@
         }
       ],
       "grants": [
+        {
+          "table_schema": "core",
+          "table_name": "contact_codes",
+          "grantee": "postgres",
+          "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "contact_codes",
+          "grantee": "svc_gateway",
+          "privileges": "DELETE,INSERT,SELECT,UPDATE"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "invitations",
+          "grantee": "postgres",
+          "privileges": "DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE"
+        },
+        {
+          "table_schema": "core",
+          "table_name": "invitations",
+          "grantee": "svc_gateway",
+          "privileges": "DELETE,INSERT,SELECT,UPDATE"
+        },
         {
           "table_schema": "core",
           "table_name": "key_backups",
