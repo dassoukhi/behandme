@@ -191,3 +191,7 @@ If the contract changed, push this repo before the front.
   `import type` for type-only imports.
 - Prettier defaults (double quotes, trailing commas), flat ESLint config, `any` allowed.
 - Supabase columns are snake_case; notification DTOs are camelCase (known inconsistency).
+- What people read (notifications and e-mails, `apps/notifier/src/notifications/domain/templates.ts`) calls a contract
+  an « enveloppe » (envelope, feminine in French) and its accessor a « destinataire » (recipient): « contrat » would
+  sound like a legal commitment. The code, routes, events and tables keep contract and accessor.
+  `domain/templates.spec.ts` fails if either old word comes back in any template.

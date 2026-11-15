@@ -144,7 +144,7 @@ export function keysReset(params: {
         fr: {
           paragraphs: [
             `Les clés de chiffrement de votre compte BehyndMe ont été réinitialisées le ${ctx.occurred.fr}.`,
-            `Si c'est vous, tout est en ordre. Par sécurité, vos nouvelles clés ne serviront à sceller un contrat qu'à partir du ${usable.fr}.`,
+            `Si c'est vous, tout est en ordre. Par sécurité, vos nouvelles clés ne serviront à sceller une enveloppe qu'à partir du ${usable.fr}.`,
             "Si ce n'est pas vous, quelqu'un a accès à votre compte : changez votre mot de passe tout de suite, puis prévenez vos proches.",
           ],
           facts: [
@@ -155,7 +155,7 @@ export function keysReset(params: {
         en: {
           paragraphs: [
             `The encryption keys of your BehyndMe account were reset on ${ctx.occurred.en}.`,
-            `If it was you, all is well. For security, your new keys can only be used to seal a contract from ${usable.en}.`,
+            `If it was you, all is well. For security, your new keys can only be used to seal an envelope from ${usable.en}.`,
             "If it wasn't you, someone has access to your account: change your password right away, then warn your trusted contacts.",
           ],
           facts: [
@@ -359,14 +359,14 @@ export function keyCheckup(params: { userId: string }): NotificationDraft {
         paragraphs: [
           "Votre point annuel BehyndMe est arrivé.",
           "Ouvrir l'app une minute suffit : elle vérifie que vos clés sont toujours là, et le confirme aux proches qui comptent sur vous.",
-          "Profitez-en pour relire vos contrats et les personnes qu'ils désignent.",
+          "Profitez-en pour relire vos enveloppes et les personnes qu'elles désignent.",
         ],
       },
       en: {
         paragraphs: [
           "Your yearly BehyndMe check-up is due.",
           "Opening the app for a minute is enough: it checks that your keys are still there, and lets the people who count on you know.",
-          "Take the chance to review your contracts and the people they name.",
+          "Take the chance to review your envelopes and the people they name.",
         ],
       },
     }),
@@ -388,15 +388,15 @@ const CATEGORY: Record<Language, Record<string, string>> = {
   },
 };
 const categoryLabel = (category: string) => ({
-  fr: CATEGORY.fr[category] ?? "Contrat",
-  en: CATEGORY.en[category] ?? "Contract",
+  fr: CATEGORY.fr[category] ?? "Enveloppe",
+  en: CATEGORY.en[category] ?? "Envelope",
 });
 const contractName = (category: string) => ({
   fr: `« ${categoryLabel(category).fr} »`,
   en: `“${categoryLabel(category).en}”`,
 });
 
-/** "Camille Martin's", or "the" when the owner is unknown: "Camille Martin's contract “Devices”". */
+/** "Camille Martin's", or "the" when the owner is unknown: "Camille Martin's envelope “Devices”". */
 const possessive = (name: string | null) => (name ? `${name}'s` : "the");
 
 /** Someone says the owner can no longer act: the owner must be able to stop it at once. */
@@ -416,11 +416,11 @@ export function claimFiledForOwner(params: {
     copy: {
       fr: {
         title: "Demande de transmission",
-        body: `Une transmission de votre contrat ${name.fr} a été demandée. Si vous êtes là, annulez-la dans l'app.`,
+        body: `Une transmission de votre enveloppe ${name.fr} a été demandée. Si vous êtes là, annulez-la dans l'app.`,
       },
       en: {
         title: "Handover request",
-        body: `A handover of your contract ${name.en} was requested. If you're still here, cancel it in the app.`,
+        body: `A handover of your envelope ${name.en} was requested. If you're still here, cancel it in the app.`,
       },
     },
     data: { url: `/contract/${params.contractId}` },
@@ -434,12 +434,12 @@ export function claimFiledForOwner(params: {
         fr: {
           subject: `Demande de transmission : ${name.fr}`,
           paragraphs: [
-            `${claimant ?? "Quelqu'un"} a demandé la transmission de votre contrat ${name.fr}, le ${ctx.occurred.fr}.`,
+            `${claimant ?? "Quelqu'un"} a demandé la transmission de votre enveloppe ${name.fr}, le ${ctx.occurred.fr}.`,
             "Si vous êtes là, annulez la demande dans l'app : rien ne sera transmis.",
-            `Sinon, l'accès sera transmis à partir du ${until.fr}, dès que vos validateurs auront approuvé la demande.`,
+            `Sinon, l'enveloppe sera transmise à partir du ${until.fr}, dès que vos validateurs auront approuvé la demande.`,
           ],
           facts: [
-            { label: "Contrat", value: label.fr },
+            { label: "Enveloppe", value: label.fr },
             ...requestedBy("Demandée par"),
             { label: "Annulation possible jusqu'au", value: until.fr },
           ],
@@ -447,12 +447,12 @@ export function claimFiledForOwner(params: {
         en: {
           subject: `Handover request: ${name.en}`,
           paragraphs: [
-            `${claimant ?? "Someone"} requested the handover of your contract ${name.en} on ${ctx.occurred.en}.`,
+            `${claimant ?? "Someone"} requested the handover of your envelope ${name.en} on ${ctx.occurred.en}.`,
             "If you're still here, cancel the request in the app: nothing will be handed over.",
-            `Otherwise, access will be handed over from ${until.en}, as soon as your validators have approved the request.`,
+            `Otherwise, the envelope will be handed over from ${until.en}, as soon as your validators have approved the request.`,
           ],
           facts: [
-            { label: "Contract", value: label.en },
+            { label: "Envelope", value: label.en },
             ...requestedBy("Requested by"),
             { label: "Can be cancelled until", value: until.en },
           ],
@@ -479,11 +479,11 @@ export function chosenAsValidator(params: {
     copy: {
       fr: {
         title: "Un proche compte sur vous",
-        body: `Vous êtes validateur du contrat ${name.fr}. Gardez vos clés à l'abri : une minute suffit.`,
+        body: `Vous êtes validateur de l'enveloppe ${name.fr}. Gardez vos clés à l'abri : une minute suffit.`,
       },
       en: {
         title: "Someone close is counting on you",
-        body: `You are a validator of the contract ${name.en}. Keep your keys safe: it takes a minute.`,
+        body: `You are a validator of the envelope ${name.en}. Keep your keys safe: it takes a minute.`,
       },
     },
     data: { url: "/keys" },
@@ -495,7 +495,7 @@ export function chosenAsValidator(params: {
         fr: {
           subject: owner ? `${owner} compte sur vous` : undefined,
           paragraphs: [
-            `${owner ?? "Un proche"} vous a choisi comme validateur de son contrat ${name.fr}.`,
+            `${owner ?? "Un proche"} vous a choisi comme validateur de son enveloppe ${name.fr}.`,
             `Le jour où quelqu'un demandera sa transmission, votre avis sera demandé : vous ne l'approuverez que si vous êtes sûr que ${first ?? "cette personne"} ne peut plus agir.`,
             "D'ici là, gardez vos clés à l'abri : sans elles, vous ne pourrez pas approuver. L'app vous guide, une minute suffit.",
           ],
@@ -503,7 +503,7 @@ export function chosenAsValidator(params: {
         en: {
           subject: owner ? `${owner} is counting on you` : undefined,
           paragraphs: [
-            `${owner ?? "Someone close to you"} chose you as a validator of their contract ${name.en}.`,
+            `${owner ?? "Someone close to you"} chose you as a validator of their envelope ${name.en}.`,
             `The day someone requests its handover, you will be asked for your decision: only approve it if you are sure ${first ?? "they"} can no longer act.`,
             "Until then, keep your keys safe: without them, you cannot approve. The app guides you; it takes a minute.",
           ],
@@ -530,11 +530,11 @@ export function claimFiledForValidator(params: {
     copy: {
       fr: {
         title: "Votre avis est demandé",
-        body: `Une transmission du contrat ${name.fr} a été demandée : approuvez-la ou refusez-la.`,
+        body: `Une transmission de l'enveloppe ${name.fr} a été demandée : approuvez-la ou refusez-la.`,
       },
       en: {
         title: "Your decision is needed",
-        body: `A handover of the contract ${name.en} was requested: approve or refuse it.`,
+        body: `A handover of the envelope ${name.en} was requested: approve or refuse it.`,
       },
     },
     data: { url: `/contract/${params.contractId}` },
@@ -550,12 +550,12 @@ export function claimFiledForValidator(params: {
         fr: {
           subject: owner ? `Votre avis est demandé pour ${owner}` : undefined,
           paragraphs: [
-            `${claimant ?? "Quelqu'un"} demande la transmission du contrat ${name.fr} de ${owner ?? "l'un de vos proches"}.`,
+            `${claimant ?? "Quelqu'un"} demande la transmission de l'enveloppe ${name.fr} de ${owner ?? "l'un de vos proches"}.`,
             `En tant que validateur, n'approuvez que si vous êtes sûr que ${first ?? "le propriétaire"} ne peut plus agir ; sinon, refusez. En cas de doute, essayez de ${first ? `joindre ${first}` : "le joindre"} par un autre moyen.`,
             `${first ?? "Le propriétaire"} peut encore annuler la demande jusqu'au ${until.fr}.`,
           ],
           facts: [
-            { label: "Contrat", value: label.fr },
+            { label: "Enveloppe", value: label.fr },
             ...known("Propriétaire", owner),
             ...known("Demandée par", claimant),
             { label: "Annulation possible jusqu'au", value: until.fr },
@@ -564,12 +564,12 @@ export function claimFiledForValidator(params: {
         en: {
           subject: owner ? `Your decision is needed for ${owner}` : undefined,
           paragraphs: [
-            `${claimant ?? "Someone"} requests the handover of ${possessive(owner)} contract ${name.en}.`,
+            `${claimant ?? "Someone"} requests the handover of ${possessive(owner)} envelope ${name.en}.`,
             `As a validator, only approve it if you are sure ${first ?? "the owner"} can no longer act; otherwise, refuse it. If in doubt, try to reach ${first ?? "them"} by some other means.`,
             `${first ?? "The owner"} can still cancel the request until ${until.en}.`,
           ],
           facts: [
-            { label: "Contract", value: label.en },
+            { label: "Envelope", value: label.en },
             ...known("Owner", owner),
             ...known("Requested by", claimant),
             { label: "Can be cancelled until", value: until.en },
@@ -610,22 +610,22 @@ export function claimQuorumReached(params: {
         fr: {
           subject: `Transmission imminente : ${name.fr}`,
           paragraphs: [
-            `Assez de validateurs ont approuvé la demande de transmission de votre contrat ${name.fr}.`,
-            `Si vous êtes là, annulez-la dans l'app avant le ${until.fr} : passé ce moment, l'accès sera transmis.`,
+            `Assez de validateurs ont approuvé la demande de transmission de votre enveloppe ${name.fr}.`,
+            `Si vous êtes là, annulez-la dans l'app avant le ${until.fr} : passé ce moment, l'enveloppe sera transmise.`,
           ],
           facts: [
-            { label: "Contrat", value: label.fr },
+            { label: "Enveloppe", value: label.fr },
             { label: "Transmission le", value: until.fr },
           ],
         },
         en: {
           subject: `Handover coming soon: ${name.en}`,
           paragraphs: [
-            `Enough validators approved the handover request for your contract ${name.en}.`,
-            `If you're still here, cancel it in the app before ${until.en}: after that, access will be handed over.`,
+            `Enough validators approved the handover request for your envelope ${name.en}.`,
+            `If you're still here, cancel it in the app before ${until.en}: after that, the envelope will be handed over.`,
           ],
           facts: [
-            { label: "Contract", value: label.en },
+            { label: "Envelope", value: label.en },
             { label: "Handover on", value: until.en },
           ],
         },
@@ -640,7 +640,7 @@ const CLOSED: Record<Language, Record<string, string>> = {
     withdrawn: "La demande de transmission a été retirée",
     rejected: "Les validateurs ont refusé la demande de transmission",
     expired: "La demande de transmission a expiré",
-    revoked: "Le propriétaire a révoqué le contrat",
+    revoked: "Le propriétaire a révoqué l'enveloppe",
     participant_left:
       "Un participant a supprimé son compte : la demande de transmission est close",
   },
@@ -649,7 +649,7 @@ const CLOSED: Record<Language, Record<string, string>> = {
     withdrawn: "The handover request was withdrawn",
     rejected: "The validators refused the handover request",
     expired: "The handover request expired",
-    revoked: "The owner revoked the contract",
+    revoked: "The owner revoked the envelope",
     participant_left:
       "A participant deleted their account: the handover request is closed",
   },
@@ -684,14 +684,14 @@ export function claimClosed(params: {
       const mine = params.userId === params.ownerId;
       const owner = ctx.name(params.ownerId);
       const claimant = ctx.name(params.claimantId);
-      // "de votre contrat « … »" or "du contrat « … » de Camille Martin".
+      // "de votre enveloppe « … »" or "de l'enveloppe « … » de Camille Martin".
       const ofContract = {
         fr: mine
-          ? `de votre contrat ${name.fr}`
-          : `du contrat ${name.fr}${owner ? ` de ${owner}` : ""}`,
+          ? `de votre enveloppe ${name.fr}`
+          : `de l'enveloppe ${name.fr}${owner ? ` de ${owner}` : ""}`,
         en: mine
-          ? `your contract ${name.en}`
-          : `${possessive(owner)} contract ${name.en}`,
+          ? `your envelope ${name.en}`
+          : `${possessive(owner)} envelope ${name.en}`,
       };
       const what: Record<Language, Record<string, string>> = {
         fr: {
@@ -699,7 +699,7 @@ export function claimClosed(params: {
           withdrawn: `${claimant ?? "Le demandeur"} a retiré sa demande de transmission ${ofContract.fr}.`,
           rejected: `Les validateurs ont refusé la demande de transmission ${ofContract.fr}.`,
           expired: `La demande de transmission ${ofContract.fr} a expiré sans avoir réuni assez d'approbations.`,
-          revoked: `${owner ?? "Le propriétaire"} a révoqué le contrat : la demande de transmission ${ofContract.fr} est close.`,
+          revoked: `${owner ?? "Le propriétaire"} a révoqué l'enveloppe : la demande de transmission ${ofContract.fr} est close.`,
           participant_left: `Un participant a supprimé son compte : la demande de transmission ${ofContract.fr} est close.`,
         },
         en: {
@@ -707,7 +707,7 @@ export function claimClosed(params: {
           withdrawn: `${claimant ?? "The requester"} withdrew their handover request for ${ofContract.en}.`,
           rejected: `The validators refused the handover request for ${ofContract.en}.`,
           expired: `The handover request for ${ofContract.en} expired without enough approvals.`,
-          revoked: `${owner ?? "The owner"} revoked the contract: the handover request for ${ofContract.en} is closed.`,
+          revoked: `${owner ?? "The owner"} revoked the envelope: the handover request for ${ofContract.en} is closed.`,
           participant_left: `A participant deleted their account: the handover request for ${ofContract.en} is closed.`,
         },
       };
@@ -745,12 +745,12 @@ export function contractReleasedForAccessor(params: {
     mentions: [params.ownerId],
     copy: {
       fr: {
-        title: "Accès transmis",
-        body: `Le contrat ${name.fr} vous a été transmis : vous pouvez l'ouvrir dans l'app.`,
+        title: "Enveloppe transmise",
+        body: `L'enveloppe ${name.fr} vous a été transmise : vous pouvez l'ouvrir dans l'app.`,
       },
       en: {
-        title: "Access handed over",
-        body: `The contract ${name.en} has been handed over to you: you can open it in the app.`,
+        title: "Envelope handed over",
+        body: `The envelope ${name.en} has been handed over to you: you can open it in the app.`,
       },
     },
     data: { url: `/contract/${params.contractId}` },
@@ -759,16 +759,16 @@ export function contractReleasedForAccessor(params: {
       const owner = ctx.name(params.ownerId);
       return {
         fr: {
-          subject: `Accès transmis : ${name.fr}`,
+          subject: `Enveloppe transmise : ${name.fr}`,
           paragraphs: [
-            `L'accès au contrat ${name.fr}${owner ? ` de ${owner}` : ""} vous a été transmis.`,
-            "Ouvrez l'app BehyndMe pour le lire. Vos clés de chiffrement sont nécessaires : si vous avez changé de téléphone, restaurez-les d'abord.",
+            `L'enveloppe ${name.fr}${owner ? ` de ${owner}` : ""} vous a été transmise.`,
+            "Ouvrez l'app BehyndMe pour la lire. Vos clés de chiffrement sont nécessaires : si vous avez changé de téléphone, restaurez-les d'abord.",
           ],
         },
         en: {
-          subject: `Access handed over: ${name.en}`,
+          subject: `Envelope handed over: ${name.en}`,
           paragraphs: [
-            `Access to ${possessive(owner)} contract ${name.en} has been handed over to you.`,
+            `${owner ? `${owner}'s` : "The"} envelope ${name.en} has been handed over to you.`,
             "Open the BehyndMe app to read it. Your encryption keys are needed: if you changed phones, restore them first.",
           ],
         },
@@ -813,15 +813,15 @@ export function claimReminderForOwner(params: {
           subject: `Dernier rappel : ${name.fr}`,
           paragraphs: params.quorum
             ? [
-                `La transmission de votre contrat ${name.fr} aura lieu le ${until.fr} : assez de validateurs l'ont approuvée.`,
+                `La transmission de votre enveloppe ${name.fr} aura lieu le ${until.fr} : assez de validateurs l'ont approuvée.`,
                 "Si vous êtes là, annulez-la dans l'app d'ici là.",
               ]
             : [
-                `Une demande de transmission de votre contrat ${name.fr} est toujours ouverte. Le délai pour l'annuler se termine le ${until.fr}.`,
-                "Si vous êtes là, annulez-la dans l'app maintenant : ensuite, l'accès sera transmis dès que les validateurs l'auront approuvée.",
+                `Une demande de transmission de votre enveloppe ${name.fr} est toujours ouverte. Le délai pour l'annuler se termine le ${until.fr}.`,
+                "Si vous êtes là, annulez-la dans l'app maintenant : ensuite, l'enveloppe sera transmise dès que les validateurs auront approuvé la demande.",
               ],
           facts: [
-            { label: "Contrat", value: label.fr },
+            { label: "Enveloppe", value: label.fr },
             { label: "Annulation possible jusqu'au", value: until.fr },
           ],
         },
@@ -829,15 +829,15 @@ export function claimReminderForOwner(params: {
           subject: `Last reminder: ${name.en}`,
           paragraphs: params.quorum
             ? [
-                `The handover of your contract ${name.en} will take place on ${until.en}: enough validators approved it.`,
+                `The handover of your envelope ${name.en} will take place on ${until.en}: enough validators approved it.`,
                 "If you're still here, cancel it in the app before then.",
               ]
             : [
-                `A handover request for your contract ${name.en} is still open. The time to cancel it ends on ${until.en}.`,
-                "If you're still here, cancel it in the app now: after that, access will be handed over as soon as the validators have approved it.",
+                `A handover request for your envelope ${name.en} is still open. The time to cancel it ends on ${until.en}.`,
+                "If you're still here, cancel it in the app now: after that, the envelope will be handed over as soon as the validators have approved the request.",
               ],
           facts: [
-            { label: "Contract", value: label.en },
+            { label: "Envelope", value: label.en },
             { label: "Can be cancelled until", value: until.en },
           ],
         },
@@ -877,13 +877,13 @@ export function claimReminderForValidator(params: {
       return {
         fr: {
           paragraphs: [
-            `La demande de transmission du contrat ${name.fr} de ${owner ?? "l'un de vos proches"} attend toujours votre avis.`,
+            `La demande de transmission de l'enveloppe ${name.fr} de ${owner ?? "l'un de vos proches"} attend toujours votre avis.`,
             `N'approuvez que si vous êtes sûr que ${first ?? "le propriétaire"} ne peut plus agir ; sinon, refusez. ${first ?? "Le propriétaire"} peut encore l'annuler jusqu'au ${until.fr}.`,
           ],
         },
         en: {
           paragraphs: [
-            `The handover request for ${possessive(owner)} contract ${name.en} is still waiting for your decision.`,
+            `The handover request for ${possessive(owner)} envelope ${name.en} is still waiting for your decision.`,
             `Only approve it if you are sure ${first ?? "the owner"} can no longer act; otherwise, refuse it. ${first ?? "The owner"} can still cancel it until ${until.en}.`,
           ],
         },
@@ -908,16 +908,16 @@ export function contractRevoked(params: {
     mentions: [params.ownerId],
     copy: {
       fr: {
-        title: "Contrat révoqué",
+        title: "Enveloppe révoquée",
         body: ownerLeft
-          ? `Le propriétaire a supprimé son compte : le contrat ${name.fr} est révoqué.`
-          : `Le propriétaire a révoqué le contrat ${name.fr}.`,
+          ? `Le propriétaire a supprimé son compte : l'enveloppe ${name.fr} est révoquée.`
+          : `Le propriétaire a révoqué l'enveloppe ${name.fr}.`,
       },
       en: {
-        title: "Contract revoked",
+        title: "Envelope revoked",
         body: ownerLeft
-          ? `The owner deleted their account: the contract ${name.en} is revoked.`
-          : `The owner revoked the contract ${name.en}.`,
+          ? `The owner deleted their account: the envelope ${name.en} is revoked.`
+          : `The owner revoked the envelope ${name.en}.`,
       },
     },
     data: { url: `/contract/${params.contractId}` },
@@ -929,16 +929,16 @@ export function contractRevoked(params: {
         fr: {
           paragraphs: [
             ownerLeft
-              ? `${owner ?? "Le propriétaire"} a supprimé son compte BehyndMe : le contrat ${name.fr} est révoqué, plus personne ne peut l'ouvrir.`
-              : `${owner ?? "Le propriétaire"} a révoqué le contrat ${name.fr} : plus personne ne peut l'ouvrir.`,
+              ? `${owner ?? "Le propriétaire"} a supprimé son compte BehyndMe : l'enveloppe ${name.fr} est révoquée, plus personne ne peut l'ouvrir.`
+              : `${owner ?? "Le propriétaire"} a révoqué l'enveloppe ${name.fr} : plus personne ne peut l'ouvrir.`,
             "Vous n'avez rien à faire.",
           ],
         },
         en: {
           paragraphs: [
             ownerLeft
-              ? `${owner ?? "The owner"} deleted their BehyndMe account: the contract ${name.en} is revoked, and nobody can open it any more.`
-              : `${owner ?? "The owner"} revoked the contract ${name.en}: nobody can open it any more.`,
+              ? `${owner ?? "The owner"} deleted their BehyndMe account: the envelope ${name.en} is revoked, and nobody can open it any more.`
+              : `${owner ?? "The owner"} revoked the envelope ${name.en}: nobody can open it any more.`,
             "There is nothing for you to do.",
           ],
         },
@@ -961,16 +961,16 @@ export function participantLeft(params: {
     type: "participant_left",
     copy: {
       fr: {
-        title: accessor ? "Accesseur parti" : "Validateur parti",
+        title: accessor ? "Départ du destinataire" : "Départ d'un validateur",
         body: accessor
-          ? `L'accesseur de votre contrat ${name.fr} a supprimé son compte : choisissez-en un autre et scellez à nouveau.`
-          : `Un validateur de votre contrat ${name.fr} a supprimé son compte : sa part est perdue. Scellez à nouveau pour en choisir un autre.`,
+          ? `Le destinataire de votre enveloppe ${name.fr} a supprimé son compte : choisissez-en un autre et scellez-la à nouveau.`
+          : `Un validateur de votre enveloppe ${name.fr} a supprimé son compte : sa part est perdue. Scellez-la à nouveau pour en choisir un autre.`,
       },
       en: {
         title: accessor ? "Recipient left" : "Validator left",
         body: accessor
-          ? `The recipient of your contract ${name.en} deleted their account: choose another one and seal again.`
-          : `A validator of your contract ${name.en} deleted their account: their share is lost. Seal again to choose another one.`,
+          ? `The recipient of your envelope ${name.en} deleted their account: choose another one and seal again.`
+          : `A validator of your envelope ${name.en} deleted their account: their share is lost. Seal again to choose another one.`,
       },
     },
     data: { url: `/contract/${params.contractId}` },
@@ -979,23 +979,23 @@ export function participantLeft(params: {
       fr: {
         paragraphs: accessor
           ? [
-              `L'accesseur de votre contrat ${name.fr} a supprimé son compte BehyndMe.`,
-              "Pour que ce contrat puisse encore être transmis, choisissez un autre accesseur et scellez-le à nouveau dans l'app.",
+              `Le destinataire de votre enveloppe ${name.fr} a supprimé son compte BehyndMe.`,
+              "Pour que cette enveloppe puisse encore être transmise, choisissez un autre destinataire et scellez-la à nouveau dans l'app.",
             ]
           : [
-              `Un validateur de votre contrat ${name.fr} a supprimé son compte BehyndMe : sa part de la clé est perdue.`,
-              "Scellez le contrat à nouveau dans l'app pour choisir un autre validateur.",
+              `Un validateur de votre enveloppe ${name.fr} a supprimé son compte BehyndMe : sa part de la clé est perdue.`,
+              "Scellez l'enveloppe à nouveau dans l'app pour choisir un autre validateur.",
             ],
       },
       en: {
         paragraphs: accessor
           ? [
-              `The recipient of your contract ${name.en} deleted their BehyndMe account.`,
-              "So that this contract can still be handed over, choose another recipient and seal it again in the app.",
+              `The recipient of your envelope ${name.en} deleted their BehyndMe account.`,
+              "So that this envelope can still be handed over, choose another recipient and seal it again in the app.",
             ]
           : [
-              `A validator of your contract ${name.en} deleted their BehyndMe account: their part of the key is lost.`,
-              "Seal the contract again in the app to choose another validator.",
+              `A validator of your envelope ${name.en} deleted their BehyndMe account: their part of the key is lost.`,
+              "Seal the envelope again in the app to choose another validator.",
             ],
       },
     }),

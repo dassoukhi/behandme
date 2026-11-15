@@ -460,7 +460,7 @@ describe("contract.sealed", () => {
       {
         type: "validator_chosen",
         title: "Un proche compte sur vous",
-        body: "Vous êtes validateur du contrat « Appareils ». Gardez vos clés à l'abri : une minute suffit.",
+        body: "Vous êtes validateur de l'enveloppe « Appareils ». Gardez vos clés à l'abri : une minute suffit.",
         data: { url: "/keys" },
       },
     ]);
@@ -498,7 +498,7 @@ describe("claims", () => {
     const [owner] = await inbox.list(ALICE);
     expect(owner).toMatchObject({
       type: "claim_filed_owner",
-      body: "Une transmission de votre contrat « Appareils » a été demandée. Si vous êtes là, annulez-la dans l'app.",
+      body: "Une transmission de votre enveloppe « Appareils » a été demandée. Si vous êtes là, annulez-la dans l'app.",
       data: { url: `/contract/${CONTRACT}` },
     });
     expect((await deliveries()).map((d) => d.token)).toEqual([
@@ -570,7 +570,7 @@ describe("claims", () => {
       ),
     );
     expect((await inbox.list(BOB))[0].body).toBe(
-      "Le propriétaire a supprimé son compte : le contrat « Réseaux sociaux » est révoqué.",
+      "Le propriétaire a supprimé son compte : l'enveloppe « Réseaux sociaux » est révoquée.",
     );
     expect(await types(CAROL)).toEqual([
       ["contract_revoked", `/contract/${CONTRACT}`],
@@ -589,7 +589,7 @@ describe("claims", () => {
       ),
     );
     expect(await inbox.list(ALICE)).toMatchObject([
-      { type: "participant_left", title: "Accesseur parti" },
+      { type: "participant_left", title: "Départ du destinataire" },
     ]);
   });
 
@@ -981,10 +981,10 @@ describe("e-mail", () => {
       greetingName: "Alice",
     });
     expect(row.content.paragraphs[0]).toBe(
-      "Bob Durand a demandé la transmission de votre contrat « Réseaux sociaux », le mercredi 14 octobre 2026 à 06:00 (UTC−4).",
+      "Bob Durand a demandé la transmission de votre enveloppe « Réseaux sociaux », le mercredi 14 octobre 2026 à 06:00 (UTC−4).",
     );
     expect(row.content.facts).toEqual([
-      { label: "Contrat", value: "Réseaux sociaux" },
+      { label: "Enveloppe", value: "Réseaux sociaux" },
       { label: "Demandée par", value: "Bob Durand" },
       {
         label: "Annulation possible jusqu'au",

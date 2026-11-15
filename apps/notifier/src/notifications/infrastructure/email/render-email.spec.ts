@@ -157,7 +157,7 @@ describe("renderEmail", () => {
       ...base,
       critical: true,
       paragraphs: ["Fait.", "Explication."],
-      facts: [{ label: "Contrat", value: "Réseaux sociaux" }],
+      facts: [{ label: "Enveloppe", value: "Réseaux sociaux" }],
     });
     const html = email.html;
     // The blends, for Gmail only: `u + .body` matches the markup Gmail wraps the body in.
@@ -191,7 +191,7 @@ describe("renderEmail", () => {
       ["ink", "#FCA5A5", copy.securityAlert],
       ["ink", "#F8FAFC", "Fait."],
       ["muted", "#94A3B8", "Explication."],
-      ["muted", "#94A3B8", "Contrat"],
+      ["muted", "#94A3B8", "Enveloppe"],
       ["ink", "#F8FAFC", "Réseaux sociaux"],
       ["ink", "#F8FAFC", copy.openApp],
       ["subtle", "#64748B", copy.why.critical],
