@@ -16,9 +16,10 @@ export class HandoverEvents {
 
   /**
    * The account is gone (account deletion). Its drafts are deleted and its sealed contracts revoked:
-   * nobody will open them. Released ones stay, for their accessor. In other people's contracts it
-   * stays named but its keys are gone: a claim it filed, or that would release to it, is closed, and
-   * the owner is told to re-seal with someone else.
+   * nobody will open them. Released ones stay, for their accessor. The others lose their description:
+   * their participants keep the category and the log, not what the owner wrote. In other people's
+   * contracts it stays named but its keys are gone: a claim it filed, or that would release to it, is
+   * closed, and the owner is told to re-seal with someone else.
    */
   async userDeleted(
     store: HandoverStore,
@@ -36,16 +37,19 @@ export class HandoverEvents {
             contractDeleted("account_deleted"),
           );
           result.deleted++;
-        } else if (
-          contract.status === "active" ||
-          contract.status === "claimed"
-        ) {
+          continue;
+        }
+        if (contract.status === "active" || contract.status === "claimed") {
           await revokeContract(store, contract, {
             actor: null,
             reason: "account_deleted",
             at: now,
           });
           result.revoked++;
+        }
+        // Revoked now or earlier: nobody is left to read what the owner wrote.
+        if (contract.status !== "released" && contract.description !== null) {
+          await store.contracts.eraseDescription(contract.id);
         }
         continue;
       }

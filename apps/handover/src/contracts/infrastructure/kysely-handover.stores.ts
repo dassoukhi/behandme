@@ -193,6 +193,14 @@ class KyselyContracts implements ContractRepository {
     return row ? (await this.withParticipants([row]))[0] : null;
   }
 
+  async eraseDescription(id: string): Promise<void> {
+    await this.db
+      .updateTable("contracts")
+      .set({ description: null, updated_at: sql<Date>`now()` })
+      .where("id", "=", id)
+      .execute();
+  }
+
   async transition(
     id: string,
     from: Status,

@@ -37,6 +37,11 @@ export interface ContractRepository {
     expectedVersion: number,
   ): Promise<Contract | null>;
   markRevoked(id: string, expectedVersion: number): Promise<Contract | null>;
+  /**
+   * Forgets what the owner wrote about a contract, once their account is gone. The version stays: this is
+   * not an edit, and nobody can edit the contract anymore.
+   */
+  eraseDescription(id: string): Promise<void>;
   /** Moves a contract from `from` to `to` (claims, release). Null when it is no longer `from`. */
   transition(id: string, from: Status, to: Status): Promise<Contract | null>;
 }

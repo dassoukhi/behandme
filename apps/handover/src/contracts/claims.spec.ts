@@ -419,13 +419,24 @@ describe("an account deleted", () => {
     const { rows } = await sql<{
       status: string;
       sealed: number;
-    }>`select status, (select count(*) from handover.envelopes e where e.contract_id = c.id)::int as sealed
+      description: string | null;
+    }>`select status, (select count(*) from handover.envelopes e where e.contract_id = c.id)::int as sealed, description
        from handover.contracts c where id = ${ID}::uuid`.execute(db);
     await sql`set role svc_handover`.execute(db);
     return rows[0];
   };
+  const DESCRIPTION = "Mes réseaux";
 
-  it("revokes the owner's sealed contracts, closing the claim and telling the participants", async () => {
+  // What the owner wrote: it goes with their account, unless the contract was released.
+  beforeEach(async () => {
+    await sql`reset role`.execute(db);
+    await sql`update handover.contracts set description = ${DESCRIPTION} where id = ${ID}::uuid`.execute(
+      db,
+    );
+    await sql`set role svc_handover`.execute(db);
+  });
+
+  it("revokes the owner's sealed contracts and forgets their description, closing the claim and telling the participants", async () => {
     const claimId = await file();
     await approveAs("v1", claimId);
     expect(await deleteAccount(OWNER)).toEqual({
@@ -433,7 +444,11 @@ describe("an account deleted", () => {
       revoked: 1,
       left: 0,
     });
-    expect(await contractOf()).toEqual({ status: "revoked", sealed: 0 });
+    expect(await contractOf()).toEqual({
+      status: "revoked",
+      sealed: 0,
+      description: null,
+    });
     const events = await outbox();
     expect(
       events.find((e) => e.type === "claim.closed")?.envelope.payload,
@@ -447,10 +462,24 @@ describe("an account deleted", () => {
     });
   });
 
+  it("forgets the description of a contract the owner had already revoked", async () => {
+    await claimsRevoke();
+    expect(await deleteAccount(OWNER)).toMatchObject({ revoked: 0 });
+    expect(await contractOf()).toEqual({
+      status: "revoked",
+      sealed: 0,
+      description: null,
+    });
+  });
+
   it("closes a claim that would release to a departed accessor, and tells the owner", async () => {
     await file(V1);
     expect(await deleteAccount(ACCESSOR)).toMatchObject({ left: 1 });
-    expect(await contractOf()).toEqual({ status: "active", sealed: 1 });
+    expect(await contractOf()).toEqual({
+      status: "active",
+      sealed: 1,
+      description: DESCRIPTION,
+    });
     const events = await outbox();
     expect(
       events.find((e) => e.type === "claim.closed")?.envelope.payload,
@@ -467,7 +496,11 @@ describe("an account deleted", () => {
   it("keeps a claim a departed validator did not file: the others may still approve", async () => {
     await file();
     await deleteAccount(V2);
-    expect(await contractOf()).toEqual({ status: "claimed", sealed: 1 });
+    expect(await contractOf()).toEqual({
+      status: "claimed",
+      sealed: 1,
+      description: DESCRIPTION,
+    });
     expect(
       (await outbox()).find((e) => e.type === "participant.left")?.envelope
         .payload,
@@ -481,7 +514,11 @@ describe("an account deleted", () => {
     clock.advance(7 * DAY);
     await settle(claimId);
     expect(await deleteAccount(OWNER)).toMatchObject({ revoked: 0 });
-    expect(await contractOf()).toEqual({ status: "released", sealed: 1 });
+    expect(await contractOf()).toEqual({
+      status: "released",
+      sealed: 1,
+      description: DESCRIPTION,
+    });
     await expect(claims.releasePackage(ACCESSOR, ID)).resolves.toMatchObject({
       claim_id: claimId,
     });

@@ -243,7 +243,8 @@ codes and invitations expired for a month.
 deletes the profile (keys and trust links go with it) and publishes `user.deleted` in the same transaction, then
 deletes the Clerk account (a retry after a failure at Clerk finishes the job). Handover deletes the user's drafts
 and revokes their sealed contracts (`contract.revoked`: the accessor and validators are told); released ones
-stay, for their accessor. In other people's contracts the user stays named, but their keys are gone: a claim
+stay, for their accessor. Every other contract they owned loses its description, whether revoked now or earlier:
+participants keep its category and its log, never what the owner wrote. In other people's contracts the user stays named, but their keys are gone: a claim
 they filed, or that would release to them as accessor, is closed (`participant_left`), and `participant.left`
 asks the owner to re-seal with someone else. A departed validator is not removed: the threshold belongs to the
 sealing, and the gateway's `health` shows the share as lost. The notifier forgets the user's notifications.
