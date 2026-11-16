@@ -195,3 +195,7 @@ If the contract changed, push this repo before the front.
   an « enveloppe » (envelope, feminine in French) and its accessor a « destinataire » (recipient): « contrat » would
   sound like a legal commitment. The code, routes, events and tables keep contract and accessor.
   `domain/templates.spec.ts` fails if either old word comes back in any template.
+- The privacy policy (behindMe: `scripts/site-pages.js` and `settings.privacy.*` in `locales/`, published on
+  behyndme.com) states what this repo does: what each table keeps, the retention jobs' periods, what account deletion
+  leaves, what the gateway logs (no IP address, no user agent: `logging.interceptor.spec.ts`). Changing any of them
+  means changing the policy in the same piece of work.
