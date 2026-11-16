@@ -5,8 +5,8 @@ import { LoggingInterceptor } from "./common/interceptors/logging.interceptor.js
 
 /** HTTP setup shared by main.ts and the API tests. */
 export function configureGateway(app: NestExpressApplication): void {
-  // Behind the host's proxy (Railway): the client's address is the first X-Forwarded-For hop, which
-  // the rate limit counts by for requests without a user.
+  // Behind Caddy (deploy/vm/Caddyfile): the client's address is the first X-Forwarded-For hop, which
+  // the rate limit counts by, in memory, for requests without a user. Nothing logs it.
   app.set("trust proxy", 1);
   // Every request (and what it logs or publishes) carries a correlation id.
   app.use(correlationMiddleware);
