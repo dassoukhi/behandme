@@ -7,7 +7,7 @@
  * user.deleted goes to the outbox in the same transaction as the profile's deletion; the running gateway relays it
  * to handover and the notifier, which revoke the envelopes and forget the notifications.
  */
-process.env.NODE_ENV ??= "production";
+// NODE_ENV comes from the environment, as for the gateway itself (production on the server).
 // No relay or consumer here: the running gateway sends what this writes to the outbox.
 process.env.MESSAGING_ENABLED = "false";
 
