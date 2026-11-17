@@ -249,6 +249,13 @@ they filed, or that would release to them as accessor, is closed (`participant_l
 asks the owner to re-seal with someone else. A departed validator is not removed: the threshold belongs to the
 sealing, and the gateway's `health` shows the share as lost. The notifier forgets the user's notifications.
 
+**Closing an account on request.** Heirs (article 85 of the loi Informatique et Libertés) and people who lost access to
+the app write to support; the help page says what heirs send. Once support has checked the request, it closes the
+account the same way, with no session to reverify (`apps/gateway/src/close-account.ts`, `ProfileService.closeAccount`):
+`npm run account:close -- <user id or e-mail>` says what closing would do (envelopes revoked, drafts deleted, owners
+told), which support tells the heirs first; `--confirm` does it. It needs a build and the gateway's environment; it
+writes `user.deleted` to the outbox and leaves the relay to the running gateway.
+
 **Audit log.** `handover.contract_events` is append-only: triggers reject UPDATE, DELETE and TRUNCATE for every
 role, and `svc_handover` can only read it and call `handover.append_event`, which numbers the event and computes
 its hash in the database, in the transaction of the change it records. Format (v1):

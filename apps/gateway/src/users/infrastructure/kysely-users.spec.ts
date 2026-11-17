@@ -143,6 +143,18 @@ describe("profiles", () => {
       await asGateway((db) => new KyselyProfileRepository(db).update("x", {})),
     ).toBeNull();
   });
+
+  it("finds a profile by its e-mail address whatever its case, for support", async () => {
+    const found = await asGateway((db) =>
+      new KyselyProfileRepository(db).findByEmail(" Alice.Martin@Example.COM "),
+    );
+    expect(found?.id).toBe("u1");
+    expect(
+      await asGateway((db) =>
+        new KyselyProfileRepository(db).findByEmail("nobody@example.com"),
+      ),
+    ).toBeNull();
+  });
 });
 
 describe("trust links", () => {

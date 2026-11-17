@@ -16,6 +16,15 @@ export class KyselyProfileRepository implements ProfileRepository {
     return row ? toProfile(row) : null;
   }
 
+  async findByEmail(email: string): Promise<Profile | null> {
+    const row = await this.db
+      .selectFrom("users")
+      .selectAll()
+      .where(sql`lower(email)`, "=", email.trim().toLowerCase())
+      .executeTakeFirst();
+    return row ? toProfile(row) : null;
+  }
+
   async findMany(ids: string[]): Promise<Profile[]> {
     if (ids.length === 0) return [];
     const rows = await this.db

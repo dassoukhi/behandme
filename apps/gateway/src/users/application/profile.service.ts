@@ -117,11 +117,30 @@ export class ProfileService {
    */
   async removeMe(me: string, fva: FactorVerificationAge | null): Promise<void> {
     if (!recentlyVerified(fva)) throw new ReverificationRequired();
+    await this.remove(me);
+  }
+
+  /** A profile by its id, or by its e-mail address when `idOrEmail` has an @; null when there is none. */
+  findAccount(idOrEmail: string): Promise<Profile | null> {
+    return idOrEmail.includes("@")
+      ? this.profiles.findByEmail(idOrEmail)
+      : this.profiles.find(idOrEmail.trim());
+  }
+
+  /**
+   * The same deletion, for support, once it has checked the request (close-account.ts): heirs under article 85 of
+   * the loi Informatique et Libertés, or someone who lost access to the app. No session, so no reverification.
+   */
+  async closeAccount(userId: string): Promise<void> {
+    await this.remove(userId);
+  }
+
+  private async remove(userId: string): Promise<void> {
     await this.unitOfWork.run(async ({ profiles, events }) => {
-      if (await profiles.delete(me)) {
-        await events.publish(UserDeleted.create({ userId: me }));
+      if (await profiles.delete(userId)) {
+        await events.publish(UserDeleted.create({ userId }));
       }
     });
-    await this.identity.deleteUser(me);
+    await this.identity.deleteUser(userId);
   }
 }

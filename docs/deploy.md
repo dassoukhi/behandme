@@ -80,6 +80,10 @@ changed); `docker compose logs -f gateway` shows a service's logs (5 × 10 MB ke
 `docker compose ps` their health. Containers restart on failure and with the machine; security updates
 install every day, and a kernel update needs a reboot now and then (`sudo reboot`).
 
+Closing an account at someone's request (heirs, lost access; see `docs/architecture.md`, "Closing an account on
+request"): `docker compose exec gateway node dist/apps/gateway/apps/gateway/src/close-account.js <user id or e-mail>`
+says what it would do; add `--confirm` to close it.
+
 ## Railway (alternative)
 
 1. New project → four services from the GitHub repo `dassoukhi/behandme`, each with its config file

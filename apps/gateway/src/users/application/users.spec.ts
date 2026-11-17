@@ -244,4 +244,25 @@ describe("ProfileService", () => {
     expect(store.published).toEqual([]);
     expect(store.deletedUsers).toEqual(["me"]);
   });
+
+  it("closes an account for support as its owner would delete it, with no session to reverify", async () => {
+    store.person("heir-request");
+    await profiles.closeAccount("heir-request");
+    expect(store.profiles.has("heir-request")).toBe(false);
+    expect(store.published).toEqual([
+      { type: "user.deleted", version: 1, payload: { userId: "heir-request" } },
+    ]);
+    expect(store.deletedUsers).toEqual(["heir-request"]);
+  });
+
+  it("finds the account to close by its id, or by its e-mail address whatever its case", async () => {
+    store.person("me");
+    store.profiles.get("me")!.email = "nina.martin@example.com";
+    expect((await profiles.findAccount("me"))?.id).toBe("me");
+    expect((await profiles.findAccount(" Nina.Martin@Example.com "))?.id).toBe(
+      "me",
+    );
+    expect(await profiles.findAccount("someone@example.com")).toBeNull();
+    expect(await profiles.findAccount("ghost")).toBeNull();
+  });
 });

@@ -24,6 +24,7 @@
     "start:prod:notifier": "node dist/apps/notifier/apps/notifier/src/main.js",
     "start:prod:handover": "node dist/apps/handover/apps/handover/src/main.js",
     "start:prod:worker": "node dist/apps/worker/apps/worker/src/main.js",
+    "account:close": "node dist/apps/gateway/apps/gateway/src/close-account.js",
     "lint": "eslint \"{apps,libs}/**/*.{ts,tsx}\" --fix",
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",

@@ -55,6 +55,14 @@ export class InMemoryUsers
   async find(id: string) {
     return this.profiles.get(id) ?? null;
   }
+  async findByEmail(email: string) {
+    const wanted = email.trim().toLowerCase();
+    return (
+      [...this.profiles.values()].find(
+        (p) => p.email?.toLowerCase() === wanted,
+      ) ?? null
+    );
+  }
   async create(id: string, fields: ProfileFields) {
     const profile = {
       id,

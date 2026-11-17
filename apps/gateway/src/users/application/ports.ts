@@ -32,6 +32,8 @@ export type ProfileFields = Partial<
 
 export interface ProfileRepository {
   find(id: string): Promise<Profile | null>;
+  /** The profile with this e-mail address, whatever its case; null when there is none. */
+  findByEmail(email: string): Promise<Profile | null>;
   /** The profiles that exist among `ids`, in no particular order. */
   findMany(ids: string[]): Promise<Profile[]>;
   create(
