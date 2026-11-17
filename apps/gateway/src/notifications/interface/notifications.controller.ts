@@ -23,8 +23,10 @@ import {
   NotificationDto,
   NotificationPreferencesDto,
   UnreadCountDto,
+  UnregisteredPushTokensDto,
 } from "./dto/notification.dto.js";
 import {
+  OtherPushTokensDto,
   PushTokenDto,
   UpdateNotificationDto,
   UpdateNotificationPreferencesDto,
@@ -94,6 +96,20 @@ export class NotificationsController {
   ): Promise<PushTokenDto> {
     await this.notifier.unregisterPushToken(me, token);
     return { token };
+  }
+
+  @Post("push-token/unregister-others")
+  @HttpCode(200)
+  @ApiOperation({
+    summary:
+      "Stop pushes to the caller's other devices (after a password change signed them out), keeping this one",
+  })
+  @ApiResponse({ status: 200, type: UnregisteredPushTokensDto })
+  unregisterOtherPushTokens(
+    @CurrentUserId() me: string,
+    @Body() { keep }: OtherPushTokensDto,
+  ): Promise<UnregisteredPushTokensDto> {
+    return this.notifier.unregisterOtherPushTokens(me, keep ?? null);
   }
 
   @Get("preferences")

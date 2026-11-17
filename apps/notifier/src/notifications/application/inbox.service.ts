@@ -70,6 +70,17 @@ export class InboxService {
     return this.store.tokens.unregister(userId, token);
   }
 
+  /**
+   * After a password change signed the user's other devices out: their pushes stop, and those of `keep`, the device
+   * that asks, go on. Without it, a phone someone else holds would go on showing the user's alerts.
+   */
+  async unregisterOtherDevices(
+    userId: string,
+    keep: string | null,
+  ): Promise<{ removed: number }> {
+    return { removed: await this.store.tokens.unregisterOthers(userId, keep) };
+  }
+
   async preferences(userId: string): Promise<Preferences> {
     return (await this.store.preferences.getMany([userId])).get(userId)!;
   }

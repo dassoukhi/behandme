@@ -737,6 +737,24 @@ describe("devices", () => {
     expect((await deliveries()).map((d) => d.token)).toEqual([TOKEN_B1]);
   });
 
+  it("stop for the user's other devices after a password change, never for the one that asks or another user's", async () => {
+    await inbox.registerDevice(BOB, TOKEN_B1);
+    await inbox.registerDevice(BOB, TOKEN_B2);
+    await inbox.registerDevice(ALICE, "ExponentPushToken[alice-phone]");
+    expect(await inbox.unregisterOtherDevices(BOB, TOKEN_B1)).toEqual({
+      removed: 1,
+    });
+    await receive(aliceAddsBob());
+    expect((await deliveries()).map((d) => d.token)).toEqual([TOKEN_B1]);
+    // Asked from a device without pushes: none of the user's devices keeps them.
+    expect(await inbox.unregisterOtherDevices(BOB, null)).toEqual({
+      removed: 1,
+    });
+    expect(await inbox.unregisterOtherDevices(ALICE, null)).toEqual({
+      removed: 1,
+    });
+  });
+
   it("are only unregistered by their user", async () => {
     await inbox.registerDevice(BOB, TOKEN_B1);
     await inbox.unregisterDevice(ALICE, TOKEN_B1);

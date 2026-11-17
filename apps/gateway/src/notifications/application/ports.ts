@@ -24,6 +24,11 @@ export interface NotifierClient {
   registerPushToken(userId: string, token: string): Promise<void>;
   /** Only removes the token if it is the user's. */
   unregisterPushToken(userId: string, token: string): Promise<void>;
+  /** Removes the user's tokens other than `keep`, all of them when it is null. */
+  unregisterOtherPushTokens(
+    userId: string,
+    keep: string | null,
+  ): Promise<{ removed: number }>;
   preferences(userId: string): Promise<NotificationPreferences>;
   updatePreferences(
     userId: string,

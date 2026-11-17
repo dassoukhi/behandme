@@ -18,6 +18,7 @@ import type {
 import { ForUser } from "@lib/platform";
 import { InboxService } from "../application/inbox.service.js";
 import {
+  OtherPushTokensDto,
   PushTokenDto,
   SetReadDto,
   UpdatePreferencesDto,
@@ -79,6 +80,15 @@ export class PushTokensController {
   @HttpCode(204)
   unregister(@ForUser() userId: string, @Body() { token }: PushTokenDto) {
     return this.inbox.unregisterDevice(userId, token);
+  }
+
+  @Post("unregister-others")
+  @HttpCode(200)
+  unregisterOthers(
+    @ForUser() userId: string,
+    @Body() { keep }: OtherPushTokensDto,
+  ): Promise<{ removed: number }> {
+    return this.inbox.unregisterOtherDevices(userId, keep ?? null);
   }
 }
 

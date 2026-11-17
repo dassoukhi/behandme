@@ -65,6 +65,25 @@ describe("HttpNotifierClient", () => {
     });
   });
 
+  it("asks the notifier to stop the user's other devices, keeping this one or none", async () => {
+    const { notifier, calls } = client(
+      json(200, { removed: 2 }),
+      json(200, { removed: 1 }),
+    );
+    await expect(
+      notifier.unregisterOtherPushTokens("user_a", "ExponentPushToken[a]"),
+    ).resolves.toEqual({ removed: 2 });
+    expect(calls[0].url).toBe(
+      "http://notifier:3001/internal/v1/push-tokens/unregister-others",
+    );
+    expect(calls[0].init).toMatchObject({
+      method: "POST",
+      body: JSON.stringify({ keep: "ExponentPushToken[a]" }),
+    });
+    await notifier.unregisterOtherPushTokens("user_a", null);
+    expect(calls[1].init.body).toBe("{}");
+  });
+
   it("turns a 404 into NotFoundError with the notifier's message", async () => {
     const { notifier } = client(
       json(404, { statusCode: 404, message: "Notification not found" }),

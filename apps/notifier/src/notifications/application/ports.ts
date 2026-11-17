@@ -45,6 +45,8 @@ export interface PushTokenRepository {
   register(userId: string, token: string): Promise<void>;
   /** Only removes the token if it belongs to `userId`. */
   unregister(userId: string, token: string): Promise<void>;
+  /** Removes `userId`'s tokens other than `keep`, all of them when it is null; returns how many. */
+  unregisterOthers(userId: string, keep: string | null): Promise<number>;
   /** Tokens of each of `userIds`. */
   tokensOf(userIds: string[]): Promise<Map<string, string[]>>;
   /** Forgets devices that no longer exist. */

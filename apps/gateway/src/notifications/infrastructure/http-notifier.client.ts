@@ -82,6 +82,15 @@ export class HttpNotifierClient implements NotifierClient {
     });
   }
 
+  unregisterOtherPushTokens(userId: string, keep: string | null) {
+    return this.http.call<{ removed: number }>(
+      userId,
+      "POST",
+      "/push-tokens/unregister-others",
+      { body: keep === null ? {} : { keep }, idempotent: true },
+    );
+  }
+
   preferences(userId: string) {
     return this.http.call<NotificationPreferences>(
       userId,

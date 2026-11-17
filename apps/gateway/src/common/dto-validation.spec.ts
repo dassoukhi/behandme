@@ -6,6 +6,7 @@ import {
   UpdateContractDTO,
 } from "../contracts/interface/dto/contract-inputs.dto.js";
 import {
+  OtherPushTokensDto,
   PushTokenDto,
   UpdateNotificationDto,
   UpdateNotificationPreferencesDto,
@@ -65,6 +66,20 @@ describe("notification DTOs", () => {
         BadRequestException,
       );
     }
+  });
+
+  it("keeps an Expo push token, or none, when stopping the other devices", async () => {
+    const keep = "ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]";
+    await expect(validate(OtherPushTokensDto, { keep })).resolves.toEqual({
+      keep,
+    });
+    await expect(validate(OtherPushTokensDto, {})).resolves.toEqual({});
+    await expect(
+      validate(OtherPushTokensDto, { keep: "fcm:token" }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    await expect(
+      validate(OtherPushTokensDto, { keep, user_id: "user_b" }),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it("accepts a partial preferences update, booleans only", async () => {

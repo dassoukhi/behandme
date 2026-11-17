@@ -26,6 +26,17 @@ export class PushTokenDto {
   token: string;
 }
 
+export class OtherPushTokensDto {
+  /** The token of the device that asks: its pushes go on. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(256)
+  @Matches(/^Expo(nent)?PushToken\[[^\]]+\]$/, {
+    message: "keep must be an Expo push token",
+  })
+  keep?: string;
+}
+
 export class UpdatePreferencesDto {
   @IsOptional()
   @IsBoolean()

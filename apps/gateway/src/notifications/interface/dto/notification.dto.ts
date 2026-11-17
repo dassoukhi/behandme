@@ -55,6 +55,14 @@ export class MarkedReadDto implements MarkedRead {
   updated: number;
 }
 
+export class UnregisteredPushTokensDto {
+  @ApiProperty({
+    description: "Devices that no longer get the pushes",
+    example: 1,
+  })
+  removed: number;
+}
+
 export class NotificationPreferencesDto implements NotificationPreferences {
   @ApiProperty({
     description:

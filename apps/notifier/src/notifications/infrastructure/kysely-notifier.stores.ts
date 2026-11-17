@@ -149,6 +149,13 @@ class KyselyPushTokens implements PushTokenRepository {
       .execute();
   }
 
+  async unregisterOthers(userId: string, keep: string | null): Promise<number> {
+    let query = this.db.deleteFrom("push_tokens").where("user_id", "=", userId);
+    if (keep !== null) query = query.where("token", "<>", keep);
+    const result = await query.executeTakeFirst();
+    return Number(result.numDeletedRows);
+  }
+
   async tokensOf(userIds: string[]): Promise<Map<string, string[]>> {
     const tokens = new Map<string, string[]>();
     if (userIds.length === 0) return tokens;

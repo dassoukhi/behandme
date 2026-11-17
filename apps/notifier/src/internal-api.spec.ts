@@ -126,6 +126,26 @@ describe("internal API", () => {
     expect(res.status).toBe(400);
   });
 
+  it("stops the caller's other devices, keeping the one that asks", async () => {
+    for (const token of ["ExponentPushToken[a]", "ExponentPushToken[b]"]) {
+      await call("/internal/v1/push-tokens", {
+        method: "POST",
+        body: JSON.stringify({ token }),
+      });
+    }
+    const res = await call("/internal/v1/push-tokens/unregister-others", {
+      method: "POST",
+      body: JSON.stringify({ keep: "ExponentPushToken[a]" }),
+    });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ removed: 1 });
+    const malformed = await call("/internal/v1/push-tokens/unregister-others", {
+      method: "POST",
+      body: JSON.stringify({ keep: "not-a-token" }),
+    });
+    expect(malformed.status).toBe(400);
+  });
+
   it("registers a device and updates settings", async () => {
     const register = await call("/internal/v1/push-tokens", {
       method: "POST",

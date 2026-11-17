@@ -32,6 +32,21 @@ export class PushTokenDto {
   token: string;
 }
 
+export class OtherPushTokensDto {
+  @ApiPropertyOptional({
+    description:
+      "Expo push token of this device, whose pushes go on; left out when pushes are off here",
+    example: "ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]",
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(256)
+  @Matches(/^Expo(nent)?PushToken\[[^\]]+\]$/, {
+    message: "keep must be an Expo push token",
+  })
+  keep?: string;
+}
+
 export class UpdateNotificationPreferencesDto {
   @ApiPropertyOptional({ example: false })
   @IsOptional()
