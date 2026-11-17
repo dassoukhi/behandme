@@ -84,7 +84,7 @@ beforeEach(async () => {
         getProfile: async () => {
           throw new Error("unused");
         },
-        deleteUser: async () => undefined,
+        deleteUser: async () => true,
       },
       trust,
       unitOfWork,

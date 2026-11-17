@@ -11,7 +11,8 @@
 // No relay or consumer here: the running gateway sends what this writes to the outbox.
 process.env.MESSAGING_ENABLED = "false";
 
-const [target, ...flags] = process.argv.slice(2);
+const [rawTarget, ...flags] = process.argv.slice(2);
+const target = rawTarget?.trim();
 if (!target || flags.some((flag) => flag !== "--confirm")) {
   console.error(
     "Usage: npm run account:close -- <user id or e-mail> [--confirm]",
@@ -36,21 +37,32 @@ const app = await NestFactory.createApplicationContext(AppModule, {
 let status = 0;
 try {
   const profiles = app.get(ProfileService);
-  const profile = await profiles.findAccount(target);
-  if (!profile) {
+  const matches = await profiles.findAccounts(target);
+  const [profile] = matches;
+  if (matches.length > 1) {
+    // An old profile kept the address of a new account: support must say which one, by its id.
+    console.error(
+      `Several accounts use ${target}: ${matches.map((p) => p.id).join(", ")}. Run again with the id of the one to close.`,
+    );
+    status = 1;
+  } else if (!profile) {
     if (target.includes("@")) {
       console.error(`No account uses ${target}.`);
       status = 1;
     } else if (!confirm) {
       // A deletion interrupted after the profile went: only the Clerk account may be left.
       console.log(
-        `No profile for ${target}. With --confirm, only its Clerk account, if any, is deleted.`,
+        `No profile for ${target}. With --confirm, its Clerk account is deleted if there is one.`,
+      );
+    } else if ((await profiles.closeAccount(target)).identity) {
+      console.log(
+        `${target}: no profile was left; its Clerk account is deleted.`,
       );
     } else {
-      await profiles.closeAccount(target);
-      console.log(
-        `${target}: no profile; its Clerk account is deleted if it was left.`,
+      console.error(
+        `${target}: neither a profile nor a Clerk account. Nothing was closed: check the id.`,
       );
+      status = 1;
     }
   } else {
     const records = await app.get(HANDOVER_CLIENT).list(profile.id);

@@ -120,27 +120,36 @@ export class ProfileService {
     await this.remove(me);
   }
 
-  /** A profile by its id, or by its e-mail address when `idOrEmail` has an @; null when there is none. */
-  findAccount(idOrEmail: string): Promise<Profile | null> {
-    return idOrEmail.includes("@")
-      ? this.profiles.findByEmail(idOrEmail)
-      : this.profiles.find(idOrEmail.trim());
+  /**
+   * The profile with this id, or those with this e-mail address when `idOrEmail` has an @: several when an old
+   * profile kept the address of a new account, since the column is not unique.
+   */
+  async findAccounts(idOrEmail: string): Promise<Profile[]> {
+    const wanted = idOrEmail.trim();
+    if (wanted.includes("@")) return this.profiles.findByEmail(wanted);
+    const profile = await this.profiles.find(wanted);
+    return profile ? [profile] : [];
   }
 
   /**
    * The same deletion, for support, once it has checked the request (close-account.ts): heirs under article 85 of
    * the loi Informatique et Libertés, or someone who lost access to the app. No session, so no reverification.
+   * Says what there was to delete: neither a profile nor a Clerk account means a wrong id.
    */
-  async closeAccount(userId: string): Promise<void> {
-    await this.remove(userId);
+  closeAccount(
+    userId: string,
+  ): Promise<{ profile: boolean; identity: boolean }> {
+    return this.remove(userId);
   }
 
-  private async remove(userId: string): Promise<void> {
-    await this.unitOfWork.run(async ({ profiles, events }) => {
-      if (await profiles.delete(userId)) {
-        await events.publish(UserDeleted.create({ userId }));
-      }
+  private async remove(
+    userId: string,
+  ): Promise<{ profile: boolean; identity: boolean }> {
+    const profile = await this.unitOfWork.run(async ({ profiles, events }) => {
+      if (!(await profiles.delete(userId))) return false;
+      await events.publish(UserDeleted.create({ userId }));
+      return true;
     });
-    await this.identity.deleteUser(userId);
+    return { profile, identity: await this.identity.deleteUser(userId) };
   }
 }

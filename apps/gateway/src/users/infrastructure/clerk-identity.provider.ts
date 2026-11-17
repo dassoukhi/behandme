@@ -26,12 +26,13 @@ export class ClerkIdentityProvider implements IdentityProvider {
     };
   }
 
-  async deleteUser(userId: string): Promise<void> {
+  async deleteUser(userId: string): Promise<boolean> {
     try {
       await this.clerk.users.deleteUser(userId);
+      return true;
     } catch (error) {
-      // A first attempt already deleted it.
-      if ((error as { status?: number }).status === 404) return;
+      // A first attempt already deleted it, or there never was one.
+      if ((error as { status?: number }).status === 404) return false;
       throw error;
     }
   }

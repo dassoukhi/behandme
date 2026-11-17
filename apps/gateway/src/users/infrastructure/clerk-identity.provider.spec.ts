@@ -45,3 +45,28 @@ describe("ClerkIdentityProvider", () => {
     });
   });
 });
+
+describe("deleting the Clerk account", () => {
+  const deleting = (outcome: () => Promise<unknown>) =>
+    new ClerkIdentityProvider({
+      users: { deleteUser: outcome },
+    } as unknown as ClerkClient);
+
+  it("says whether there was an account to delete, so that a wrong id is not taken for a closure", async () => {
+    await expect(deleting(async () => ({})).deleteUser("user_1")).resolves.toBe(
+      true,
+    );
+    await expect(
+      deleting(() =>
+        Promise.reject(Object.assign(new Error("Not Found"), { status: 404 })),
+      ).deleteUser("user_x"),
+    ).resolves.toBe(false);
+    await expect(
+      deleting(() =>
+        Promise.reject(
+          Object.assign(new Error("Unavailable"), { status: 503 }),
+        ),
+      ).deleteUser("user_1"),
+    ).rejects.toThrow("Unavailable");
+  });
+});

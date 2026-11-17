@@ -247,7 +247,10 @@ describe("ProfileService", () => {
 
   it("closes an account for support as its owner would delete it, with no session to reverify", async () => {
     store.person("heir-request");
-    await profiles.closeAccount("heir-request");
+    expect(await profiles.closeAccount("heir-request")).toEqual({
+      profile: true,
+      identity: true,
+    });
     expect(store.profiles.has("heir-request")).toBe(false);
     expect(store.published).toEqual([
       { type: "user.deleted", version: 1, payload: { userId: "heir-request" } },
@@ -255,14 +258,36 @@ describe("ProfileService", () => {
     expect(store.deletedUsers).toEqual(["heir-request"]);
   });
 
+  it("says when there was nothing to close, as for a mistyped id", async () => {
+    store.clerkGone.add("user_typo");
+    expect(await profiles.closeAccount("user_typo")).toEqual({
+      profile: false,
+      identity: false,
+    });
+    expect(store.published).toEqual([]);
+  });
+
   it("finds the account to close by its id, or by its e-mail address whatever its case", async () => {
     store.person("me");
     store.profiles.get("me")!.email = "nina.martin@example.com";
-    expect((await profiles.findAccount("me"))?.id).toBe("me");
-    expect((await profiles.findAccount(" Nina.Martin@Example.com "))?.id).toBe(
+    expect((await profiles.findAccounts(" me ")).map((p) => p.id)).toEqual([
       "me",
-    );
-    expect(await profiles.findAccount("someone@example.com")).toBeNull();
-    expect(await profiles.findAccount("ghost")).toBeNull();
+    ]);
+    expect(
+      (await profiles.findAccounts(" Nina.Martin@Example.com ")).map(
+        (p) => p.id,
+      ),
+    ).toEqual(["me"]);
+    expect(await profiles.findAccounts("someone@example.com")).toEqual([]);
+    expect(await profiles.findAccounts("ghost")).toEqual([]);
+  });
+
+  it("finds every account that shares an address, so that support picks one by its id", async () => {
+    store.person("old").person("new");
+    store.profiles.get("old")!.email = "nina@example.com";
+    store.profiles.get("new")!.email = "Nina@Example.com";
+    expect(
+      (await profiles.findAccounts("nina@example.com")).map((p) => p.id).sort(),
+    ).toEqual(["new", "old"]);
   });
 });

@@ -108,7 +108,7 @@ beforeEach(async () => {
         if (!identities[id]) throw new Error(`unknown identity ${id}`);
         return identities[id];
       },
-      deleteUser: async () => undefined,
+      deleteUser: async () => true,
     },
     trust,
     unitOfWork,

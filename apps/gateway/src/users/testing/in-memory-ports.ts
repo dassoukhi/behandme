@@ -57,10 +57,8 @@ export class InMemoryUsers
   }
   async findByEmail(email: string) {
     const wanted = email.trim().toLowerCase();
-    return (
-      [...this.profiles.values()].find(
-        (p) => p.email?.toLowerCase() === wanted,
-      ) ?? null
+    return [...this.profiles.values()].filter(
+      (p) => p.email?.toLowerCase() === wanted,
     );
   }
   async create(id: string, fields: ProfileFields) {
@@ -231,8 +229,14 @@ export class InMemoryUsers
     return identity;
   }
 
+  /** Ids Clerk has no account for: never had one, or already deleted it. */
+  clerkGone = new Set<string>();
+
   async deleteUser(userId: string) {
     this.deletedUsers.push(userId);
+    if (this.clerkGone.has(userId)) return false;
+    this.clerkGone.add(userId);
+    return true;
   }
 
   /** Adds a profile with contact details. */

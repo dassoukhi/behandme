@@ -17,8 +17,8 @@ export interface IdentityProfile {
 /** Where the verified identity of a user comes from. */
 export interface IdentityProvider {
   getProfile(userId: string): Promise<IdentityProfile>;
-  /** Deletes the account at the provider (Clerk); done when it is already gone. */
-  deleteUser(userId: string): Promise<void>;
+  /** Deletes the account at the provider (Clerk); false when it was already gone. */
+  deleteUser(userId: string): Promise<boolean>;
 }
 export const IDENTITY_PROVIDER = Symbol("IdentityProvider");
 
@@ -32,8 +32,8 @@ export type ProfileFields = Partial<
 
 export interface ProfileRepository {
   find(id: string): Promise<Profile | null>;
-  /** The profile with this e-mail address, whatever its case; null when there is none. */
-  findByEmail(email: string): Promise<Profile | null>;
+  /** The profiles with this e-mail address, whatever its case: the column is not unique. */
+  findByEmail(email: string): Promise<Profile[]>;
   /** The profiles that exist among `ids`, in no particular order. */
   findMany(ids: string[]): Promise<Profile[]>;
   create(

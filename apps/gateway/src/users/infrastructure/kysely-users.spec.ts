@@ -144,16 +144,20 @@ describe("profiles", () => {
     ).toBeNull();
   });
 
-  it("finds a profile by its e-mail address whatever its case, for support", async () => {
-    const found = await asGateway((db) =>
-      new KyselyProfileRepository(db).findByEmail(" Alice.Martin@Example.COM "),
-    );
-    expect(found?.id).toBe("u1");
+  it("finds the profiles with an e-mail address whatever its case, for support", async () => {
+    const byEmail = (email: string) =>
+      asGateway((db) => new KyselyProfileRepository(db).findByEmail(email));
     expect(
-      await asGateway((db) =>
-        new KyselyProfileRepository(db).findByEmail("nobody@example.com"),
-      ),
-    ).toBeNull();
+      (await byEmail(" Alice.Martin@Example.COM ")).map((p) => p.id),
+    ).toEqual(["u1"]);
+    expect(await byEmail("nobody@example.com")).toEqual([]);
+    // The column is not unique: an old profile can keep the address of a new account.
+    await sql`insert into public.users (id, email) values ('u4', 'ALICE.MARTIN@example.com')`.execute(
+      t.db,
+    );
+    expect(
+      (await byEmail("alice.martin@example.com")).map((p) => p.id).sort(),
+    ).toEqual(["u1", "u4"]);
   });
 });
 
