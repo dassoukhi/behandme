@@ -399,6 +399,57 @@ const contractName = (category: string) => ({
 /** "Camille Martin's", or "the" when the owner is unknown: "Camille Martin's envelope “Devices”". */
 const possessive = (name: string | null) => (name ? `${name}'s` : "the");
 
+/** The rules someone named in an envelope is part of: how many approvals release it, and the days to cancel. */
+interface SealedRules {
+  ownerId: string;
+  category: string;
+  validatorCount: number;
+  threshold: number;
+  contestDays: number;
+}
+
+const days = (count: number) => ({
+  fr: `${count} jour${count > 1 ? "s" : ""}`,
+  en: `${count} day${count > 1 ? "s" : ""}`,
+});
+
+/** For a validator: "Votre accord suffit" alone, "Il faut 2 validations sur 3" among others. */
+const quorumForValidator = ({ threshold, validatorCount }: SealedRules) =>
+  validatorCount === 1
+    ? { fr: "Votre accord suffit", en: "Your approval is enough" }
+    : {
+        fr: `Il faut ${threshold} validations sur ${validatorCount}`,
+        en: `It takes ${threshold} approvals out of ${validatorCount}`,
+      };
+
+/** For the accessor: whose approval opens it ("l'accord de 2 de ses 3 validateurs"). */
+const quorumForAccessor = ({ threshold, validatorCount }: SealedRules) =>
+  validatorCount === 1
+    ? {
+        fr: "l'accord de son validateur",
+        en: "the approval of their validator",
+      }
+    : threshold === validatorCount
+      ? validatorCount === 2
+        ? {
+            fr: "l'accord de ses deux validateurs",
+            en: "the approval of both of their validators",
+          }
+        : {
+            fr: `l'accord de ses ${validatorCount} validateurs`,
+            en: `the approval of all ${validatorCount} of their validators`,
+          }
+      : {
+          fr: `l'accord de ${threshold} de ses ${validatorCount} validateurs`,
+          en: `the approval of ${threshold} of their ${validatorCount} validators`,
+        };
+
+/** Where people named in an envelope read what we keep about them, and their rights (never a link in an e-mail). */
+const RIGHTS = {
+  fr: "Ce que nous gardons à votre sujet et vos droits : Réglages › Confidentialité, dans l'app.",
+  en: "What we keep about you, and your rights: Settings › Privacy, in the app.",
+};
+
 /** Someone says the owner can no longer act: the owner must be able to stop it at once. */
 export function claimFiledForOwner(params: {
   ownerId: string;
@@ -464,14 +515,16 @@ export function claimFiledForOwner(params: {
 
 /**
  * Someone now holds a share of a contract: they should know, and keep their keys. Category only; it opens
- * the screen where they keep their keys, the one thing to do.
+ * the screen where they keep their keys, the one thing to do. The e-mail says what the role is and is not (they never
+ * see the content, nothing obliges them to approve, it has no effect on an estate), the rules it is part of, and how to
+ * step back.
  */
-export function chosenAsValidator(params: {
-  validatorId: string;
-  ownerId: string;
-  category: string;
-}): NotificationDraft {
+export function chosenAsValidator(
+  params: SealedRules & { validatorId: string },
+): NotificationDraft {
   const name = contractName(params.category);
+  const quorum = quorumForValidator(params);
+  const delay = days(params.contestDays);
   return {
     userId: params.validatorId,
     type: "validator_chosen",
@@ -496,16 +549,78 @@ export function chosenAsValidator(params: {
           subject: owner ? `${owner} compte sur vous` : undefined,
           paragraphs: [
             `${owner ?? "Un proche"} vous a choisi comme validateur de son enveloppe ${name.fr}.`,
-            `Le jour où quelqu'un demandera sa transmission, votre avis sera demandé : vous ne l'approuverez que si vous êtes sûr que ${first ?? "cette personne"} ne peut plus agir.`,
+            `Le jour où quelqu'un demandera sa transmission, votre avis sera demandé : vous ne l'approuverez que si vous êtes sûr que ${first ?? "cette personne"} ne peut plus agir. ${quorum.fr}, et ${first ?? "cette personne"} dispose de ${delay.fr} après la demande pour l'annuler.`,
+            `Vous ne verrez jamais ce que contient l'enveloppe. Ce rôle ne vous oblige à rien, ne vous donne aucun droit sur ses biens et ne remplace aucune démarche de succession. Si vous ne souhaitez pas le tenir, dites-le à ${first ?? "cette personne"}, qui choisira quelqu'un d'autre.`,
             "D'ici là, gardez vos clés à l'abri : sans elles, vous ne pourrez pas approuver. L'app vous guide, une minute suffit.",
+            RIGHTS.fr,
           ],
         },
         en: {
           subject: owner ? `${owner} is counting on you` : undefined,
           paragraphs: [
             `${owner ?? "Someone close to you"} chose you as a validator of their envelope ${name.en}.`,
-            `The day someone requests its handover, you will be asked for your decision: only approve it if you are sure ${first ?? "they"} can no longer act.`,
+            `The day someone requests its handover, you will be asked for your decision: only approve it if you are sure ${first ?? "they"} can no longer act. ${quorum.en}, and ${first ? `${first} has` : "they have"} ${delay.en} after the request to cancel it.`,
+            `You will never see what the envelope holds. This role obliges you to nothing, gives you no right to their property and replaces no step of an estate settlement. If you would rather not hold it, tell ${first ?? "them"}, who will choose someone else.`,
             "Until then, keep your keys safe: without them, you cannot approve. The app guides you; it takes a minute.",
+            RIGHTS.en,
+          ],
+        },
+      };
+    },
+  };
+}
+
+/**
+ * Someone is now the accessor of a contract. They hold nothing to keep (validators re-wrap their shares to the
+ * accessor's keys at the claim), but should know they were chosen, what the envelope may give them one day, and what it
+ * does not: no right to the owner's property, only what the owner asked of them. It opens the envelope's screen.
+ */
+export function chosenAsAccessor(
+  params: SealedRules & { accessorId: string; contractId: string },
+): NotificationDraft {
+  const name = contractName(params.category);
+  const quorum = quorumForAccessor(params);
+  const delay = days(params.contestDays);
+  return {
+    userId: params.accessorId,
+    type: "accessor_chosen",
+    mentions: [params.ownerId],
+    copy: {
+      fr: {
+        title: "Une enveloppe vous est destinée",
+        body: `Vous êtes le destinataire de l'enveloppe ${name.fr}. Vous n'avez rien à faire pour l'instant.`,
+      },
+      en: {
+        title: "An envelope is meant for you",
+        body: `You are the recipient of the envelope ${name.en}. There is nothing for you to do for now.`,
+      },
+    },
+    data: { url: `/contract/${params.contractId}` },
+    critical: false,
+    email: (ctx) => {
+      const owner = ctx.name(params.ownerId);
+      const first = ctx.firstName(params.ownerId);
+      return {
+        fr: {
+          subject: owner
+            ? `${owner} vous a choisi comme destinataire`
+            : undefined,
+          paragraphs: [
+            `${owner ?? "Un proche"} vous a choisi comme destinataire de son enveloppe ${name.fr}.`,
+            `Elle reste scellée : vous ne pourrez l'ouvrir que si un jour ${first ?? "cette personne"} ne peut plus agir, avec ${quorum.fr}. ${first ?? "Cette personne"} reçoit aussitôt une alerte et dispose de ${delay.fr} pour annuler la demande.`,
+            `Ces accès ne vous donneront aucun droit sur ses biens : servez-vous-en seulement pour ce que ${first ?? "cette personne"} vous aura demandé.`,
+            `Vous n'avez rien à faire pour l'instant. Si vous ne souhaitez pas ce rôle, dites-le à ${first ?? "cette personne"}, qui choisira quelqu'un d'autre.`,
+            RIGHTS.fr,
+          ],
+        },
+        en: {
+          subject: owner ? `${owner} chose you as a recipient` : undefined,
+          paragraphs: [
+            `${owner ?? "Someone close to you"} chose you as the recipient of their envelope ${name.en}.`,
+            `It stays sealed: you can open it only if one day ${first ?? "they"} can no longer act, with ${quorum.en}. ${first ? `${first} is alerted at once and has` : "They are alerted at once and have"} ${delay.en} to cancel the request.`,
+            `This access will give you no right to their property: use it only for what ${first ?? "they"} will have asked of you.`,
+            `There is nothing to do for now. If you would rather not hold this role, tell ${first ?? "them"}, who will choose someone else.`,
+            RIGHTS.en,
           ],
         },
       };

@@ -1,6 +1,7 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { type Clock } from "@lib/kernel";
 import {
+  chosenAsAccessor,
   chosenAsValidator,
   claimClosed,
   claimFiledForOwner,
@@ -133,21 +134,45 @@ export class NotificationEvents {
     );
   }
 
-  /** Those named validators for the first time. */
+  /** Those named for the first time: each new validator, and the accessor when they are new too. */
   async contractSealed(
     store: NotifierStore,
-    event: { category: string; ownerId: string; newValidatorIds: string[] },
+    event: {
+      contractId: string;
+      category: string;
+      ownerId: string;
+      accessorId: string;
+      newAccessor: boolean;
+      newValidatorIds: string[];
+      validatorCount: number;
+      threshold: number;
+      contestDays: number;
+    },
     occurredAt?: string,
   ): Promise<void> {
+    const rules = {
+      ownerId: event.ownerId,
+      category: event.category,
+      validatorCount: event.validatorCount,
+      threshold: event.threshold,
+      contestDays: event.contestDays,
+    };
     await this.notifier.notify(
       store,
-      event.newValidatorIds.map((validatorId) =>
-        chosenAsValidator({
-          validatorId,
-          ownerId: event.ownerId,
-          category: event.category,
-        }),
-      ),
+      [
+        ...event.newValidatorIds.map((validatorId) =>
+          chosenAsValidator({ ...rules, validatorId }),
+        ),
+        ...(event.newAccessor
+          ? [
+              chosenAsAccessor({
+                ...rules,
+                accessorId: event.accessorId,
+                contractId: event.contractId,
+              }),
+            ]
+          : []),
+      ],
       occurredAt,
     );
   }

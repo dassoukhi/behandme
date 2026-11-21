@@ -72,18 +72,30 @@ export const ClaimFiled = defineEvent(
 );
 
 /**
- * Handover: the owner sealed a contract; those it names as validators for the first time are told who
- * chose them (v2: `ownerId`, for the e-mail).
+ * Handover: the owner sealed a contract; those it names for the first time (validators, or the accessor) are told
+ * who chose them, and the rules they are part of (v2: `ownerId`, for the e-mail; v3: the accessor, the quorum and the
+ * days the owner has to cancel a claim).
  */
 export const ContractSealed = defineEvent(
   "contract.sealed",
-  2,
-  z.object({
-    contractId,
-    category,
-    ownerId: userId,
-    newValidatorIds: z.array(userId).min(1),
-  }),
+  3,
+  z
+    .object({
+      contractId,
+      category,
+      ownerId: userId,
+      accessorId: userId,
+      /** The accessor was not the accessor of the last sealing. */
+      newAccessor: z.boolean(),
+      newValidatorIds: z.array(userId),
+      validatorCount: z.number().int().min(1).max(3),
+      /** Approvals needed to release. */
+      threshold: z.number().int().min(1).max(3),
+      contestDays: z.number().int().min(1),
+    })
+    .refine((p) => p.newAccessor || p.newValidatorIds.length > 0, {
+      message: "Nobody is named for the first time",
+    }),
 );
 
 /** Handover: enough validators approved; the release follows at `contestUntil` unless cancelled. */

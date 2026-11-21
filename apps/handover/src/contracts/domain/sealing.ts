@@ -25,6 +25,28 @@ export function newlyNamed(previous: string[], current: string[]): string[] {
   return current.filter((id) => !previous.includes(id));
 }
 
+/**
+ * Who a sealing names for the first time, to tell them: a re-seal names again those of the last sealing (the accessor
+ * and the validators change only by sealing), a first sealing names everyone.
+ */
+export function namedForTheFirstTime(
+  previous: {
+    sealedVersion: number;
+    accessorId: string;
+    validatorIds: string[];
+  },
+  current: { accessorId: string; validatorIds: string[] },
+): { newAccessor: boolean; newValidatorIds: string[] } {
+  const sealed = previous.sealedVersion > 0;
+  return {
+    newAccessor: !sealed || previous.accessorId !== current.accessorId,
+    newValidatorIds: newlyNamed(
+      sealed ? previous.validatorIds : [],
+      current.validatorIds,
+    ),
+  };
+}
+
 /** A format 2 envelope whose size is one of the padding steps. */
 export function isPaddedEnvelope(envelope: Uint8Array): boolean {
   const padded = envelope.length - (1 + NONCE_LENGTH + TAG_LENGTH);

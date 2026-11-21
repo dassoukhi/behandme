@@ -61,6 +61,9 @@ describe("mentions", () => {
     role: "validator",
     contestUntil: "2026-11-19T13:30:00.000Z",
     usableFrom: "2026-11-15T13:30:00.000Z",
+    validatorCount: 3,
+    threshold: 2,
+    contestDays: 7,
   };
 
   it.each(Object.entries(templates))(

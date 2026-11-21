@@ -15,6 +15,7 @@ import { FakeClock, startTestDatabase, type TestDatabase } from "@lib/testing";
 import { ContractsService } from "./application/contracts.service.js";
 import { SealingService } from "./application/sealing.service.js";
 import {
+  namedForTheFirstTime,
   newlyNamed,
   type RegisteredKey,
   type SealRequest,
@@ -123,7 +124,7 @@ describe("sealing", () => {
     });
   });
 
-  it("tells the validators it names for the first time", async () => {
+  it("tells those it names for the first time, with the rules of their role", async () => {
     await sql`reset role`.execute(db);
     await sql`delete from handover.outbox`.execute(db);
     await sql`set role svc_handover`.execute(db);
@@ -141,7 +142,12 @@ describe("sealing", () => {
           contractId: ID,
           category: "networks",
           ownerId: OWNER,
+          accessorId: P.accessor.user_id,
+          newAccessor: true,
           newValidatorIds: [P.v1.user_id, P.v2.user_id, P.v3.user_id],
+          validatorCount: 3,
+          threshold: 2,
+          contestDays: 7,
         },
       ],
     ]);
@@ -159,6 +165,23 @@ describe("sealing", () => {
     expect(newlyNamed(["a", "b"], ["b", "c", "a"])).toEqual(["c"]);
     expect(newlyNamed(["a"], ["a"])).toEqual([]);
     expect(newlyNamed([], ["a", "b"])).toEqual(["a", "b"]);
+  });
+
+  it("names everyone at the first sealing, then only who changed since the last one", () => {
+    const draft = { sealedVersion: 0, accessorId: "x", validatorIds: ["a"] };
+    expect(
+      namedForTheFirstTime(draft, { accessorId: "x", validatorIds: ["a"] }),
+    ).toEqual({ newAccessor: true, newValidatorIds: ["a"] });
+    const sealed = { sealedVersion: 2, accessorId: "x", validatorIds: ["a"] };
+    expect(
+      namedForTheFirstTime(sealed, { accessorId: "x", validatorIds: ["a"] }),
+    ).toEqual({ newAccessor: false, newValidatorIds: [] });
+    expect(
+      namedForTheFirstTime(sealed, {
+        accessorId: "y",
+        validatorIds: ["a", "b"],
+      }),
+    ).toEqual({ newAccessor: true, newValidatorIds: ["b"] });
   });
 
   it("is reserved to the owner", async () => {

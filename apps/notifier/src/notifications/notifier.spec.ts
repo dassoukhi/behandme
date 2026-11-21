@@ -442,20 +442,29 @@ describe("keys.backup_opened", () => {
 describe("contract.sealed", () => {
   const CONTRACT = "5d2f7a10-8c3e-4b6a-9f21-0a1b2c3d4e5f";
 
+  const sealed = (
+    changes: Partial<Parameters<typeof ContractSealed.create>[0]>,
+  ) =>
+    createEnvelope(
+      ContractSealed.create({
+        contractId: CONTRACT,
+        category: "devices",
+        ownerId: "user_owner",
+        accessorId: "user_accessor",
+        newAccessor: false,
+        newValidatorIds: [BOB, ALICE],
+        validatorCount: 3,
+        threshold: 2,
+        contestDays: 7,
+        ...changes,
+      }),
+      { correlationId: "c" },
+      clock,
+    );
+
   it("tells each new validator that someone counts on them, naming the category only", async () => {
     await inbox.updatePreferences(ALICE, { language: "en" });
-    await receive(
-      createEnvelope(
-        ContractSealed.create({
-          contractId: CONTRACT,
-          category: "devices",
-          ownerId: "user_owner",
-          newValidatorIds: [BOB, ALICE],
-        }),
-        { correlationId: "c" },
-        clock,
-      ),
-    );
+    await receive(sealed({}));
     expect(await inbox.list(BOB)).toMatchObject([
       {
         type: "validator_chosen",
@@ -467,6 +476,27 @@ describe("contract.sealed", () => {
     expect(await inbox.list(ALICE)).toMatchObject([
       { title: "Someone close is counting on you" },
     ]);
+    expect(await inbox.list("user_accessor")).toEqual([]);
+  });
+
+  it("tells a new accessor that the envelope is meant for them, and that there is nothing to do yet", async () => {
+    await receive(
+      sealed({ accessorId: BOB, newAccessor: true, newValidatorIds: [] }),
+    );
+    expect(await inbox.list(BOB)).toMatchObject([
+      {
+        type: "accessor_chosen",
+        title: "Une enveloppe vous est destinée",
+        body: "Vous êtes le destinataire de l'enveloppe « Appareils ». Vous n'avez rien à faire pour l'instant.",
+        data: { url: `/contract/${CONTRACT}` },
+      },
+    ]);
+  });
+
+  it("refuses a sealing that names nobody for the first time", () => {
+    expect(() => sealed({ newValidatorIds: [] })).toThrow(
+      "Nobody is named for the first time",
+    );
   });
 });
 

@@ -10,7 +10,7 @@ import { type Contract, type Role, roleOf } from "../domain/contract.js";
 import { assertAllowed } from "../domain/lifecycle.js";
 import {
   checkSeal,
-  newlyNamed,
+  namedForTheFirstTime,
   type RegisteredKey,
   type SealRequest,
 } from "../domain/sealing.js";
@@ -83,19 +83,24 @@ export class SealingService {
           "The contract changed meanwhile: reload it and seal again",
         );
       await store.sealings.replace(id, sealing);
-      // Someone who now holds a share should know it, and keep their keys: told when named, not at each
-      // re-seal. Validators change only by sealing, so a sealed contract's are those of its last sealing.
-      const newValidatorIds = newlyNamed(
-        contract.sealedVersion > 0 ? contract.validatorIds : [],
-        request.validatorIds,
+      // Someone named in it should know it, and what their role is: a validator to keep their keys, the accessor
+      // that it is not for now. Told when named, not at each re-seal.
+      const { newAccessor, newValidatorIds } = namedForTheFirstTime(
+        contract,
+        request,
       );
-      if (newValidatorIds.length > 0) {
+      if (newAccessor || newValidatorIds.length > 0) {
         await store.events.publish(
           ContractSealed.create({
             contractId: id,
             category: contract.category,
             ownerId: contract.ownerId,
+            accessorId: request.accessorId,
+            newAccessor,
             newValidatorIds,
+            validatorCount: request.validatorIds.length,
+            threshold: manifest.threshold,
+            contestDays: contract.contestDays,
           }),
         );
       }
