@@ -944,6 +944,44 @@
         ]
       }
     },
+    "/api/v1/contracts/{id}/leave": {
+      "post": {
+        "operationId": "ContractsController_leave",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Left"
+          },
+          "404": {
+            "description": "Contract not found"
+          },
+          "409": {
+            "description": "Not possible in this status (released or revoked)"
+          },
+          "503": {
+            "description": "The handover service is unavailable"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Refuse one's role (accessor or validator): the contract is no longer the caller's, and its owner is told",
+        "tags": [
+          "contracts"
+        ]
+      }
+    },
     "/api/v1/contracts/{id}/release": {
       "get": {
         "operationId": "ContractsController_release",
@@ -2540,10 +2578,11 @@
               "ok",
               "lost",
               "not_saved",
-              "silent"
+              "silent",
+              "left"
             ],
             "type": "string",
-            "description": "ok; lost: not the keys of the sealing, the share is gone until the owner seals again; silent: no sign from their phone for over a year; not_saved: they have not proved they kept their recovery phrase"
+            "description": "ok; lost: not the keys of the sealing, the share is gone until the owner seals again; silent: no sign from their phone for over a year; not_saved: they have not proved they kept their recovery phrase; left: they refused their role or deleted their account, their share will never be used"
           }
         },
         "required": [
@@ -2579,6 +2618,40 @@
           "usable",
           "total",
           "threshold"
+        ]
+      },
+      "DepartureDTO": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "example": "user_2qrstuvwxyz123456"
+          },
+          "role": {
+            "enum": [
+              "accessor",
+              "validator"
+            ],
+            "type": "string"
+          },
+          "reason": {
+            "enum": [
+              "declined",
+              "account_deleted"
+            ],
+            "type": "string",
+            "description": "declined: they refused their role; account_deleted: their account is gone"
+          },
+          "left_at": {
+            "type": "string",
+            "example": "2026-11-21T09:30:00.000Z"
+          }
+        },
+        "required": [
+          "user_id",
+          "role",
+          "reason",
+          "left_at"
         ]
       },
       "UserProfileDto": {
@@ -2726,7 +2799,8 @@
                 "cancel_claim",
                 "withdraw_claim",
                 "decide",
-                "open"
+                "open",
+                "leave"
               ]
             },
             "description": "What the caller may do now; the app shows only these actions (rules live in the backend)"
@@ -2753,13 +2827,20 @@
           },
           "health": {
             "nullable": true,
-            "description": "Validators whose keys are still those the contract was sealed for; null while never sealed",
+            "description": "Validators still there whose keys are those the contract was sealed for; null while never sealed",
             "type": "object",
             "allOf": [
               {
                 "$ref": "#/components/schemas/HealthDTO"
               }
             ]
+          },
+          "departures": {
+            "description": "Owner only (empty for the others): the participants who left, to replace by sealing again",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DepartureDTO"
+            }
           },
           "owner": {
             "nullable": true,
@@ -2807,6 +2888,7 @@
           "open_claim",
           "claim_cooldown_until",
           "health",
+          "departures",
           "owner",
           "accessor",
           "validators_list"
@@ -2903,7 +2985,8 @@
                 "cancel_claim",
                 "withdraw_claim",
                 "decide",
-                "open"
+                "open",
+                "leave"
               ]
             },
             "description": "What the caller may do now; the app shows only these actions (rules live in the backend)"
@@ -2930,13 +3013,20 @@
           },
           "health": {
             "nullable": true,
-            "description": "Validators whose keys are still those the contract was sealed for; null while never sealed",
+            "description": "Validators still there whose keys are those the contract was sealed for; null while never sealed",
             "type": "object",
             "allOf": [
               {
                 "$ref": "#/components/schemas/HealthDTO"
               }
             ]
+          },
+          "departures": {
+            "description": "Owner only (empty for the others): the participants who left, to replace by sealing again",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DepartureDTO"
+            }
           },
           "owner": {
             "nullable": true,
@@ -2984,6 +3074,7 @@
           "open_claim",
           "claim_cooldown_until",
           "health",
+          "departures",
           "owner",
           "accessor",
           "validators_list"

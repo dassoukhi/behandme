@@ -10,7 +10,9 @@ import {
   reminderAt,
   settlement,
   tally,
+  tallyFor,
 } from "./claims.js";
+import type { Contract } from "./contract.js";
 
 const NOW = new Date("2026-10-16T09:00:00Z");
 const approve = (validatorId: string): Decision => ({
@@ -57,22 +59,37 @@ describe("claim deadlines", () => {
 });
 
 describe("cooldown", () => {
+  const OWNER = "owner";
   it("applies 72 hours after the owner cancelled the claimant's claim, and only then", () => {
     const closedAt = new Date(NOW.getTime() - 3_600_000);
-    expect(cooldownUntil({ status: "cancelled", closedAt }, NOW)).toEqual(
-      new Date(closedAt.getTime() + CLAIM_COOLDOWN_MS),
-    );
-    expect(cooldownUntil({ status: "withdrawn", closedAt }, NOW)).toBeNull();
+    const closed = { closedAt, closedBy: OWNER };
+    expect(
+      cooldownUntil({ ...closed, status: "cancelled" }, OWNER, NOW),
+    ).toEqual(new Date(closedAt.getTime() + CLAIM_COOLDOWN_MS));
+    expect(
+      cooldownUntil({ ...closed, status: "withdrawn" }, OWNER, NOW),
+    ).toBeNull();
     expect(
       cooldownUntil(
         {
           status: "cancelled",
+          closedBy: OWNER,
           closedAt: new Date(NOW.getTime() - CLAIM_COOLDOWN_MS),
         },
+        OWNER,
         NOW,
       ),
     ).toBeNull();
-    expect(cooldownUntil(null, NOW)).toBeNull();
+    expect(cooldownUntil(null, OWNER, NOW)).toBeNull();
+  });
+
+  it("does not apply to a claim closed because a participant left", () => {
+    const closedAt = new Date(NOW.getTime() - 3_600_000);
+    for (const closedBy of [null, "accessor"]) {
+      expect(
+        cooldownUntil({ status: "cancelled", closedAt, closedBy }, OWNER, NOW),
+      ).toBeNull();
+    }
   });
 });
 
@@ -105,6 +122,36 @@ describe("tally and settlement", () => {
     ["1 of 1", [approve("a")], 1, { quorum: true, threshold: 1 }],
   ])("%s", (_case, decisions, n, expected) => {
     expect(tally(decisions, n)).toMatchObject(expected);
+  });
+
+  it("counts a validator who left only by the decision they gave before", () => {
+    const contract = (gone: string[]) =>
+      ({
+        validatorIds: ["a", "b", "c"],
+        departures: gone.map((userId) => ({
+          userId,
+          role: "validator",
+          reason: "declined",
+          at: NOW.toISOString(),
+        })),
+      }) as unknown as Contract;
+    // b left without deciding: a and c may still give the 2 approvals.
+    expect(tallyFor(contract(["b"]), [approve("a")])).toMatchObject({
+      approvals: 1,
+      rejections: 0,
+      rejected: false,
+    });
+    // ... until c refuses.
+    expect(
+      tallyFor(contract(["b"]), [approve("a"), reject("c")]),
+    ).toMatchObject({ rejected: true });
+    // b approved before leaving: the approval stands.
+    expect(
+      tallyFor(contract(["b"]), [approve("a"), approve("b")]),
+    ).toMatchObject({ quorum: true, rejected: false });
+    expect(tallyFor(contract(["a", "b"]), [])).toMatchObject({
+      rejected: true,
+    });
   });
 
   it("releases only with the quorum and after the contest window; expires after 60 days", () => {

@@ -143,6 +143,12 @@ export class HttpHandoverClient implements HandoverClient {
     );
   }
 
+  async leave(userId: string, id: string) {
+    await this.http.call(userId, "POST", `${path(id)}/leave`, {
+      idempotent: false,
+    });
+  }
+
   release(userId: string, id: string) {
     return this.http.call<ReleasePackage>(
       userId,

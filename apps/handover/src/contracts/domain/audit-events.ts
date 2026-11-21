@@ -1,4 +1,4 @@
-import type { Contract, ContractChanges } from "./contract.js";
+import type { Contract, ContractChanges, LeftReason } from "./contract.js";
 
 // What the audit log records. Bodies hold ids, categories and field names only: the log is kept for
 // ever, so no free text (a description may be personal) and never anything secret.
@@ -48,8 +48,12 @@ export function contractRevoked(reason?: "account_deleted"): AuditEntry {
   return { type: "contract.revoked", body: reason ? { reason } : {} };
 }
 
-export function participantLeft(role: "accessor" | "validator"): AuditEntry {
-  return { type: "participant.left", body: { role } };
+/** They refused their role (actor: them), or their account is gone (actor: the system). */
+export function participantLeft(
+  role: "accessor" | "validator",
+  reason: LeftReason,
+): AuditEntry {
+  return { type: "participant.left", body: { role, reason } };
 }
 
 export function contractDeleted(

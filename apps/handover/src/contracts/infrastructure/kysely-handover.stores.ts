@@ -11,7 +11,9 @@ import type {
   Category,
   Contract,
   ContractChanges,
+  Departure,
   DraftInput,
+  LeftReason,
   Status,
 } from "../domain/contract.js";
 import type {
@@ -61,7 +63,8 @@ class KyselyContracts implements ContractRepository {
             eb
               .selectFrom("participants")
               .select("contract_id")
-              .where("user_id", "=", userId),
+              .where("user_id", "=", userId)
+              .where("left_at", "is", null),
           ),
         ]),
       )
@@ -193,6 +196,32 @@ class KyselyContracts implements ContractRepository {
     return row ? (await this.withParticipants([row]))[0] : null;
   }
 
+  async markLeft(
+    id: string,
+    userId: string,
+    departure: { reason: LeftReason; at: Date },
+  ): Promise<Contract | null> {
+    const left = await this.db
+      .updateTable("participants")
+      .set({ left_at: departure.at, left_reason: departure.reason })
+      .where("contract_id", "=", id)
+      .where("user_id", "=", userId)
+      .where("left_at", "is", null)
+      .returning("user_id")
+      .executeTakeFirst();
+    if (!left) return null;
+    const row = await this.db
+      .updateTable("contracts")
+      .set({
+        version: sql<number>`version + 1`,
+        updated_at: sql<Date>`now()`,
+      })
+      .where("id", "=", id)
+      .returningAll()
+      .executeTakeFirst();
+    return row ? (await this.withParticipants([row]))[0] : null;
+  }
+
   async eraseDescription(id: string): Promise<void> {
     await this.db
       .updateTable("contracts")
@@ -251,6 +280,18 @@ class KyselyContracts implements ContractRepository {
         row,
         own.find((p) => p.role === "accessor")?.user_id ?? "",
         own.filter((p) => p.role === "validator").map((p) => p.user_id),
+        own.flatMap((p): Departure[] =>
+          p.left_at && p.left_reason
+            ? [
+                {
+                  userId: p.user_id,
+                  role: p.role,
+                  reason: p.left_reason,
+                  at: p.left_at.toISOString(),
+                },
+              ]
+            : [],
+        ),
       );
     });
   }
@@ -604,6 +645,7 @@ function toContract(
   row: Selectable<ContractsTable>,
   accessorId: string,
   validatorIds: string[],
+  departures: Departure[] = [],
 ): Contract {
   return {
     id: row.id,
@@ -616,6 +658,7 @@ function toContract(
     contestDays: row.contest_days,
     accessorId,
     validatorIds,
+    departures,
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),
   };

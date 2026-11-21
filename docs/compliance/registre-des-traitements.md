@@ -54,12 +54,14 @@ d'un tiers : on ajoute un proche qui a déjà son compte, en scannant son code o
   - exécution du contrat avec le propriétaire ;
   - pour les validateurs et le destinataire désignés, intérêt légitime du propriétaire et de la personne désignée à ce
     que le rôle fonctionne et soit connu (art. 6.1.f). La personne désignée est prévenue (notification et e-mail) et
-    peut refuser son rôle.
+    peut refuser son rôle dans l'app, à tout moment avant la transmission (droit d'opposition, art. 21) : elle ne voit
+    plus l'enveloppe et n'est plus prévenue de rien à son sujet ; seul le propriétaire apprend qu'elle a refusé.
 - **Données :**
   - en clair :
     - qui participe ;
     - la catégorie, la description, le délai ;
     - les dates, demandes et décisions ;
+    - le départ d'un participant (refus de son rôle ou suppression de son compte), avec sa date ;
     - le journal chaîné ;
   - chiffrées et illisibles pour BehyndMe :
     - le secret ;

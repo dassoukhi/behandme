@@ -19,6 +19,7 @@ export const SAMPLE = {
   accessorId: "user_alex",
   trusterId: "user_alex",
   claimantId: "user_lea",
+  participantId: "user_lea",
   inviteeId: "user_lea",
   inviteeName: "Léa Petit",
   trustedBack: true,

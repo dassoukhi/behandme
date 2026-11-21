@@ -52,6 +52,7 @@ export {
   type ContractRole,
   type ContractStatus,
   type DecisionBody,
+  type DepartureRecord,
   type NewContract,
   type RegisteredKeyRecord,
   type ReleasePackage,

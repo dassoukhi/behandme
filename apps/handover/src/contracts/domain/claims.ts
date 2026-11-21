@@ -1,5 +1,5 @@
 import { ConflictError, InvalidInputError } from "@lib/kernel";
-import type { Contract } from "./contract.js";
+import { type Contract, presentParticipants } from "./contract.js";
 import type { RegisteredKey } from "./sealing.js";
 import { isShareWrap, threshold } from "./sealing.js";
 
@@ -65,12 +65,20 @@ export function reminderAt(
   return new Date(claim.contestUntil.getTime() - before);
 }
 
-/** Until when `claimant` may not claim again after the owner cancelled their last claim; null if free. */
+/**
+ * Until when `claimant` may not claim again after the owner cancelled their last claim; null if free. A claim
+ * closed because a participant left was not the owner's doing: no pause then.
+ */
 export function cooldownUntil(
-  lastOfClaimant: Pick<Claim, "status" | "closedAt"> | null,
+  lastOfClaimant: Pick<Claim, "status" | "closedAt" | "closedBy"> | null,
+  ownerId: string,
   now: Date,
 ): Date | null {
-  if (lastOfClaimant?.status !== "cancelled" || !lastOfClaimant.closedAt)
+  if (
+    lastOfClaimant?.status !== "cancelled" ||
+    lastOfClaimant.closedBy !== ownerId ||
+    !lastOfClaimant.closedAt
+  )
     return null;
   const until = new Date(lastOfClaimant.closedAt.getTime() + CLAIM_COOLDOWN_MS);
   return until > now ? until : null;
@@ -86,7 +94,15 @@ export interface Tally {
   rejected: boolean;
 }
 
-export function tally(decisions: Decision[], validators: number): Tally {
+/**
+ * `gone`: validators who left without deciding, who will never approve. The claim is rejected as soon as
+ * those who may still approve are too few for the threshold.
+ */
+export function tally(
+  decisions: Decision[],
+  validators: number,
+  gone = 0,
+): Tally {
   const k = threshold(validators);
   const approvals = decisions.filter((d) => d.approve).length;
   const rejections = decisions.length - approvals;
@@ -95,8 +111,29 @@ export function tally(decisions: Decision[], validators: number): Tally {
     rejections,
     threshold: k,
     quorum: approvals >= k,
-    rejected: rejections > validators - k,
+    rejected: rejections + gone > validators - k,
   };
+}
+
+/** The tally of a claim on `contract`: a validator who left counts only by the decision they gave before. */
+export function tallyFor(contract: Contract, decisions: Decision[]): Tally {
+  const decided = new Set(decisions.map((d) => d.validatorId));
+  const gone = contract.departures.filter(
+    (d) => d.role === "validator" && !decided.has(d.userId),
+  ).length;
+  return tally(decisions, contract.validatorIds.length, gone);
+}
+
+/**
+ * Whether a claim could still succeed: the accessor has not left, and enough validators remain to reach the
+ * threshold. Otherwise only a new sealing, with someone else, makes the contract transmissible again.
+ */
+export function canBeHandedOver(contract: Contract): boolean {
+  const present = presentParticipants(contract);
+  return (
+    present.accessorId !== null &&
+    present.validatorIds.length >= threshold(contract.validatorIds.length)
+  );
 }
 
 /** What happens to an open claim at `now`, given its decisions. */

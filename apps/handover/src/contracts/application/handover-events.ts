@@ -1,9 +1,8 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { ParticipantLeft } from "@lib/contracts";
 import type { Clock, Logger } from "@lib/kernel";
-import { contractDeleted, participantLeft } from "../domain/audit-events.js";
+import { contractDeleted } from "../domain/audit-events.js";
 import { verifyChain } from "../domain/audit-chain.js";
-import { closeClaim, revokeContract } from "./endings.js";
+import { leaveContract, revokeContract } from "./endings.js";
 import { CLOCK, type HandoverStore, SHA256, type Sha256Hex } from "./ports.js";
 
 /** Handover's reactions to the other services' events. Each runs in the event's transaction. */
@@ -18,8 +17,9 @@ export class HandoverEvents {
    * The account is gone (account deletion). Its drafts are deleted and its sealed contracts revoked:
    * nobody will open them. Released ones stay, for their accessor. The others lose their description:
    * their participants keep the category and the log, not what the owner wrote. In other people's
-   * contracts it stays named but its keys are gone: a claim it filed, or that would release to it, is
-   * closed, and the owner is told to re-seal with someone else.
+   * contracts it leaves, as when a role is refused (endings.ts, leaveContract): it stays named but its keys
+   * are gone, a claim that can no longer succeed is closed, and the owner is told to re-seal with someone
+   * else.
    */
   async userDeleted(
     store: HandoverStore,
@@ -56,26 +56,11 @@ export class HandoverEvents {
       if (contract.status === "released" || contract.status === "revoked") {
         continue;
       }
-      const role = contract.accessorId === userId ? "accessor" : "validator";
-      const [claim] = await store.claims.openFor([contract.id]);
-      if (claim && (claim.claimantId === userId || role === "accessor")) {
-        await closeClaim(store, contract, claim, {
-          status: "cancelled",
-          reason: "participant_left",
-          closedBy: null,
-          at: now,
-        });
-        await store.contracts.transition(contract.id, "claimed", "active");
-      }
-      await store.audit.append(contract.id, null, participantLeft(role));
-      await store.events.publish(
-        ParticipantLeft.create({
-          contractId: contract.id,
-          category: contract.category,
-          ownerId: contract.ownerId,
-          role,
-        }),
-      );
+      await leaveContract(store, contract, {
+        userId,
+        reason: "account_deleted",
+        at: now,
+      });
       result.left++;
     }
     return result;

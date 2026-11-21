@@ -28,6 +28,7 @@ const REASONS = [
   "revoked",
   "participant_left",
   "account_deleted",
+  "declined",
   "unknown",
 ];
 const VARIANTS = [
@@ -104,6 +105,13 @@ describe("those named in an envelope", () => {
       "Il faut 2 validations sur 3, et Camille dispose de 7 jours après la demande pour l'annuler.",
     );
     expect(fr).toContain("Réglages › Confidentialité");
+    // The role is refused in the app (art. 21 of the GDPR): the owner is told and chooses someone else.
+    expect(fr).toContain(
+      "Si vous ne souhaitez pas le tenir, refusez-le dans l'app : ouvrez l'enveloppe et touchez « Refuser ce rôle ». Nous préviendrons Camille, qui pourra choisir quelqu'un d'autre.",
+    );
+    expect(read(templates.chosenAsValidator(SAMPLE), "en")).toContain(
+      "decline it in the app: open the envelope and tap “Decline this role”.",
+    );
     expect(
       read(
         templates.chosenAsValidator({
@@ -134,6 +142,9 @@ describe("those named in an envelope", () => {
       "Ces accès ne vous donneront aucun droit sur ses biens",
     );
     expect(fr).toContain("seulement pour ce que Camille vous aura demandé");
+    expect(fr).toContain(
+      "Si vous ne souhaitez pas ce rôle, refusez-le dans l'app : ouvrez l'enveloppe et touchez « Refuser ce rôle ».",
+    );
     expect(
       read(
         templates.chosenAsAccessor({
@@ -144,5 +155,65 @@ describe("those named in an envelope", () => {
         "en",
       ),
     ).toContain("with the approval of both of their validators.");
+  });
+});
+
+// The owner learns who refused their role, and what to do: choose someone else and seal again. A deleted account is
+// not named (its name may already be forgotten).
+describe("a participant who left", () => {
+  const context = emailContext(PEOPLE, "Europe/Paris", OCCURRED_AT);
+  const read = (draft: ReturnType<typeof templates.participantLeft>) => {
+    const copy = render(draft, "fr");
+    const email = emailContent(
+      copy,
+      draft.email,
+      context,
+      context.firstName(draft.userId),
+      "fr",
+    );
+    return { push: copy.body, email: email.paragraphs.join(" ") };
+  };
+
+  it("names whoever declined, to the owner, and asks to seal again", () => {
+    const draft = templates.participantLeft({
+      ...SAMPLE,
+      role: "validator",
+      reason: "declined",
+    });
+    expect(draft).toMatchObject({
+      userId: "user_camille",
+      type: "participant_left",
+      data: { url: "/contract/contract_1" },
+    });
+    const { push, email } = read(draft);
+    expect(push).toBe(
+      "Un validateur de votre enveloppe « Réseaux sociaux » a refusé son rôle : sa part ne servira pas. Scellez-la à nouveau pour en choisir un autre.",
+    );
+    expect(email).toContain(
+      "Léa Petit a refusé d'être validateur de votre enveloppe « Réseaux sociaux » : sa part de la clé ne servira pas.",
+    );
+    expect(
+      read(
+        templates.participantLeft({
+          ...SAMPLE,
+          role: "accessor",
+          reason: "declined",
+        }),
+      ).email,
+    ).toContain(
+      "Léa Petit a refusé d'être le destinataire de votre enveloppe « Réseaux sociaux » : cette personne ne la voit plus et ne pourra pas l'ouvrir. Pour que cette enveloppe puisse encore être transmise, choisissez un autre destinataire",
+    );
+  });
+
+  it("does not name a deleted account", () => {
+    const { push, email } = read(
+      templates.participantLeft({
+        ...SAMPLE,
+        role: "accessor",
+        reason: "account_deleted",
+      }),
+    );
+    expect(push).toContain("a supprimé son compte");
+    expect(email).not.toContain("Léa");
   });
 });

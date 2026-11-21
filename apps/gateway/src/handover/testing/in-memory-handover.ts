@@ -17,7 +17,7 @@ type Stored = Omit<ContractRecord, "my_role" | "allowed_actions">;
 
 /**
  * Stand-in for the handover service in gateway specs: the same answers for the same calls (role,
- * 404 for a stranger, owner-only drafts), not its full rules, which apps/handover tests.
+ * 404 for a stranger or someone who left, owner-only drafts), not its full rules, which apps/handover tests.
  */
 export class InMemoryHandover implements HandoverClient {
   contracts: Stored[] = [];
@@ -57,6 +57,7 @@ export class InMemoryHandover implements HandoverClient {
       open_claim: null,
       sealed_validators: [],
       claim_cooldown_until: null,
+      departures: [],
     };
     this.contracts.push(stored);
     return record(stored, userId);
@@ -180,6 +181,24 @@ export class InMemoryHandover implements HandoverClient {
     return record(contract, userId);
   }
 
+  async leave(userId: string, id: string) {
+    this.calls.push({ method: "leave", userId, args: [id] });
+    const contract = this.visible(userId, id);
+    if (contract.owner_id === userId)
+      throw new NotFoundError("Contract not found");
+    if (contract.status === "released" || contract.status === "revoked")
+      throw new ConflictError("Not possible now: leave");
+    contract.departures.push({
+      user_id: userId,
+      role: contract.accessor_id === userId ? "accessor" : "validator",
+      reason: "declined",
+      left_at: "2026-10-20T00:00:00.000Z",
+    });
+    for (const sealed of contract.sealed_validators) {
+      if (sealed.user_id === userId) sealed.left = true;
+    }
+  }
+
   async release(userId: string, id: string): Promise<ReleasePackage> {
     const contract = this.visible(userId, id);
     if (contract.accessor_id !== userId)
@@ -231,6 +250,7 @@ export class InMemoryHandover implements HandoverClient {
 
 function roleOf(c: Stored, userId: string): ContractRecord["my_role"] | null {
   if (c.owner_id === userId) return "owner";
+  if (c.departures.some((d) => d.user_id === userId)) return null;
   if (c.accessor_id === userId) return "accessor";
   if (c.validator_ids.includes(userId)) return "validator";
   return null;
@@ -241,14 +261,19 @@ function record(c: Stored, userId: string): ContractRecord {
   const actions: Record<string, ContractRecord["allowed_actions"]> = {
     "owner:draft": ["update", "delete", "seal"],
     "owner:claimed": ["cancel_claim"],
-    "accessor:active": ["claim"],
-    "validator:active": ["claim"],
-    "validator:claimed": ["decide"],
+    "accessor:draft": ["leave"],
+    "validator:draft": ["leave"],
+    "accessor:active": ["claim", "leave"],
+    "validator:active": ["claim", "leave"],
+    "accessor:claimed": ["leave"],
+    "validator:claimed": ["decide", "leave"],
     "accessor:released": ["open"],
   };
   return {
     ...c,
     my_role: role,
     allowed_actions: actions[`${role}:${c.status}`] ?? [],
+    // As handover: only the owner learns who left.
+    departures: role === "owner" ? c.departures : [],
   };
 }

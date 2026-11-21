@@ -13,10 +13,8 @@ import {
   type ContractStatus,
   type SealedMaterial,
 } from "@lib/contracts";
-import {
-  VALIDATOR_KEY_STATES,
-  type ValidatorKeyState,
-} from "../../../keys/domain/care.js";
+import { VALIDATOR_KEY_STATES } from "../../../keys/domain/care.js";
+import type { ValidatorHealthState } from "../../application/contracts.facade.js";
 import { PublicKeysDto } from "../../../keys/interface/dto/keys.dto.js";
 import { UserProfileDto } from "../../../users/interface/dto/user-profile.dto.js";
 
@@ -31,6 +29,7 @@ const ACTIONS: ContractAction[] = [
   "withdraw_claim",
   "decide",
   "open",
+  "leave",
 ];
 
 /** The claim in progress on a contract. */
@@ -83,11 +82,30 @@ export class ValidatorHealthDTO {
   user_id: string;
 
   @ApiProperty({
-    enum: VALIDATOR_KEY_STATES,
+    enum: [...VALIDATOR_KEY_STATES, "left"],
     description:
-      "ok; lost: not the keys of the sealing, the share is gone until the owner seals again; silent: no sign from their phone for over a year; not_saved: they have not proved they kept their recovery phrase",
+      "ok; lost: not the keys of the sealing, the share is gone until the owner seals again; silent: no sign from their phone for over a year; not_saved: they have not proved they kept their recovery phrase; left: they refused their role or deleted their account, their share will never be used",
   })
-  state: ValidatorKeyState;
+  state: ValidatorHealthState;
+}
+
+/** A participant who left: they stay named until the owner seals again. */
+export class DepartureDTO {
+  @ApiProperty({ example: "user_2qrstuvwxyz123456" })
+  user_id: string;
+
+  @ApiProperty({ enum: ["accessor", "validator"] })
+  role: "accessor" | "validator";
+
+  @ApiProperty({
+    enum: ["declined", "account_deleted"],
+    description:
+      "declined: they refused their role; account_deleted: their account is gone",
+  })
+  reason: "declined" | "account_deleted";
+
+  @ApiProperty({ example: "2026-11-21T09:30:00.000Z" })
+  left_at: string;
 }
 
 /** How many validators could still approve a claim: their keys are those the contract was sealed for. */
@@ -194,11 +212,18 @@ export class ContractDTO {
 
   @ApiProperty({
     description:
-      "Validators whose keys are still those the contract was sealed for; null while never sealed",
+      "Validators still there whose keys are those the contract was sealed for; null while never sealed",
     type: () => HealthDTO,
     nullable: true,
   })
   health: HealthDTO | null;
+
+  @ApiProperty({
+    description:
+      "Owner only (empty for the others): the participants who left, to replace by sealing again",
+    type: () => [DepartureDTO],
+  })
+  departures: DepartureDTO[];
 
   @ApiProperty({
     description: "Owner profile; null if it no longer exists",

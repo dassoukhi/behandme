@@ -240,6 +240,25 @@ export class ContractsController {
     return this.contracts.decide(me, id, claimId, body);
   }
 
+  @Post(":id/leave")
+  @HttpCode(204)
+  @ApiOperation({
+    summary:
+      "Refuse one's role (accessor or validator): the contract is no longer the caller's, and its owner is told",
+  })
+  @ApiResponse({ status: 204, description: "Left" })
+  @ApiResponse({ status: 404, description: "Contract not found" })
+  @ApiResponse({
+    status: 409,
+    description: "Not possible in this status (released or revoked)",
+  })
+  leave(
+    @CurrentUserId() me: string,
+    @Param("id", ParseUUIDPipe) id: string,
+  ): Promise<void> {
+    return this.contracts.leave(me, id);
+  }
+
   @Get(":id/release")
   @ApiOperation({
     summary:

@@ -28,13 +28,19 @@ import type { Profile } from "../../users/domain/profile.js";
 import { ProfileService } from "../../users/application/profile.service.js";
 import { TrustService } from "../../users/application/trust.service.js";
 
-/** How many validators could still approve a claim: their keys are those the contract was sealed for. */
+/** A validator's key state, or `left`: they refused their role or deleted their account. */
+export type ValidatorHealthState = ValidatorKeyState | "left";
+
+/**
+ * How many validators could still approve a claim: they have not left, and their keys are those the contract was
+ * sealed for.
+ */
 export interface Health {
   usable: number;
   total: number;
   threshold: number;
   /** Owner only: how far they can count on each validator. */
-  validators?: { user_id: string; state: ValidatorKeyState }[];
+  validators?: { user_id: string; state: ValidatorHealthState }[];
 }
 
 /** A contract with its participants' profiles, as the caller may see them. */
@@ -190,6 +196,11 @@ export class ContractsFacade {
     );
   }
 
+  /** The accessor or a validator refuses their role; the owner is told, the contract is no longer theirs. */
+  leave(me: string, id: string): Promise<void> {
+    return this.handover.leave(me, id);
+  }
+
   /** The accessor's download once released, with the owner's keys to check the manifest. */
   async release(me: string, id: string): Promise<ReleasePackageView> {
     const pack = await this.handover.release(me, id);
@@ -212,7 +223,7 @@ export class ContractsFacade {
     return keys ? toPublicKeys(keys) : null;
   }
 
-  /** For each sealed contract, the validators whose current keys are still those it was sealed for. */
+  /** For each sealed contract, the validators still there whose current keys are those it was sealed for. */
   private async health(
     me: string,
     records: ContractRecord[],
@@ -226,15 +237,16 @@ export class ContractsFacade {
         .map((r) => [
           r.id,
           {
-            usable: r.sealed_validators.filter((v) => stateOf(v) !== "lost")
-              .length,
+            usable: r.sealed_validators.filter(
+              (v) => !v.left && stateOf(v) !== "lost",
+            ).length,
             total: r.sealed_validators.length,
             threshold: Math.floor(r.sealed_validators.length / 2) + 1,
             ...(r.owner_id === me
               ? {
                   validators: r.sealed_validators.map((v) => ({
                     user_id: v.user_id,
-                    state: stateOf(v),
+                    state: v.left ? ("left" as const) : stateOf(v),
                   })),
                 }
               : {}),

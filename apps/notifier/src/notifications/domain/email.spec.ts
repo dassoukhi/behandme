@@ -52,6 +52,7 @@ describe("mentions", () => {
     inviteeName: null,
     trustedBack: false,
     claimantId: "c",
+    participantId: "c",
     contractId: "k",
     ownerName: null,
     userName: null,

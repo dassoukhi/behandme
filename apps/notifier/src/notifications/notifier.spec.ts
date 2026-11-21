@@ -607,6 +607,25 @@ describe("claims", () => {
     ]);
   });
 
+  it("tells no recipient who left: they hear nothing more of the envelope", async () => {
+    await receive(
+      envelope(
+        ContractRevoked.create({
+          contractId: CONTRACT,
+          category: "networks",
+          reason: "owner",
+          ownerId: ALICE,
+          accessorId: null,
+          validatorIds: [CAROL],
+        }),
+      ),
+    );
+    expect(await types(CAROL)).toEqual([
+      ["contract_revoked", `/contract/${CONTRACT}`],
+    ]);
+    expect(await inbox.list(BOB)).toEqual([]);
+  });
+
   it("tells the owner to re-seal when the accessor deleted their account", async () => {
     await receive(
       envelope(
@@ -614,13 +633,38 @@ describe("claims", () => {
           contractId: CONTRACT,
           category: "devices",
           ownerId: ALICE,
+          participantId: BOB,
           role: "accessor",
+          reason: "account_deleted",
         }),
       ),
     );
     expect(await inbox.list(ALICE)).toMatchObject([
       { type: "participant_left", title: "Départ du destinataire" },
     ]);
+  });
+
+  it("tells the owner, and only them, that a validator declined their role", async () => {
+    await receive(
+      envelope(
+        ParticipantLeft.create({
+          contractId: CONTRACT,
+          category: "devices",
+          ownerId: ALICE,
+          participantId: CAROL,
+          role: "validator",
+          reason: "declined",
+        }),
+      ),
+    );
+    expect(await inbox.list(ALICE)).toMatchObject([
+      {
+        type: "participant_left",
+        title: "Rôle refusé",
+        body: "Un validateur de votre enveloppe « Appareils » a refusé son rôle : sa part ne servira pas. Scellez-la à nouveau pour en choisir un autre.",
+      },
+    ]);
+    expect(await inbox.list(CAROL)).toEqual([]);
   });
 
   it("tells the accessor they can open the contract", async () => {

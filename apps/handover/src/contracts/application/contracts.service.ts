@@ -22,6 +22,7 @@ import {
   roleOf,
 } from "../domain/contract.js";
 import { assertAllowed } from "../domain/lifecycle.js";
+import { leaveContract } from "./endings.js";
 import { recordsFor } from "./records.js";
 import {
   CLOCK,
@@ -94,6 +95,22 @@ export class ContractsService {
       assertAllowed("delete", contract, role);
       await store.contracts.delete(id);
       await store.audit.append(id, me, contractDeleted("owner"));
+    });
+  }
+
+  /**
+   * The accessor or a validator refuses their role (endings.ts, leaveContract): from then on the contract is
+   * none of theirs, and the owner is told to choose someone else.
+   */
+  async leave(me: string, id: string): Promise<void> {
+    await this.stores.transaction(async (store) => {
+      const { contract, role } = await this.visible(store, me, id);
+      assertAllowed("leave", contract, role);
+      await leaveContract(store, contract, {
+        userId: me,
+        reason: "declined",
+        at: this.clock.now(),
+      });
     });
   }
 

@@ -35,10 +35,11 @@ Aucun acte de décès n'est demandé.
   techniques, sauvegardes. Les comptes inactifs ne sont pas supprimés, car une enveloppe doit pouvoir être transmise des
   années après.
 - **Information.** La politique de confidentialité, complète et datée, est sur behyndme.com, et sa version courte dans
-  l'app. Les personnes désignées dans une enveloppe sont prévenues de leur rôle.
+  l'app. Les personnes désignées dans une enveloppe sont prévenues de leur rôle, et peuvent le refuser dans l'app.
 - **Droits.**
   - Accès, rectification et suppression du compte depuis l'app ; le reste par e-mail, avec réponse sous un mois.
   - Les directives après le décès et les droits des héritiers sont décrits (art. 85).
+  - Opposition (art. 21) : une personne désignée refuse son rôle dans l'app, à tout moment avant la transmission.
 - **Sous-traitants et transferts.** Voir `sous-traitants.md`.
 
 ## 3. Risques et mesures

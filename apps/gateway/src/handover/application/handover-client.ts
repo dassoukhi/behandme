@@ -60,6 +60,8 @@ export interface HandoverClient {
     decision: DecisionBody,
     accessorKey: RegisteredKeyRecord | null,
   ): Promise<ContractRecord>;
+  /** The accessor or a validator refuses their role: the contract is no longer theirs (404 after). */
+  leave(userId: string, id: string): Promise<void>;
   /** The accessor's download once released. */
   release(userId: string, id: string): Promise<ReleasePackage>;
   events(userId: string, id: string): Promise<AuditEvent[]>;

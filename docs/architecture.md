@@ -138,20 +138,32 @@ Claim: `open | cancelled | withdrawn | rejected | expired | released`.
 | ------------------ | ---------------------------------------------------------------------- | ---------------------------------------------------------------------- |
 | create → draft     | owner                                                                  | participants trusted, distinct, with E2E keys (checked by the gateway) |
 | seal / reseal      | owner                                                                  | no open claim; expected version (compare-and-set)                      |
-| active → claimed   | accessor or validator                                                  | one open claim at a time; 72 h cooldown                                |
+| active → claimed   | accessor or validator                                                  | one open claim at a time; 72 h cooldown; accessor and ≥ k validators still there |
 | approve / reject   | validator, once                                                        | approving _is_ re-wrapping their key share for the accessor            |
 | claimed → active   | owner ("I'm here"), claimant, rejections > n − k, expiry after 60 days | release ciphertexts deleted                                            |
 | claimed → released | system                                                                 | approvals ≥ k **and** contest window elapsed (7 days by default, 3–30) |
 | any → revoked      | owner                                                                  | before release; all ciphertexts deleted                                |
+| leave              | accessor or validator                                                  | before release; the claim closes if it can no longer succeed           |
 
 k = ⌊n/2⌋ + 1 for n validators. The gateway returns `my_role` and `allowed_actions` (then `open_claim`,
 `threshold` and `health`) so the app implements no rule itself. Today: create (draft), update (owner; draft
 or active), delete (owner; draft only, its log stays), seal (owner; draft, or active to re-seal), revoke
 (owner; active or claimed, which also closes the claim), claim (accessor or validator; active, not within 72 h
 of the owner cancelling their last claim), cancel_claim (owner), withdraw_claim (the claimant), decide
-(each validator once), open (accessor; released), in `apps/handover/src/contracts/domain/lifecycle.ts` and
-`domain/claims.ts`. `health` (gateway) counts the validators whose current keys are still those of the
-sealing: a share wrapped to reset keys is lost until the owner re-seals. Sealing stores the
+(each validator once), open (accessor; released), leave (accessor or validator; draft, active or claimed), in
+`apps/handover/src/contracts/domain/lifecycle.ts` and `domain/claims.ts`. `health` (gateway) counts the validators
+still there whose current keys are those of the sealing: a share wrapped to reset keys is lost until the owner
+re-seals, and so is the share of a validator who left.
+
+**Refusing a role.** The accessor or a validator may leave a contract until it is released (`POST
+/contracts/:id/leave`): someone named without being asked can say no (article 21 of the GDPR). They stay named, with
+`handover.participants.left_at` and `left_reason` (`declined`, or `account_deleted` for the account deletion below,
+which leaves the same way: `endings.ts`, `leaveContract`), but the contract is none of theirs any more: it answers 404,
+the list leaves it out, and no event names them. An open claim closes (`participant_left`) when they filed it, when it
+would release to them, or when too few validators are left to reach k (a validator who left counts only by the
+decision they gave before); no claim can be filed while the accessor is gone or fewer than k validators remain. The
+owner alone learns who left and why (`departures`), and `participant.left` asks them to seal again with someone else;
+a new sealing replaces the participants, and whoever is named again after leaving is told as the first time. Sealing stores the
 envelope, the owner's wrapped key, one wrapped share per validator and the signed manifest
 (`handover.envelopes`, `handover.key_wraps`); handover checks them against the registered keys the gateway
 passes along (`domain/sealing.ts`; the envelope must be padded, format 2: 1 KiB, or a power of two up to 32 KiB,
@@ -244,10 +256,10 @@ deletes the profile (keys and trust links go with it) and publishes `user.delete
 deletes the Clerk account (a retry after a failure at Clerk finishes the job). Handover deletes the user's drafts
 and revokes their sealed contracts (`contract.revoked`: the accessor and validators are told); released ones
 stay, for their accessor. Every other contract they owned loses its description, whether revoked now or earlier:
-participants keep its category and its log, never what the owner wrote. In other people's contracts the user stays named, but their keys are gone: a claim
-they filed, or that would release to them as accessor, is closed (`participant_left`), and `participant.left`
-asks the owner to re-seal with someone else. A departed validator is not removed: the threshold belongs to the
-sealing, and the gateway's `health` shows the share as lost. The notifier forgets the user's notifications.
+participants keep its category and its log, never what the owner wrote. In other people's contracts the user leaves,
+as when a role is refused (above): they stay named, but their keys are gone, a claim that can no longer succeed is
+closed (`participant_left`), and `participant.left` asks the owner to re-seal with someone else. A departed validator
+is not removed: the threshold belongs to the sealing, and the gateway's `health` shows the share as left. The notifier forgets the user's notifications.
 
 **Closing an account on request.** Heirs (article 85 of the loi Informatique et Libertés) and people who lost access to
 the app write to support; the help page says what heirs send. Once support has checked the request, it closes the

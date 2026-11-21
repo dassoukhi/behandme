@@ -168,11 +168,16 @@ describe("sealing", () => {
   });
 
   it("names everyone at the first sealing, then only who changed since the last one", () => {
-    const draft = { sealedVersion: 0, accessorId: "x", validatorIds: ["a"] };
+    const draft = {
+      sealedVersion: 0,
+      accessorId: "x",
+      validatorIds: ["a"],
+      departures: [],
+    };
     expect(
       namedForTheFirstTime(draft, { accessorId: "x", validatorIds: ["a"] }),
     ).toEqual({ newAccessor: true, newValidatorIds: ["a"] });
-    const sealed = { sealedVersion: 2, accessorId: "x", validatorIds: ["a"] };
+    const sealed = { ...draft, sealedVersion: 2 };
     expect(
       namedForTheFirstTime(sealed, { accessorId: "x", validatorIds: ["a"] }),
     ).toEqual({ newAccessor: false, newValidatorIds: [] });
@@ -182,6 +187,21 @@ describe("sealing", () => {
         validatorIds: ["a", "b"],
       }),
     ).toEqual({ newAccessor: true, newValidatorIds: ["b"] });
+  });
+
+  it("tells again whoever refused their role and is named once more", () => {
+    const sealed = {
+      sealedVersion: 2,
+      accessorId: "x",
+      validatorIds: ["a", "b"],
+      departures: [{ userId: "x" }, { userId: "a" }],
+    };
+    expect(
+      namedForTheFirstTime(sealed, {
+        accessorId: "x",
+        validatorIds: ["a", "b"],
+      }),
+    ).toEqual({ newAccessor: true, newValidatorIds: ["a"] });
   });
 
   it("is reserved to the owner", async () => {

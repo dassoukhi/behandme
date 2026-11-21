@@ -68,6 +68,13 @@ export interface ParticipantsTable {
   user_id: string;
   role: "accessor" | "validator";
   position: number;
+  /** Set when they left (20261121120000_participants_left.sql); a participant is added present. */
+  left_at: ColumnType<Date | null, never, Date | null>;
+  left_reason: ColumnType<
+    "declined" | "account_deleted" | null,
+    never,
+    "declined" | "account_deleted" | null
+  >;
 }
 
 /** Read-only for svc_handover: rows are added by handover.append_event. */

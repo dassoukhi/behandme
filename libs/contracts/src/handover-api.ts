@@ -32,7 +32,9 @@ export type ContractAction =
   /** A validator who has not decided on the open claim yet. */
   | "decide"
   /** The accessor, once released: fetch the release package. */
-  | "open";
+  | "open"
+  /** The accessor or a validator refuses their role: the contract is no longer theirs. */
+  | "leave";
 
 export const CLAIM_STATUSES = [
   "open",
@@ -67,6 +69,17 @@ export interface SealedKey {
   user_id: string;
   key_version: number;
   fingerprint: string;
+  /** They left the contract: their share will never be used. */
+  left: boolean;
+}
+
+/** A participant who left the contract (they stay named until the owner seals again). */
+export interface DepartureRecord {
+  user_id: string;
+  role: "accessor" | "validator";
+  /** declined: they refused their role; account_deleted: their account is gone. */
+  reason: "declined" | "account_deleted";
+  left_at: string;
 }
 
 /** A contract as one of its participants sees it. */
@@ -92,6 +105,8 @@ export interface ContractRecord {
   open_claim: ClaimRecord | null;
   /** The validators' keys at the current sealing; empty while never sealed. */
   sealed_validators: SealedKey[];
+  /** Owner only (empty for the others): who left, and why. */
+  departures: DepartureRecord[];
   /** After a claim closed by the owner, the caller may claim again only from then; else null. */
   claim_cooldown_until: string | null;
 }

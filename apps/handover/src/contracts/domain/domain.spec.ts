@@ -8,6 +8,8 @@ import {
   assertValidDraft,
   changedFields,
   type Contract,
+  type Departure,
+  presentParticipants,
   roleOf,
 } from "./contract.js";
 import { allowedActions, assertAllowed } from "./lifecycle.js";
@@ -26,9 +28,19 @@ const draft: Contract = {
   contestDays: 7,
   accessorId: "acc",
   validatorIds: ["v1", "v2"],
+  departures: [],
   createdAt: "2026-10-14T00:00:00.000Z",
   updatedAt: "2026-10-14T00:00:00.000Z",
 };
+const left = (
+  userId: string,
+  role: Departure["role"] = "validator",
+): Departure => ({
+  userId,
+  role,
+  reason: "declined",
+  at: "2026-10-20T00:00:00.000Z",
+});
 const input = {
   category: "networks" as const,
   description: null,
@@ -67,6 +79,25 @@ describe("draft rules", () => {
     expect(roleOf(draft, "stranger")).toBeNull();
   });
 
+  it("gives no role to a participant who left, and tells only those who stayed", () => {
+    const after = {
+      ...draft,
+      departures: [left("v1"), left("acc", "accessor")],
+    };
+    expect(roleOf(after, "v1")).toBeNull();
+    expect(roleOf(after, "acc")).toBeNull();
+    expect(roleOf(after, "v2")).toBe("validator");
+    expect(roleOf(after, "owner")).toBe("owner");
+    expect(presentParticipants(after)).toEqual({
+      accessorId: null,
+      validatorIds: ["v2"],
+    });
+    expect(presentParticipants(draft)).toEqual({
+      accessorId: "acc",
+      validatorIds: ["v1", "v2"],
+    });
+  });
+
   it("lists only the fields a change really changes", () => {
     expect(
       changedFields(draft, { category: "networks", description: "Autre" }),
@@ -76,14 +107,14 @@ describe("draft rules", () => {
 });
 
 describe("life cycle", () => {
-  it("lets the owner edit, delete and seal a draft, and nobody else", () => {
+  it("lets the owner edit, delete and seal a draft; the others may only refuse their role", () => {
     expect(allowedActions(draft, "owner")).toEqual([
       "update",
       "delete",
       "seal",
     ]);
-    expect(allowedActions(draft, "accessor")).toEqual([]);
-    expect(allowedActions(draft, "validator")).toEqual([]);
+    expect(allowedActions(draft, "accessor")).toEqual(["leave"]);
+    expect(allowedActions(draft, "validator")).toEqual(["leave"]);
   });
 
   it("lets the owner edit, re-seal or revoke an active contract", () => {
@@ -93,8 +124,60 @@ describe("life cycle", () => {
       "revoke",
     ]);
     expect(allowedActions({ ...draft, status: "active" }, "validator")).toEqual(
-      ["claim"],
+      ["claim", "leave"],
     );
+  });
+
+  it("lets the accessor or a validator refuse their role until the end, never the owner", () => {
+    for (const status of ["draft", "active", "claimed"] as const) {
+      for (const role of ["accessor", "validator"] as const) {
+        expect(() =>
+          assertAllowed("leave", { ...draft, status }, role),
+        ).not.toThrow();
+      }
+      expect(() =>
+        assertAllowed("leave", { ...draft, status }, "owner"),
+      ).toThrow(NotFoundError);
+    }
+    for (const status of ["released", "revoked"] as const) {
+      expect(() =>
+        assertAllowed("leave", { ...draft, status }, "accessor"),
+      ).toThrow(ConflictError);
+    }
+  });
+
+  it("allows no claim that could not succeed: the accessor left, or too few validators remain", () => {
+    const active = { ...draft, status: "active" as const };
+    const three = { ...active, validatorIds: ["v1", "v2", "v3"] };
+    const canClaim = (contract: Contract) =>
+      allowedActions(contract, "validator", {
+        me: "v2",
+        claim: null,
+        cooldownUntil: null,
+      }).includes("claim");
+    expect(canClaim(three)).toBe(true);
+    // 2 approvals of 3 are needed: one may leave, not two.
+    expect(canClaim({ ...three, departures: [left("v1")] })).toBe(true);
+    expect(canClaim({ ...three, departures: [left("v1"), left("v3")] })).toBe(
+      false,
+    );
+    // With 2 validators, both must approve.
+    expect(canClaim({ ...active, departures: [left("v1")] })).toBe(false);
+    expect(canClaim({ ...three, departures: [left("acc", "accessor")] })).toBe(
+      false,
+    );
+    expect(() =>
+      assertAllowed(
+        "claim",
+        { ...active, departures: [left("v1")] },
+        "validator",
+        {
+          me: "v2",
+          claim: null,
+          cooldownUntil: null,
+        },
+      ),
+    ).toThrow(ConflictError);
   });
 
   it("lets the owner revoke or cancel the claim, not re-seal, during a claim", () => {
@@ -122,13 +205,15 @@ describe("life cycle", () => {
     });
     expect(allowedActions(claimed, "accessor", context("acc"))).toEqual([
       "withdraw_claim",
+      "leave",
     ]);
     expect(allowedActions(claimed, "validator", context("v1"))).toEqual([
       "decide",
+      "leave",
     ]);
-    expect(allowedActions(claimed, "validator", context("v1", true))).toEqual(
-      [],
-    );
+    expect(allowedActions(claimed, "validator", context("v1", true))).toEqual([
+      "leave",
+    ]);
     expect(() =>
       assertAllowed("withdraw_claim", claimed, "validator", context("v1")),
     ).toThrow(ConflictError);
@@ -142,7 +227,7 @@ describe("life cycle", () => {
         claim: null,
         cooldownUntil: new Date("2026-10-20T00:00:00Z"),
       }),
-    ).toEqual([]);
+    ).toEqual(["leave"]);
   });
 
   it("answers not found to a role that never may, conflict to a wrong status", () => {

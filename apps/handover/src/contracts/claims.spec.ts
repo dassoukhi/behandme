@@ -162,7 +162,7 @@ describe("filing a claim", () => {
     const record = await claims.file(ACCESSOR, ID);
     expect(record).toMatchObject({
       status: "claimed",
-      allowed_actions: ["withdraw_claim"],
+      allowed_actions: ["withdraw_claim", "leave"],
       open_claim: {
         claimant_id: ACCESSOR,
         status: "open",
@@ -176,7 +176,10 @@ describe("filing a claim", () => {
       "revoke",
       "cancel_claim",
     ]);
-    expect((await contracts.get(V2, ID)).allowed_actions).toEqual(["decide"]);
+    expect((await contracts.get(V2, ID)).allowed_actions).toEqual([
+      "decide",
+      "leave",
+    ]);
 
     const events = await outbox();
     expect(events.map((e) => e.type)).toEqual([
@@ -336,7 +339,7 @@ describe("ending a claim without release", () => {
     });
     expect(await wrapsLeft()).toBe(0);
     const accessorView = await contracts.get(ACCESSOR, ID);
-    expect(accessorView.allowed_actions).toEqual([]);
+    expect(accessorView.allowed_actions).toEqual(["leave"]);
     expect(accessorView.claim_cooldown_until).toBe("2026-10-19T09:00:00.000Z");
     await expect(claims.file(ACCESSOR, ID)).rejects.toThrow(ConflictError);
     // Another participant may claim at once; the claimant after 72 hours.
@@ -399,13 +402,129 @@ describe("decisions", () => {
         keyVersion: 2,
       }),
     ).rejects.toThrow(ConflictError);
-    expect((await contracts.get(V1, ID)).allowed_actions).toEqual(["decide"]);
+    expect((await contracts.get(V1, ID)).allowed_actions).toEqual([
+      "decide",
+      "leave",
+    ]);
   });
 
   it("are refused on a claim that is no longer open", async () => {
     const claimId = await file();
     await claims.cancel(OWNER, ID, claimId);
     await expect(rejectAs(V2, claimId)).rejects.toThrow(ConflictError);
+  });
+});
+
+describe("a role refused", () => {
+  const leave = (userId: string) => contracts.leave(userId, ID);
+  const last = async (type: string) =>
+    (await outbox()).filter((e) => e.type === type).at(-1)?.envelope.payload;
+
+  it("takes the contract away from whoever refused, and tells the owner who", async () => {
+    const before = (await contracts.get(OWNER, ID)).version;
+    await leave(V2);
+    await expect(contracts.get(V2, ID)).rejects.toThrow(NotFoundError);
+    expect(await contracts.list(V2)).toEqual([]);
+    const owner = await contracts.get(OWNER, ID);
+    expect(owner.version).toBe(before + 1);
+    expect(owner.departures).toEqual([
+      {
+        user_id: V2,
+        role: "validator",
+        reason: "declined",
+        left_at: FILED.toISOString(),
+      },
+    ]);
+    expect(owner.sealed_validators.map((v) => [v.user_id, v.left])).toEqual([
+      [V1, false],
+      [V2, true],
+      [V3, false],
+    ]);
+    // The others need not know who left, nor why.
+    expect((await contracts.get(V1, ID)).departures).toEqual([]);
+    expect(await last("participant.left")).toEqual({
+      contractId: ID,
+      category: "networks",
+      ownerId: OWNER,
+      participantId: V2,
+      role: "validator",
+      reason: "declined",
+    });
+    expect((await contracts.events(OWNER, ID)).at(-1)).toMatchObject({
+      type: "participant.left",
+      actor_id: V2,
+      body: JSON.stringify({ reason: "declined", role: "validator" }),
+    });
+  });
+
+  it("is refused to the owner, to someone who already left, and once released", async () => {
+    await expect(leave(OWNER)).rejects.toThrow(NotFoundError);
+    await leave(V2);
+    await expect(leave(V2)).rejects.toThrow(NotFoundError);
+    const claimId = await file();
+    await approveAs("v1", claimId);
+    await approveAs("v3", claimId);
+    clock.advance(7 * DAY);
+    await settle(claimId);
+    await expect(leave(ACCESSOR)).rejects.toThrow(ConflictError);
+  });
+
+  it("keeps a claim the others can still approve, and tells the one who refused nothing more", async () => {
+    const claimId = await file();
+    await leave(V2);
+    expect((await contracts.get(ACCESSOR, ID)).status).toBe("claimed");
+    await stores.transaction((store) => claims.remind(store, claimId));
+    expect(await last("claim.reminder")).toMatchObject({
+      pendingValidatorIds: [V1, V3],
+    });
+    await approveAs("v1", claimId);
+    await approveAs("v3", claimId);
+    clock.advance(7 * DAY);
+    expect(await settle(claimId)).toBe("release");
+    expect(await last("contract.released")).toMatchObject({
+      validatorIds: [V1, V3],
+    });
+  });
+
+  it("closes a claim that can no longer gather its approvals", async () => {
+    const claimId = await file();
+    await rejectAs(V1, claimId);
+    await leave(V2);
+    // V3 alone cannot give the 2 approvals of 3.
+    expect((await contracts.get(OWNER, ID)).status).toBe("active");
+    expect(await last("claim.closed")).toMatchObject({
+      claimId,
+      reason: "participant_left",
+      closedBy: V2,
+      validatorIds: [V1, V3],
+    });
+  });
+
+  it("closes the claim of a recipient who refuses, and allows no other until the owner seals again", async () => {
+    await file(V1);
+    await leave(ACCESSOR);
+    const forV1 = await contracts.get(V1, ID);
+    expect(forV1).toMatchObject({
+      status: "active",
+      allowed_actions: ["leave"],
+      // The claim closed because of a departure, not of the owner: no pause.
+      claim_cooldown_until: null,
+    });
+    await expect(claims.file(V1, ID)).rejects.toThrow(ConflictError);
+    await claimsRevoke();
+    expect(await last("contract.revoked")).toMatchObject({
+      accessorId: null,
+      validatorIds: [V1, V2, V3],
+    });
+  });
+
+  it("is told once: an account deleted later does not leave again", async () => {
+    await leave(V2);
+    expect(
+      await stores.transaction((store) =>
+        new HandoverEvents(nodeSha256, clock).userDeleted(store, V2),
+      ),
+    ).toEqual({ deleted: 0, revoked: 0, left: 0 });
   });
 });
 
@@ -486,7 +605,17 @@ describe("an account deleted", () => {
     ).toMatchObject({ reason: "participant_left" });
     expect(
       events.find((e) => e.type === "participant.left")?.envelope.payload,
-    ).toMatchObject({ ownerId: OWNER, role: "accessor" });
+    ).toMatchObject({
+      ownerId: OWNER,
+      participantId: ACCESSOR,
+      role: "accessor",
+      reason: "account_deleted",
+    });
+    expect((await contracts.get(OWNER, ID)).departures).toMatchObject([
+      { user_id: ACCESSOR, reason: "account_deleted" },
+    ]);
+    // Nobody to release to: no claim until the owner seals again.
+    expect((await contracts.get(V1, ID)).allowed_actions).toEqual(["leave"]);
     expect((await contracts.events(OWNER, ID)).at(-1)).toMatchObject({
       type: "participant.left",
       actor_id: null,

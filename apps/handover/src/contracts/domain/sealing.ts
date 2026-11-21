@@ -26,22 +26,27 @@ export function newlyNamed(previous: string[], current: string[]): string[] {
 }
 
 /**
- * Who a sealing names for the first time, to tell them: a re-seal names again those of the last sealing (the accessor
- * and the validators change only by sealing), a first sealing names everyone.
+ * Who a sealing names for the first time, to tell them: a re-seal names again those of the last sealing who
+ * stayed (the accessor and the validators change only by sealing), a first sealing names everyone. Someone who
+ * refused their role and is named again hears of it as the first time.
  */
 export function namedForTheFirstTime(
   previous: {
     sealedVersion: number;
     accessorId: string;
     validatorIds: string[];
+    departures: { userId: string }[];
   },
   current: { accessorId: string; validatorIds: string[] },
 ): { newAccessor: boolean; newValidatorIds: string[] } {
-  const sealed = previous.sealedVersion > 0;
+  const stayed = (ids: string[]) =>
+    previous.sealedVersion > 0
+      ? ids.filter((id) => !previous.departures.some((d) => d.userId === id))
+      : [];
   return {
-    newAccessor: !sealed || previous.accessorId !== current.accessorId,
+    newAccessor: !stayed([previous.accessorId]).includes(current.accessorId),
     newValidatorIds: newlyNamed(
-      sealed ? previous.validatorIds : [],
+      stayed(previous.validatorIds),
       current.validatorIds,
     ),
   };

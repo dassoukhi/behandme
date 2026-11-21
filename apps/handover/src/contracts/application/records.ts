@@ -3,9 +3,14 @@ import {
   type Claim,
   cooldownUntil,
   type Decision,
-  tally,
+  tallyFor,
 } from "../domain/claims.js";
-import { type Contract, type Role, roleOf } from "../domain/contract.js";
+import {
+  type Contract,
+  hasLeft,
+  type Role,
+  roleOf,
+} from "../domain/contract.js";
 import { allowedActions } from "../domain/lifecycle.js";
 import type { HandoverStore } from "./ports.js";
 
@@ -41,6 +46,7 @@ export async function recordsFor(
       decisions: claim ? (decisions.get(claim.id) ?? []) : [],
       cooldownUntil: cooldownUntil(
         lastClosed.find((c) => c.contractId === contract.id) ?? null,
+        contract.ownerId,
         now,
       ),
       manifest: manifests.get(contract.id) ?? null,
@@ -76,21 +82,29 @@ export function toRecord(
       cooldownUntil: extras.cooldownUntil,
     }),
     contest_days: contract.contestDays,
-    open_claim: claim
-      ? claimRecord(claim, decisions, contract.validatorIds.length, me)
-      : null,
-    sealed_validators: sealedValidators(extras.manifest),
+    open_claim: claim ? claimRecord(claim, decisions, contract, me) : null,
+    sealed_validators: sealedValidators(contract, extras.manifest),
     claim_cooldown_until: extras.cooldownUntil?.toISOString() ?? null,
+    // The owner chooses someone else; the others need not know who left, nor why.
+    departures:
+      role === "owner"
+        ? contract.departures.map((d) => ({
+            user_id: d.userId,
+            role: d.role,
+            reason: d.reason,
+            left_at: d.at,
+          }))
+        : [],
   };
 }
 
 function claimRecord(
   claim: Claim,
   decisions: Decision[],
-  validators: number,
+  contract: Contract,
   me: string,
 ): ClaimRecord {
-  const result = tally(decisions, validators);
+  const result = tallyFor(contract, decisions);
   const mine = decisions.find((d) => d.validatorId === me);
   return {
     id: claim.id,
@@ -106,13 +120,19 @@ function claimRecord(
   };
 }
 
-/** The validators' keys named in the signed manifest. */
-function sealedValidators(manifest: string | null): SealedKey[] {
+/** The validators' keys named in the signed manifest, and whether they left. */
+function sealedValidators(
+  contract: Contract,
+  manifest: string | null,
+): SealedKey[] {
   if (!manifest) return [];
-  const parsed = JSON.parse(manifest) as { validators: SealedKey[] };
+  const parsed = JSON.parse(manifest) as {
+    validators: Omit<SealedKey, "left">[];
+  };
   return parsed.validators.map((v) => ({
     user_id: v.user_id,
     key_version: v.key_version,
     fingerprint: v.fingerprint,
+    left: hasLeft(contract, v.user_id),
   }));
 }

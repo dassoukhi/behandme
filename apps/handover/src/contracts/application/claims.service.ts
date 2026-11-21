@@ -29,9 +29,14 @@ import {
   reminderAt,
   settlement,
   type Tally,
-  tally,
+  tallyFor,
 } from "../domain/claims.js";
-import { type Contract, type Role, roleOf } from "../domain/contract.js";
+import {
+  type Contract,
+  presentParticipants,
+  type Role,
+  roleOf,
+} from "../domain/contract.js";
 import { type Action, assertAllowed } from "../domain/lifecycle.js";
 import type { RegisteredKey } from "../domain/sealing.js";
 import {
@@ -70,7 +75,7 @@ export class ClaimsService {
       assertAllowed("claim", contract, role, {
         me,
         claim: null,
-        cooldownUntil: cooldownUntil(last ?? null, now),
+        cooldownUntil: cooldownUntil(last ?? null, contract.ownerId, now),
       });
       const claimed = await store.contracts.transition(id, "active", "claimed");
       if (!claimed) {
@@ -95,7 +100,7 @@ export class ClaimsService {
           category: contract.category,
           ownerId: contract.ownerId,
           claimantId: me,
-          validatorIds: contract.validatorIds,
+          validatorIds: presentParticipants(contract).validatorIds,
           contestUntil: claim.contestUntil.toISOString(),
         }),
       );
@@ -189,8 +194,8 @@ export class ClaimsService {
         claimDecided({ claimId: claim.id, approve: recorded.approve }),
       );
 
-      const before = tally(decisions, n);
-      const after = tally([...decisions, recorded], n);
+      const before = tallyFor(contract, decisions);
+      const after = tallyFor(contract, [...decisions, recorded]);
       let current = contract;
       if (after.rejected) {
         current = await this.end(store, contract, claim, "rejected", null);
@@ -222,7 +227,7 @@ export class ClaimsService {
     if (!contract) return "closed";
     const decisions =
       (await store.claims.decisions([claim.id])).get(claim.id) ?? [];
-    const result = tally(decisions, contract.validatorIds.length);
+    const result = tallyFor(contract, decisions);
     const outcome = settlement(claim, result, this.clock.now());
     if (outcome === "release") {
       await this.release(store, contract, claim, result);
@@ -247,10 +252,10 @@ export class ClaimsService {
         claimId: claim.id,
         category: contract.category,
         ownerId: contract.ownerId,
-        pendingValidatorIds: contract.validatorIds.filter(
+        pendingValidatorIds: presentParticipants(contract).validatorIds.filter(
           (v) => !decided.has(v) && v !== claim.claimantId,
         ),
-        quorum: tally(decisions, contract.validatorIds.length).quorum,
+        quorum: tallyFor(contract, decisions).quorum,
         contestUntil: claim.contestUntil.toISOString(),
       }),
     );
@@ -372,7 +377,7 @@ export class ClaimsService {
         category: contract.category,
         ownerId: contract.ownerId,
         accessorId: contract.accessorId,
-        validatorIds: contract.validatorIds,
+        validatorIds: presentParticipants(contract).validatorIds,
       }),
     );
     return released;

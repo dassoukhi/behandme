@@ -1,4 +1,5 @@
 import { ConflictError, NotFoundError } from "@lib/kernel";
+import { canBeHandedOver } from "./claims.js";
 import type { Contract, Role, Status } from "./contract.js";
 
 // Who may do what, in which status. Handover is the only authority on a contract's life cycle; the
@@ -13,7 +14,8 @@ export type Action =
   | "cancel_claim"
   | "withdraw_claim"
   | "decide"
-  | "open";
+  | "open"
+  | "leave";
 
 /** What the rules need beyond the contract and the role: the caller and the open claim. */
 export interface ActionContext {
@@ -27,7 +29,11 @@ const NO_CONTEXT: ActionContext = { me: "", claim: null, cooldownUntil: null };
 
 const RULES: Record<
   Action,
-  { roles: Role[]; statuses: Status[]; when?: (c: ActionContext) => boolean }
+  {
+    roles: Role[];
+    statuses: Status[];
+    when?: (c: ActionContext, contract: Contract) => boolean;
+  }
 > = {
   // Category, description, contest window; participants change by re-sealing.
   update: { roles: ["owner"], statuses: ["draft", "active"] },
@@ -37,11 +43,13 @@ const RULES: Record<
   seal: { roles: ["owner"], statuses: ["draft", "active"] },
   // Until release: the sealed material is deleted, and nobody can ever open it.
   revoke: { roles: ["owner"], statuses: ["active", "claimed"] },
-  // The owner can no longer act: one open claim at a time, and a pause after the owner cancelled one.
+  // The owner can no longer act: one open claim at a time, a pause after the owner cancelled one, and none
+  // that could not succeed (the accessor left, or too few validators remain).
   claim: {
     roles: ["accessor", "validator"],
     statuses: ["active"],
-    when: (c) => c.cooldownUntil === null,
+    when: (c, contract) =>
+      c.cooldownUntil === null && canBeHandedOver(contract),
   },
   // "I'm here": the owner stops the claim during the contest window, or any time before release.
   cancel_claim: { roles: ["owner"], statuses: ["claimed"] },
@@ -57,6 +65,12 @@ const RULES: Record<
     when: (c) => c.claim !== null && !c.claim.decidedByMe,
   },
   open: { roles: ["accessor"], statuses: ["released"] },
+  // A participant refuses their role, at any time before the end: they no longer see the contract
+  // (application/endings.ts, leaveContract).
+  leave: {
+    roles: ["accessor", "validator"],
+    statuses: ["draft", "active", "claimed"],
+  },
 };
 
 export function allowedActions(
@@ -68,7 +82,7 @@ export function allowedActions(
     (action) =>
       RULES[action].roles.includes(role) &&
       RULES[action].statuses.includes(contract.status) &&
-      (RULES[action].when?.(context) ?? true),
+      (RULES[action].when?.(context, contract) ?? true),
   );
 }
 
@@ -91,7 +105,7 @@ export function assertAllowed(
       `Not possible on a ${contract.status} contract: ${action}`,
     );
   }
-  if (rule.when && !rule.when(context)) {
+  if (rule.when && !rule.when(context, contract)) {
     throw new ConflictError(`Not possible now: ${action}`);
   }
 }

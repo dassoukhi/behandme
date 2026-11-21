@@ -286,7 +286,7 @@ export class NotificationEvents {
     );
   }
 
-  /** The accessor and validators: nobody can open the contract any more. */
+  /** The accessor and validators who have not left: nobody can open the contract any more. */
   async contractRevoked(
     store: NotifierStore,
     event: {
@@ -294,27 +294,31 @@ export class NotificationEvents {
       category: string;
       reason: string;
       ownerId: string;
-      accessorId: string;
+      accessorId: string | null;
       validatorIds: string[];
     },
     occurredAt?: string,
   ): Promise<void> {
+    const people = event.accessorId
+      ? [event.accessorId, ...event.validatorIds]
+      : event.validatorIds;
     await this.notifier.notify(
       store,
-      [event.accessorId, ...event.validatorIds].map((userId) =>
-        contractRevoked({ ...event, userId }),
-      ),
+      people.map((userId) => contractRevoked({ ...event, userId })),
       occurredAt,
     );
   }
 
+  /** The owner: someone refused their role or deleted their account. */
   async participantLeft(
     store: NotifierStore,
     event: {
       contractId: string;
       category: string;
       ownerId: string;
+      participantId: string;
       role: string;
+      reason: string;
     },
     occurredAt?: string,
   ): Promise<void> {

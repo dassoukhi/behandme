@@ -18,6 +18,18 @@ export type Role = "owner" | "accessor" | "validator";
 export const MAX_VALIDATORS = 3;
 export const MAX_DESCRIPTION = 280;
 
+/** Why a participant left: they refused their role, or their account is gone. */
+export type LeftReason = "declined" | "account_deleted";
+
+/** A participant who left: they no longer see the contract, and are told nothing more about it. */
+export interface Departure {
+  userId: string;
+  role: "accessor" | "validator";
+  reason: LeftReason;
+  /** ISO time. */
+  at: string;
+}
+
 export interface Contract {
   id: string;
   ownerId: string;
@@ -33,6 +45,11 @@ export interface Contract {
   contestDays: number;
   accessorId: string;
   validatorIds: string[];
+  /**
+   * Those of `accessorId` and `validatorIds` who left. They stay named: their share or their access goes
+   * unused until the owner seals again, which starts with no departure.
+   */
+  departures: Departure[];
   createdAt: string;
   updatedAt: string;
 }
@@ -99,12 +116,33 @@ export function assertValidFields(fields: ContractChanges): void {
   }
 }
 
-/** The user's role on the contract, or null when it is none of theirs. */
+/** The user's role on the contract, or null when it is none of theirs, or no longer is: they left. */
 export function roleOf(contract: Contract, userId: string): Role | null {
   if (contract.ownerId === userId) return "owner";
+  if (hasLeft(contract, userId)) return null;
   if (contract.accessorId === userId) return "accessor";
   if (contract.validatorIds.includes(userId)) return "validator";
   return null;
+}
+
+export function hasLeft(
+  contract: Pick<Contract, "departures">,
+  userId: string,
+): boolean {
+  return contract.departures.some((d) => d.userId === userId);
+}
+
+/** The participants who have not left: those who are still told about the contract. */
+export function presentParticipants(contract: Contract): {
+  accessorId: string | null;
+  validatorIds: string[];
+} {
+  return {
+    accessorId: hasLeft(contract, contract.accessorId)
+      ? null
+      : contract.accessorId,
+    validatorIds: contract.validatorIds.filter((id) => !hasLeft(contract, id)),
+  };
 }
 
 /** The fields `changes` actually changes on `contract`. */

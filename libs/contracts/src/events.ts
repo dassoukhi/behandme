@@ -66,6 +66,7 @@ export const ClaimFiled = defineEvent(
     category,
     ownerId: userId,
     claimantId: userId,
+    /** The validators who have not left. */
     validatorIds: z.array(userId),
     contestUntil: z.iso.datetime(),
   }),
@@ -127,10 +128,11 @@ export const ClaimClosed = defineEvent(
       "revoked",
       "participant_left",
     ]),
-    /** Who closed it; null for the system (rejection count, expiry, departure). */
+    /** Who closed it: null for the system (rejection count, expiry, deleted account), the leaver for a refused role. */
     closedBy: userId.nullable(),
     ownerId: userId,
     claimantId: userId,
+    /** The validators who have not left. */
     validatorIds: z.array(userId),
   }),
 );
@@ -145,33 +147,42 @@ export const ContractReleased = defineEvent(
     category,
     ownerId: userId,
     accessorId: userId,
+    /** The validators who have not left. */
     validatorIds: z.array(userId),
   }),
 );
 
-/** Handover: nobody can open the contract any more (the owner revoked it or deleted their account). */
+/**
+ * Handover: nobody can open the contract any more (the owner revoked it or deleted their account). The
+ * participants to tell: those who have not left (accessorId null when the accessor left).
+ */
 export const ContractRevoked = defineEvent(
   "contract.revoked",
-  1,
+  2,
   z.object({
     contractId,
     category,
     reason: z.enum(["owner", "account_deleted"]),
     ownerId: userId,
-    accessorId: userId,
+    accessorId: userId.nullable(),
     validatorIds: z.array(userId),
   }),
 );
 
-/** Handover: a participant deleted their account; the owner should re-seal with someone else. */
+/**
+ * Handover: a participant left the contract, because they refused their role or deleted their account; the
+ * owner should seal again with someone else.
+ */
 export const ParticipantLeft = defineEvent(
   "participant.left",
-  1,
+  2,
   z.object({
     contractId,
     category,
     ownerId: userId,
+    participantId: userId,
     role: z.enum(["accessor", "validator"]),
+    reason: z.enum(["declined", "account_deleted"]),
   }),
 );
 
@@ -198,7 +209,7 @@ export const ClaimReminder = defineEvent(
     claimId,
     category,
     ownerId: userId,
-    /** Validators who have not decided yet (the claimant excluded). */
+    /** Validators who have not decided yet and have not left (the claimant excluded). */
     pendingValidatorIds: z.array(userId),
     /** Enough approvals already: without a cancel, the release follows at the end of the window. */
     quorum: z.boolean(),

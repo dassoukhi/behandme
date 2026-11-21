@@ -113,4 +113,24 @@ describe("internal API", () => {
     const res = await call(`/contracts/${contract.id}`, { method: "DELETE" });
     expect(res.status).toBe(409);
   });
+
+  it("lets a participant refuse their role, after which the contract is none of theirs", async () => {
+    const contract = await (
+      await call("/contracts", { method: "POST", body: JSON.stringify(draft) })
+    ).json();
+    const leave = (as: string) =>
+      call(`/contracts/${contract.id}/leave`, { method: "POST", as });
+    expect((await leave("user_owner")).status).toBe(404);
+    expect((await leave("user_stranger")).status).toBe(404);
+    expect((await leave("user_validator")).status).toBe(204);
+    expect(
+      (await call(`/contracts/${contract.id}`, { as: "user_validator" }))
+        .status,
+    ).toBe(404);
+    expect((await leave("user_validator")).status).toBe(404);
+    const forOwner = await (await call(`/contracts/${contract.id}`)).json();
+    expect(forOwner.departures).toMatchObject([
+      { user_id: "user_validator", role: "validator", reason: "declined" },
+    ]);
+  });
 });

@@ -550,7 +550,7 @@ export function chosenAsValidator(
           paragraphs: [
             `${owner ?? "Un proche"} vous a choisi comme validateur de son enveloppe ${name.fr}.`,
             `Le jour où quelqu'un demandera sa transmission, votre avis sera demandé : vous ne l'approuverez que si vous êtes sûr que ${first ?? "cette personne"} ne peut plus agir. ${quorum.fr}, et ${first ?? "cette personne"} dispose de ${delay.fr} après la demande pour l'annuler.`,
-            `Vous ne verrez jamais ce que contient l'enveloppe. Ce rôle ne vous oblige à rien, ne vous donne aucun droit sur ses biens et ne remplace aucune démarche de succession. Si vous ne souhaitez pas le tenir, dites-le à ${first ?? "cette personne"}, qui choisira quelqu'un d'autre.`,
+            `Vous ne verrez jamais ce que contient l'enveloppe. Ce rôle ne vous oblige à rien, ne vous donne aucun droit sur ses biens et ne remplace aucune démarche de succession. Si vous ne souhaitez pas le tenir, refusez-le dans l'app : ouvrez l'enveloppe et touchez « Refuser ce rôle ». Nous préviendrons ${first ?? "cette personne"}, qui pourra choisir quelqu'un d'autre.`,
             "D'ici là, gardez vos clés à l'abri : sans elles, vous ne pourrez pas approuver. L'app vous guide, une minute suffit.",
             RIGHTS.fr,
           ],
@@ -560,7 +560,7 @@ export function chosenAsValidator(
           paragraphs: [
             `${owner ?? "Someone close to you"} chose you as a validator of their envelope ${name.en}.`,
             `The day someone requests its handover, you will be asked for your decision: only approve it if you are sure ${first ?? "they"} can no longer act. ${quorum.en}, and ${first ? `${first} has` : "they have"} ${delay.en} after the request to cancel it.`,
-            `You will never see what the envelope holds. This role obliges you to nothing, gives you no right to their property and replaces no step of an estate settlement. If you would rather not hold it, tell ${first ?? "them"}, who will choose someone else.`,
+            `You will never see what the envelope holds. This role obliges you to nothing, gives you no right to their property and replaces no step of an estate settlement. If you would rather not hold it, decline it in the app: open the envelope and tap “Decline this role”. We will tell ${first ?? "them"}, who can then choose someone else.`,
             "Until then, keep your keys safe: without them, you cannot approve. The app guides you; it takes a minute.",
             RIGHTS.en,
           ],
@@ -609,7 +609,7 @@ export function chosenAsAccessor(
             `${owner ?? "Un proche"} vous a choisi comme destinataire de son enveloppe ${name.fr}.`,
             `Elle reste scellée : vous ne pourrez l'ouvrir que si un jour ${first ?? "cette personne"} ne peut plus agir, avec ${quorum.fr}. ${first ?? "Cette personne"} reçoit aussitôt une alerte et dispose de ${delay.fr} pour annuler la demande.`,
             `Ces accès ne vous donneront aucun droit sur ses biens : servez-vous-en seulement pour ce que ${first ?? "cette personne"} vous aura demandé.`,
-            `Vous n'avez rien à faire pour l'instant. Si vous ne souhaitez pas ce rôle, dites-le à ${first ?? "cette personne"}, qui choisira quelqu'un d'autre.`,
+            `Vous n'avez rien à faire pour l'instant. Si vous ne souhaitez pas ce rôle, refusez-le dans l'app : ouvrez l'enveloppe et touchez « Refuser ce rôle ». Nous préviendrons ${first ?? "cette personne"}, qui pourra choisir quelqu'un d'autre.`,
             RIGHTS.fr,
           ],
         },
@@ -619,7 +619,7 @@ export function chosenAsAccessor(
             `${owner ?? "Someone close to you"} chose you as the recipient of their envelope ${name.en}.`,
             `It stays sealed: you can open it only if one day ${first ?? "they"} can no longer act, with ${quorum.en}. ${first ? `${first} is alerted at once and has` : "They are alerted at once and have"} ${delay.en} to cancel the request.`,
             `This access will give you no right to their property: use it only for what ${first ?? "they"} will have asked of you.`,
-            `There is nothing to do for now. If you would rather not hold this role, tell ${first ?? "them"}, who will choose someone else.`,
+            `There is nothing to do for now. If you would rather not hold this role, decline it in the app: open the envelope and tap “Decline this role”. We will tell ${first ?? "them"}, who can then choose someone else.`,
             RIGHTS.en,
           ],
         },
@@ -757,7 +757,7 @@ const CLOSED: Record<Language, Record<string, string>> = {
     expired: "La demande de transmission a expiré",
     revoked: "Le propriétaire a révoqué l'enveloppe",
     participant_left:
-      "Un participant a supprimé son compte : la demande de transmission est close",
+      "Un participant a quitté l'enveloppe : la demande de transmission est close",
   },
   en: {
     cancelled: "The owner cancelled the handover request",
@@ -766,7 +766,7 @@ const CLOSED: Record<Language, Record<string, string>> = {
     expired: "The handover request expired",
     revoked: "The owner revoked the envelope",
     participant_left:
-      "A participant deleted their account: the handover request is closed",
+      "A participant left the envelope: the handover request is closed",
   },
 };
 
@@ -815,7 +815,7 @@ export function claimClosed(params: {
           rejected: `Les validateurs ont refusé la demande de transmission ${ofContract.fr}.`,
           expired: `La demande de transmission ${ofContract.fr} a expiré sans avoir réuni assez d'approbations.`,
           revoked: `${owner ?? "Le propriétaire"} a révoqué l'enveloppe : la demande de transmission ${ofContract.fr} est close.`,
-          participant_left: `Un participant a supprimé son compte : la demande de transmission ${ofContract.fr} est close.`,
+          participant_left: `Un participant a quitté l'enveloppe : la demande de transmission ${ofContract.fr} ne peut plus aboutir, elle est close.`,
         },
         en: {
           cancelled: `${owner ?? "The owner"} cancelled the handover request for ${ofContract.en}.`,
@@ -823,7 +823,7 @@ export function claimClosed(params: {
           rejected: `The validators refused the handover request for ${ofContract.en}.`,
           expired: `The handover request for ${ofContract.en} expired without enough approvals.`,
           revoked: `${owner ?? "The owner"} revoked the envelope: the handover request for ${ofContract.en} is closed.`,
-          participant_left: `A participant deleted their account: the handover request for ${ofContract.en} is closed.`,
+          participant_left: `A participant left the envelope: the handover request for ${ofContract.en} can no longer succeed, and is closed.`,
         },
       };
       return {
@@ -1062,57 +1062,108 @@ export function contractRevoked(params: {
   };
 }
 
-/** A participant deleted their account: the owner should choose someone else and re-seal. */
+/**
+ * A participant left: they refused their role (the owner is told who), or deleted their account. The owner
+ * should choose someone else and seal again.
+ */
 export function participantLeft(params: {
   ownerId: string;
   contractId: string;
   category: string;
+  participantId: string;
   role: string;
+  reason: string;
 }): NotificationDraft {
   const name = contractName(params.category);
   const accessor = params.role === "accessor";
+  const declined = params.reason === "declined";
+  const push = {
+    fr: declined
+      ? accessor
+        ? `Le destinataire de votre enveloppe ${name.fr} a refusé son rôle : choisissez-en un autre et scellez-la à nouveau.`
+        : `Un validateur de votre enveloppe ${name.fr} a refusé son rôle : sa part ne servira pas. Scellez-la à nouveau pour en choisir un autre.`
+      : accessor
+        ? `Le destinataire de votre enveloppe ${name.fr} a supprimé son compte : choisissez-en un autre et scellez-la à nouveau.`
+        : `Un validateur de votre enveloppe ${name.fr} a supprimé son compte : sa part est perdue. Scellez-la à nouveau pour en choisir un autre.`,
+    en: declined
+      ? accessor
+        ? `The recipient of your envelope ${name.en} declined their role: choose another one and seal again.`
+        : `A validator of your envelope ${name.en} declined their role: their share will not be used. Seal again to choose another one.`
+      : accessor
+        ? `The recipient of your envelope ${name.en} deleted their account: choose another one and seal again.`
+        : `A validator of your envelope ${name.en} deleted their account: their share is lost. Seal again to choose another one.`,
+  };
   return {
     userId: params.ownerId,
     type: "participant_left",
+    mentions: declined ? [params.participantId] : [],
     copy: {
       fr: {
-        title: accessor ? "Départ du destinataire" : "Départ d'un validateur",
-        body: accessor
-          ? `Le destinataire de votre enveloppe ${name.fr} a supprimé son compte : choisissez-en un autre et scellez-la à nouveau.`
-          : `Un validateur de votre enveloppe ${name.fr} a supprimé son compte : sa part est perdue. Scellez-la à nouveau pour en choisir un autre.`,
+        title: declined
+          ? "Rôle refusé"
+          : accessor
+            ? "Départ du destinataire"
+            : "Départ d'un validateur",
+        body: push.fr,
       },
       en: {
-        title: accessor ? "Recipient left" : "Validator left",
-        body: accessor
-          ? `The recipient of your envelope ${name.en} deleted their account: choose another one and seal again.`
-          : `A validator of your envelope ${name.en} deleted their account: their share is lost. Seal again to choose another one.`,
+        title: declined
+          ? "Role declined"
+          : accessor
+            ? "Recipient left"
+            : "Validator left",
+        body: push.en,
       },
     },
     data: { url: `/contract/${params.contractId}` },
     critical: false,
-    email: () => ({
-      fr: {
-        paragraphs: accessor
-          ? [
-              `Le destinataire de votre enveloppe ${name.fr} a supprimé son compte BehyndMe.`,
-              "Pour que cette enveloppe puisse encore être transmise, choisissez un autre destinataire et scellez-la à nouveau dans l'app.",
-            ]
-          : [
-              `Un validateur de votre enveloppe ${name.fr} a supprimé son compte BehyndMe : sa part de la clé est perdue.`,
-              "Scellez l'enveloppe à nouveau dans l'app pour choisir un autre validateur.",
-            ],
-      },
-      en: {
-        paragraphs: accessor
-          ? [
-              `The recipient of your envelope ${name.en} deleted their BehyndMe account.`,
-              "So that this envelope can still be handed over, choose another recipient and seal it again in the app.",
-            ]
-          : [
-              `A validator of your envelope ${name.en} deleted their BehyndMe account: their part of the key is lost.`,
-              "Seal the envelope again in the app to choose another validator.",
-            ],
-      },
-    }),
+    email: (ctx) => {
+      // A deleted account is forgotten here; whoever declined is named.
+      const who = declined ? ctx.name(params.participantId) : null;
+      return {
+        fr: {
+          paragraphs: declined
+            ? accessor
+              ? [
+                  `${who ?? "Le destinataire"} a refusé d'être le destinataire de votre enveloppe ${name.fr} : cette personne ne la voit plus et ne pourra pas l'ouvrir.`,
+                  "Pour que cette enveloppe puisse encore être transmise, choisissez un autre destinataire et scellez-la à nouveau dans l'app.",
+                ]
+              : [
+                  `${who ?? "Un validateur"} a refusé d'être validateur de votre enveloppe ${name.fr} : sa part de la clé ne servira pas.`,
+                  "Scellez l'enveloppe à nouveau dans l'app pour choisir un autre validateur.",
+                ]
+            : accessor
+              ? [
+                  `Le destinataire de votre enveloppe ${name.fr} a supprimé son compte BehyndMe.`,
+                  "Pour que cette enveloppe puisse encore être transmise, choisissez un autre destinataire et scellez-la à nouveau dans l'app.",
+                ]
+              : [
+                  `Un validateur de votre enveloppe ${name.fr} a supprimé son compte BehyndMe : sa part de la clé est perdue.`,
+                  "Scellez l'enveloppe à nouveau dans l'app pour choisir un autre validateur.",
+                ],
+        },
+        en: {
+          paragraphs: declined
+            ? accessor
+              ? [
+                  `${who ?? "The recipient"} declined to be the recipient of your envelope ${name.en}: they no longer see it and will not be able to open it.`,
+                  "So that this envelope can still be handed over, choose another recipient and seal it again in the app.",
+                ]
+              : [
+                  `${who ?? "A validator"} declined to be a validator of your envelope ${name.en}: their part of the key will not be used.`,
+                  "Seal the envelope again in the app to choose another validator.",
+                ]
+            : accessor
+              ? [
+                  `The recipient of your envelope ${name.en} deleted their BehyndMe account.`,
+                  "So that this envelope can still be handed over, choose another recipient and seal it again in the app.",
+                ]
+              : [
+                  `A validator of your envelope ${name.en} deleted their BehyndMe account: their part of the key is lost.`,
+                  "Seal the envelope again in the app to choose another validator.",
+                ],
+        },
+      };
+    },
   };
 }

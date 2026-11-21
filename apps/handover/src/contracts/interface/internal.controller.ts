@@ -199,6 +199,16 @@ export class ContractsController {
     );
   }
 
+  /** The accessor or a validator refuses their role; the contract is no longer theirs. */
+  @Post(":id/leave")
+  @HttpCode(204)
+  leave(
+    @ForUser() me: string,
+    @Param("id", ParseUUIDPipe) id: string,
+  ): Promise<void> {
+    return this.contracts.leave(me, id);
+  }
+
   @Get(":id/release")
   release(
     @ForUser() me: string,

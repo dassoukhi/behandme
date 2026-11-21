@@ -722,7 +722,12 @@ describe("claims and release: who may, with whose keys", () => {
 
   it("counts the validators whose keys are still those the contract was sealed for", async () => {
     stored().sealed_validators = [
-      { user_id: VALIDATOR, key_version: 1, fingerprint: "a".repeat(64) },
+      {
+        user_id: VALIDATOR,
+        key_version: 1,
+        fingerprint: "a".repeat(64),
+        left: false,
+      },
     ];
     expect((await contracts.get(OWNER, contractId)).health).toEqual({
       usable: 1,
@@ -742,7 +747,12 @@ describe("claims and release: who may, with whose keys", () => {
 
   it("tells only the owner how far each validator can be counted on, a silent phone included", async () => {
     stored().sealed_validators = [
-      { user_id: VALIDATOR, key_version: 1, fingerprint: "a".repeat(64) },
+      {
+        user_id: VALIDATOR,
+        key_version: 1,
+        fingerprint: "a".repeat(64),
+        left: false,
+      },
     ];
     await sql`reset role`.execute(pg);
     await sql`update core.user_keys
@@ -770,6 +780,57 @@ describe("claims and release: who may, with whose keys", () => {
       { user_id: VALIDATOR, state: "silent" },
     ]);
     expect((await contracts.get(OWNER, contractId)).health?.usable).toBe(1);
+  });
+
+  it("lets the accessor or a validator refuse their role, never the owner or a stranger; the contract is then none of theirs", async () => {
+    for (const who of [OWNER, STRANGER]) {
+      await expect(contracts.leave(who, contractId)).rejects.toThrow(
+        NotFoundError,
+      );
+    }
+    expect(
+      (await contracts.get(VALIDATOR, contractId)).allowed_actions,
+    ).toEqual(["claim", "leave"]);
+    await contracts.leave(VALIDATOR, contractId);
+    expect(handover.calls.at(-1)).toMatchObject({
+      method: "leave",
+      userId: VALIDATOR,
+    });
+    await expect(contracts.get(VALIDATOR, contractId)).rejects.toThrow(
+      NotFoundError,
+    );
+    expect(await contracts.list(VALIDATOR)).toEqual([]);
+    await expect(contracts.leave(VALIDATOR, contractId)).rejects.toThrow(
+      NotFoundError,
+    );
+    // Only the owner learns who left.
+    expect((await contracts.get(OWNER, contractId)).departures).toMatchObject([
+      { user_id: VALIDATOR, role: "validator", reason: "declined" },
+    ]);
+    expect((await contracts.get(ACCESSOR, contractId)).departures).toEqual([]);
+  });
+
+  it("counts a validator who left as one who can no longer approve", async () => {
+    stored().sealed_validators = [
+      {
+        user_id: VALIDATOR,
+        key_version: 1,
+        fingerprint: "a".repeat(64),
+        left: false,
+      },
+    ];
+    await contracts.leave(VALIDATOR, contractId);
+    expect((await contracts.get(OWNER, contractId)).health).toEqual({
+      usable: 0,
+      total: 1,
+      threshold: 1,
+      validators: [{ user_id: VALIDATOR, state: "left" }],
+    });
+    expect((await contracts.get(ACCESSOR, contractId)).health).toEqual({
+      usable: 0,
+      total: 1,
+      threshold: 1,
+    });
   });
 
   it("hands the release package to the accessor only, with the owner's keys", async () => {

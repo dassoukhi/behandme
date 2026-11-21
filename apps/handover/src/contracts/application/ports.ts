@@ -7,12 +7,13 @@ import type {
   Contract,
   ContractChanges,
   DraftInput,
+  LeftReason,
   Status,
 } from "../domain/contract.js";
 
 export interface ContractRepository {
   find(id: string): Promise<Contract | null>;
-  /** Contracts the user owns or takes part in, newest first. */
+  /** Contracts the user owns or takes part in (not those they left), newest first. */
   listFor(userId: string): Promise<Contract[]>;
   insert(ownerId: string, input: DraftInput): Promise<Contract>;
   /** Null when the contract is gone or its version is no longer `expectedVersion`. */
@@ -37,6 +38,15 @@ export interface ContractRepository {
     expectedVersion: number,
   ): Promise<Contract | null>;
   markRevoked(id: string, expectedVersion: number): Promise<Contract | null>;
+  /**
+   * Records that a participant left (the version is bumped: a sealing prepared before must be redone). Null
+   * when they are not a participant, or already left.
+   */
+  markLeft(
+    id: string,
+    userId: string,
+    departure: { reason: LeftReason; at: Date },
+  ): Promise<Contract | null>;
   /**
    * Forgets what the owner wrote about a contract, once their account is gone. The version stays: this is
    * not an edit, and nobody can edit the contract anymore.
