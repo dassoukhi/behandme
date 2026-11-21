@@ -194,7 +194,10 @@ If the contract changed, push this repo before the front.
 - What people read (notifications and e-mails, `apps/notifier/src/notifications/domain/templates.ts`) calls a contract
   an « enveloppe » (envelope, feminine in French) and its accessor a « destinataire » (recipient): « contrat » would
   sound like a legal commitment. The code, routes, events and tables keep contract and accessor.
-  `domain/templates.spec.ts` fails if either old word comes back in any template.
+  `domain/templates.spec.ts` fails if either old word comes back in any template, or a word of a will or an inheritance
+  (« testament numérique », « légataire », « legs »…; digital will, legatee…): BehyndMe passes on access, not property.
+  Those named in an envelope are told what their role is and is not (`chosenAsValidator`, `chosenAsAccessor`, from
+  `contract.sealed` v3).
 - The privacy policy (behindMe: `scripts/site-pages.js` and `settings.privacy.*` in `locales/`, published on
   behyndme.com) states what this repo does: what each table keeps, the retention jobs' periods, what account deletion
   leaves, what the gateway logs (no IP address, no user agent: `logging.interceptor.spec.ts`). Changing any of them
