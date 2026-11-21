@@ -201,7 +201,9 @@ If the contract changed, push this repo before the front.
 - The privacy policy (behindMe: `scripts/site-pages.js` and `settings.privacy.*` in `locales/`, published on
   behyndme.com) states what this repo does: what each table keeps, the retention jobs' periods, what account deletion
   leaves, what the gateway logs (no IP address, no user agent: `logging.interceptor.spec.ts`). Changing any of them
-  means changing the policy in the same piece of work. The app's help page states the delays and alerts too.
+  means changing the policy in the same piece of work. The app's help page states the delays and alerts too. So do
+  `docs/compliance/` (processing register, DPIA, processors, breach and heirs' procedures, the ANSSI cryptology
+  declaration file): keep them in step, in French.
 - Support closes an account at someone's request (heirs, lost access) with `npm run account:close`, after a build
   (`docs/architecture.md`, "Closing an account on request"): never by deleting the user in Clerk's dashboard, which
   nothing here hears, so the profile and the envelopes would stay.
