@@ -70,9 +70,11 @@ Aucun acte de décès n'est demandé.
 - Il annule d'un geste.
 - Il faut la majorité des validateurs, et le destinataire ne peut pas être validateur.
 - Une demande non aboutie expire en 60 jours. Après une annulation, son auteur attend 72 heures avant de redemander.
-- À venir :
-  - délai par défaut porté à 15 jours ;
-  - une catégorie « Banque et cryptomonnaies » plus stricte : 15 à 30 jours, 3 validateurs, après un décès seulement.
+- Un délai de 15 jours par défaut pour annuler une demande (de 3 à 30 jours).
+- Une catégorie « Banque et cryptomonnaies » plus stricte : 15 à 30 jours, exactement 3 validateurs (2 approbations),
+  transmission après un décès seulement.
+- Celui qui demande la transmission dit pourquoi (décès, ou « ne peut plus agir » là où le propriétaire l'a permis), et
+  le propriétaire comme les validateurs le lisent dans l'e-mail.
 
 **R3. Perte définitive (clés perdues par le propriétaire, un validateur ou le destinataire).**
 - Phrase de secours, sauvegarde par clé d'accès, transfert vers un nouveau téléphone.
@@ -84,9 +86,12 @@ Aucun acte de décès n'est demandé.
 - Visible seulement des participants de l'enveloppe.
 - La description est signalée comme lisible, à ne rien y mettre de secret.
 - Les notifications et e-mails ne contiennent ni secret ni description.
-- Une demande « parce qu'il ne peut plus agir » révèle l'état de santé d'une personne vivante (art. 9). À venir : au
-  scellement, un consentement explicite du propriétaire pour les enveloppes ouvrables dans ce cas ; sans lui,
-  transmission après un décès seulement.
+- Une demande « parce qu'il ne peut plus agir » révèle l'état de santé d'une personne vivante (art. 9). Elle n'est
+  possible qu'avec le consentement explicite du propriétaire (art. 9.2.a), donné à la création de l'enveloppe ou plus
+  tard, et retirable à tout moment ; le journal de l'enveloppe garde chaque consentement donné ou retiré, avec la
+  version du texte accepté. Sans lui, l'enveloppe ne se transmet qu'après un décès : c'est le cas de toutes les
+  enveloppes créées avant cette règle. Jamais pour « Banque et cryptomonnaies ».
+- Le motif n'apparaît ni sur l'écran verrouillé ni dans les notifications, seulement dans l'app et les e-mails.
 
 **R5. Prise de contrôle d'un compte (mot de passe ou session volés).**
 - Un nouvel appareil doit confirmer un code par e-mail.
@@ -124,8 +129,7 @@ l'acceptation des conditions.
 ## 5. Conclusion provisoire
 
 Les risques résiduels paraissent acceptables avec les mesures en place, à trois conditions :
-- les mesures à venir de ce document sont faites avant la sortie publique (consentement « santé », règles plus strictes
-  pour les finances, double authentification à terme) ;
+- les mesures à venir de ce document sont faites avant la sortie publique (double authentification à terme) ;
 - l'avocat valide la position sur les héritiers ;
 - l'audit indépendant du protocole a lieu.
 

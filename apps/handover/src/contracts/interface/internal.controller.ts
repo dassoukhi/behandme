@@ -24,6 +24,7 @@ import type { RegisteredKey } from "../domain/sealing.js";
 import {
   ContractChangesDto,
   DecisionDto,
+  FileClaimDto,
   NewContractDto,
   RegisteredKeyDto,
   RevokeDto,
@@ -66,6 +67,7 @@ export class ContractsController {
       accessorId: body.accessor_id,
       validatorIds: body.validator_ids,
       contestDays: body.contest_days,
+      incapacityAllowed: body.incapacity_allowed,
     });
   }
 
@@ -87,6 +89,7 @@ export class ContractsController {
       category: changes.category,
       description: changes.description,
       contestDays: changes.contest_days,
+      incapacityAllowed: changes.incapacity_allowed,
     });
   }
 
@@ -154,8 +157,9 @@ export class ContractsController {
   fileClaim(
     @ForUser() me: string,
     @Param("id", ParseUUIDPipe) id: string,
+    @Body() { reason }: FileClaimDto,
   ): Promise<ContractRecord> {
-    return this.claims.file(me, id);
+    return this.claims.file(me, id, reason);
   }
 
   @Post(":id/claims/:claimId/cancel")

@@ -1,6 +1,7 @@
 import type {
   AuditEvent,
   ChainVerification,
+  ClaimReason,
   ContractChanges,
   ContractRecord,
   DecisionBody,
@@ -15,7 +16,7 @@ import type { HandoverClient } from "../application/handover-client.js";
 
 type Stored = Omit<
   ContractRecord,
-  "my_role" | "allowed_actions" | "handover_possible"
+  "my_role" | "allowed_actions" | "handover_possible" | "claim_reasons"
 >;
 
 /**
@@ -56,7 +57,8 @@ export class InMemoryHandover implements HandoverClient {
       validator_ids: contract.validator_ids,
       created_at: "2026-10-14T00:00:00.000Z",
       updated_at: "2026-10-14T00:00:00.000Z",
-      contest_days: contract.contest_days ?? 7,
+      contest_days: contract.contest_days ?? 15,
+      incapacity_allowed: contract.incapacity_allowed ?? false,
       open_claim: null,
       sealed_validators: [],
       claim_cooldown_until: null,
@@ -122,7 +124,7 @@ export class InMemoryHandover implements HandoverClient {
     return record(contract, userId);
   }
 
-  async fileClaim(userId: string, id: string) {
+  async fileClaim(userId: string, id: string, reason: ClaimReason) {
     const contract = this.visible(userId, id);
     if (contract.owner_id === userId)
       throw new NotFoundError("Contract not found");
@@ -132,6 +134,7 @@ export class InMemoryHandover implements HandoverClient {
     contract.open_claim = {
       id: `claim-${contract.id}`,
       claimant_id: userId,
+      reason,
       status: "open",
       filed_at: "2026-10-16T00:00:00.000Z",
       contest_until: "2026-10-23T00:00:00.000Z",
@@ -279,5 +282,9 @@ function record(c: Stored, userId: string): ContractRecord {
     // As handover: only the owner is given who left.
     departures: role === "owner" ? c.departures : [],
     handover_possible: !c.departures.some((d) => d.user_id === c.accessor_id),
+    claim_reasons:
+      c.incapacity_allowed && c.category !== "finances"
+        ? ["death", "incapacity"]
+        : ["death"],
   };
 }

@@ -32,6 +32,8 @@ import {
   tallyFor,
 } from "../domain/claims.js";
 import {
+  type ClaimReason,
+  claimReasons,
   type Contract,
   presentParticipants,
   type Role,
@@ -66,8 +68,15 @@ export class ClaimsService {
     @Inject(CONTEST_OVERRIDE) private readonly contestOverrideMs: number | null,
   ) {}
 
-  /** The accessor or a validator says the owner can no longer act. */
-  async file(me: string, id: string): Promise<ContractRecord> {
+  /**
+   * The accessor or a validator says the owner died, or can no longer act: the second only where the owner consented
+   * to it (claimReasons).
+   */
+  async file(
+    me: string,
+    id: string,
+    reason: ClaimReason,
+  ): Promise<ContractRecord> {
     return this.stores.transaction(async (store) => {
       const now = this.clock.now();
       const { contract, role } = await visible(store, me, id, { lock: true });
@@ -77,6 +86,11 @@ export class ClaimsService {
         claim: null,
         cooldownUntil: cooldownUntil(last ?? null, contract.ownerId, now),
       });
+      if (!claimReasons(contract).includes(reason)) {
+        throw new ConflictError(
+          "This contract can be claimed after a death only",
+        );
+      }
       const claimed = await store.contracts.transition(id, "active", "claimed");
       if (!claimed) {
         throw new ConflictError("The contract changed meanwhile: try again");
@@ -84,6 +98,7 @@ export class ClaimsService {
       const claim = await store.claims.insert({
         contractId: id,
         claimantId: me,
+        reason,
         sealedVersion: contract.sealedVersion,
         filedAt: now,
         ...claimDeadlines(contract, now, this.contestOverrideMs),
@@ -91,7 +106,11 @@ export class ClaimsService {
       await store.audit.append(
         id,
         me,
-        claimFiled({ claimId: claim.id, contestUntil: claim.contestUntil }),
+        claimFiled({
+          claimId: claim.id,
+          contestUntil: claim.contestUntil,
+          reason,
+        }),
       );
       await store.events.publish(
         ClaimFiled.create({
@@ -100,6 +119,7 @@ export class ClaimsService {
           category: contract.category,
           ownerId: contract.ownerId,
           claimantId: me,
+          reason,
           validatorIds: presentParticipants(contract).validatorIds,
           contestUntil: claim.contestUntil.toISOString(),
         }),

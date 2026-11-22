@@ -7,6 +7,7 @@ import {
   tallyFor,
 } from "../domain/claims.js";
 import {
+  claimReasons,
   type Contract,
   hasLeft,
   type Role,
@@ -97,6 +98,8 @@ export function toRecord(
           }))
         : [],
     handover_possible: canBeHandedOver(contract),
+    incapacity_allowed: contract.incapacityAllowed,
+    claim_reasons: claimReasons(contract),
   };
 }
 
@@ -111,6 +114,7 @@ function claimRecord(
   return {
     id: claim.id,
     claimant_id: claim.claimantId,
+    reason: claim.reason,
     status: claim.status,
     filed_at: claim.filedAt.toISOString(),
     contest_until: claim.contestUntil.toISOString(),

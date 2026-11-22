@@ -138,10 +138,10 @@ Claim: `open | cancelled | withdrawn | rejected | expired | released`.
 | ------------------ | ---------------------------------------------------------------------- | ---------------------------------------------------------------------- |
 | create → draft     | owner                                                                  | participants trusted, distinct, with E2E keys (checked by the gateway) |
 | seal / reseal      | owner                                                                  | no open claim; expected version (compare-and-set)                      |
-| active → claimed   | accessor or validator                                                  | one open claim at a time; 72 h cooldown; accessor and ≥ k validators still there |
+| active → claimed   | accessor or validator                                                  | one open claim at a time; 72 h cooldown; accessor and ≥ k validators still there; a reason the contract allows |
 | approve / reject   | validator, once                                                        | approving _is_ re-wrapping their key share for the accessor            |
 | claimed → active   | owner ("I'm here"), claimant, rejections > n − k, expiry after 60 days | release ciphertexts deleted                                            |
-| claimed → released | system                                                                 | approvals ≥ k **and** contest window elapsed (7 days by default, 3–30) |
+| claimed → released | system                                                                 | approvals ≥ k **and** contest window elapsed (15 days by default, 3–30) |
 | any → revoked      | owner                                                                  | before release; all ciphertexts deleted                                |
 | leave              | accessor or validator                                                  | before release; the claim closes if it can no longer succeed           |
 
@@ -151,7 +151,14 @@ or active), delete (owner; draft only, its log stays), seal (owner; draft, or ac
 (owner; active or claimed, which also closes the claim), claim (accessor or validator; active, not within 72 h
 of the owner cancelling their last claim), cancel_claim (owner), withdraw_claim (the claimant), decide
 (each validator once), open (accessor; released), leave (accessor or validator; draft, active or claimed), in
-`apps/handover/src/contracts/domain/lifecycle.ts` and `domain/claims.ts`. `health` (gateway) counts the validators
+`apps/handover/src/contracts/domain/lifecycle.ts` and `domain/claims.ts`.
+
+**Transmission rules** (`domain/contract.ts`). A claim gives its reason: `death`, or `incapacity` (the owner can no
+longer act) only where the owner gave their explicit consent (`incapacity_allowed`, GDPR article 9: it reveals their
+health), at creation or later, and may withdraw it; each consent given or withdrawn is a `consent.incapacity` event in
+the log, with the version of the wording accepted, and the record lists the reasons allowed (`claim_reasons`).
+`finances` (bank accounts and cryptocurrency) waits 15 to 30 days, has exactly 3 validators, and allows a death only:
+`assertCategoryRules` checks the whole contract at creation, at each change and at sealing. 15 days by default. `health` (gateway) counts the validators
 still there whose current keys are those of the sealing: a share wrapped to reset keys is lost until the owner
 re-seals, and so is the share of a validator who left.
 

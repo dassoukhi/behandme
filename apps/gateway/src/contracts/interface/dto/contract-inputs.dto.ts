@@ -18,7 +18,12 @@ import {
   Min,
   ValidateNested,
 } from "class-validator";
-import { CONTRACT_CATEGORIES, type ContractCategory } from "@lib/contracts";
+import {
+  CLAIM_REASONS,
+  type ClaimReason,
+  CONTRACT_CATEGORIES,
+  type ContractCategory,
+} from "@lib/contracts";
 
 // The owner is the authenticated caller. Status and every life-cycle field are changed by handover
 // only, never accepted from the client.
@@ -50,7 +55,7 @@ export class CreateContractDTO {
 
   @ApiProperty({
     description:
-      "Clerk IDs of 1 to 3 distinct validators (people the caller trusts), in order",
+      "Clerk IDs of 1 to 3 distinct validators (people the caller trusts), in order; exactly 3 for finances",
     type: [String],
     minItems: 1,
     maxItems: 3,
@@ -66,16 +71,24 @@ export class CreateContractDTO {
 
   @ApiPropertyOptional({
     description:
-      "Days the owner has to cancel a claim before a release (3 to 30, 7 by default)",
+      "Days the owner has to cancel a claim before a release (3 to 30, 15 by default; 15 to 30 for finances)",
     minimum: 3,
     maximum: 30,
-    example: 7,
+    example: 15,
   })
   @IsOptional()
   @IsInt()
   @Min(3)
   @Max(30)
   contest_days?: number;
+
+  @ApiPropertyOptional({
+    description:
+      "The owner's explicit consent to a claim saying they can no longer act (their health: GDPR art. 9). False by default; without it, only a death can be given as the reason. Never for finances.",
+  })
+  @IsOptional()
+  @IsBoolean()
+  incapacity_allowed?: boolean;
 }
 
 // Descriptive fields and the contest window; participants change by re-sealing.
@@ -93,16 +106,24 @@ export class UpdateContractDTO {
 
   @ApiPropertyOptional({
     description:
-      "Days the owner has to cancel a claim before a release (3 to 30, 7 by default)",
+      "Days the owner has to cancel a claim before a release (3 to 30, 15 by default; 15 to 30 for finances)",
     minimum: 3,
     maximum: 30,
-    example: 7,
+    example: 15,
   })
   @IsOptional()
   @IsInt()
   @Min(3)
   @Max(30)
   contest_days?: number;
+
+  @ApiPropertyOptional({
+    description:
+      "The owner's explicit consent to a claim saying they can no longer act (their health: GDPR art. 9). False by default; without it, only a death can be given as the reason. Never for finances.",
+  })
+  @IsOptional()
+  @IsBoolean()
+  incapacity_allowed?: boolean;
 }
 
 class ShareWrapDTO {
@@ -190,6 +211,17 @@ export class SealContractDTO {
   @IsBase64()
   @MaxLength(100)
   manifest_signature: string;
+}
+
+/** Why the owner's envelope should be handed over now. */
+export class FileClaimDTO {
+  @ApiProperty({
+    enum: CLAIM_REASONS,
+    description:
+      "death; incapacity (the owner can no longer act) only where they consented to it: the contract's claim_reasons",
+  })
+  @IsIn(CLAIM_REASONS)
+  reason: ClaimReason;
 }
 
 export class RevokeContractDTO {

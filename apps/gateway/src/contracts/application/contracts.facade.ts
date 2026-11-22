@@ -2,6 +2,7 @@ import { Inject, Injectable } from "@nestjs/common";
 import type {
   AuditEvent,
   ChainVerification,
+  ClaimReason,
   ContractChanges,
   ContractRecord,
   DecisionBody,
@@ -153,8 +154,12 @@ export class ContractsFacade {
   }
 
   /** The accessor or a validator asks for the release. */
-  async fileClaim(me: string, id: string): Promise<ContractDetail> {
-    return this.detail(me, await this.handover.fileClaim(me, id));
+  async fileClaim(
+    me: string,
+    id: string,
+    reason: ClaimReason,
+  ): Promise<ContractDetail> {
+    return this.detail(me, await this.handover.fileClaim(me, id, reason));
   }
 
   /** "I'm here": the owner stops the claim. */

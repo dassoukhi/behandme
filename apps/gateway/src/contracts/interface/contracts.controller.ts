@@ -28,6 +28,7 @@ import {
 import {
   CreateContractDTO,
   DecisionDTO,
+  FileClaimDTO,
   RevokeContractDTO,
   SealContractDTO,
   UpdateContractDTO,
@@ -174,13 +175,14 @@ export class ContractsController {
   @ApiResponse({
     status: 409,
     description:
-      "Not possible now: not active, a claim already open, or within the pause after the owner cancelled your last claim",
+      "Not possible now: not active, a claim already open, within the pause after the owner cancelled your last claim, or a reason the contract does not allow",
   })
   fileClaim(
     @CurrentUserId() me: string,
     @Param("id", ParseUUIDPipe) id: string,
+    @Body() { reason }: FileClaimDTO,
   ): Promise<ContractDetailDTO> {
-    return this.contracts.fileClaim(me, id);
+    return this.contracts.fileClaim(me, id, reason);
   }
 
   @Post(":id/claims/:claimId/cancel")

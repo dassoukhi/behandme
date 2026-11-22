@@ -74,8 +74,10 @@ d'un tiers : on ajoute un proche qui a déjà son compte, en scannant son code o
   - Une enveloppe transmise reste à son destinataire.
   - À la suppression d'un compte, ses brouillons sont effacés. Ses enveloppes scellées sont révoquées, et leur secret et
     leur description effacés. Il reste un identifiant technique dans les enveloppes des autres.
-- **Point d'attention :** une demande de transmission laisse supposer que le propriétaire ne peut plus agir, par décès ou
-  incapacité. Pour une personne vivante, c'est une donnée de santé (art. 9). Voir `aipd.md`.
+- **Données de santé :** une demande de transmission dit pourquoi : un décès, ou que le propriétaire ne peut plus agir.
+  Pour une personne vivante, ce second motif est une donnée de santé (art. 9). Il n'est possible qu'avec le
+  consentement explicite du propriétaire (art. 9.2.a), qu'il donne ou retire dans l'app et que le journal de
+  l'enveloppe garde, avec la version du texte accepté. Jamais pour « Banque et cryptomonnaies ». Voir `aipd.md`.
 
 ## 4. Soin et récupération des clés
 

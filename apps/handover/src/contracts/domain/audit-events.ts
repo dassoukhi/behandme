@@ -1,4 +1,9 @@
-import type { Contract, ContractChanges, LeftReason } from "./contract.js";
+import type {
+  ClaimReason,
+  Contract,
+  ContractChanges,
+  LeftReason,
+} from "./contract.js";
 
 // What the audit log records. Bodies hold ids, categories and field names only: the log is kept for
 // ever, so no free text (a description may be personal) and never anything secret.
@@ -73,13 +78,34 @@ export type ClosedReason =
 export function claimFiled(claim: {
   claimId: string;
   contestUntil: Date;
+  reason: ClaimReason;
 }): AuditEntry {
   return {
     type: "claim.filed",
     body: {
       claim_id: claim.claimId,
       contest_until: claim.contestUntil.toISOString(),
+      reason: claim.reason,
     },
+  };
+}
+
+/**
+ * The wording the owner accepts when they allow a claim saying they can no longer act: the app's
+ * seal.incapacity.consent. A new wording is a new version, so that the log says which one was accepted.
+ */
+export const INCAPACITY_CONSENT_VERSION = 1;
+
+/**
+ * The owner's explicit consent to a claim saying they can no longer act (GDPR art. 9: their health), given or
+ * withdrawn. Actor: the owner.
+ */
+export function incapacityConsent(granted: boolean): AuditEntry {
+  return {
+    type: "consent.incapacity",
+    body: granted
+      ? { granted: true, version: INCAPACITY_CONSENT_VERSION }
+      : { granted: false },
   };
 }
 

@@ -678,10 +678,10 @@ describe("claims and release: who may, with whose keys", () => {
   });
 
   it("lets the accessor or a validator claim, never a stranger", async () => {
-    await expect(contracts.fileClaim(STRANGER, contractId)).rejects.toThrow(
-      NotFoundError,
-    );
-    const claimed = await contracts.fileClaim(ACCESSOR, contractId);
+    await expect(
+      contracts.fileClaim(STRANGER, contractId, "death"),
+    ).rejects.toThrow(NotFoundError);
+    const claimed = await contracts.fileClaim(ACCESSOR, contractId, "death");
     expect(claimed).toMatchObject({ status: "claimed" });
     await expect(
       contracts.cancelClaim(ACCESSOR, contractId, claimed.open_claim!.id),
@@ -692,7 +692,7 @@ describe("claims and release: who may, with whose keys", () => {
   });
 
   it("passes handover the accessor's current keys with an approval, none with a refusal", async () => {
-    const claimId = (await contracts.fileClaim(ACCESSOR, contractId))
+    const claimId = (await contracts.fileClaim(ACCESSOR, contractId, "death"))
       .open_claim!.id;
     await contracts.decide(VALIDATOR, contractId, claimId, {
       approve: true,

@@ -54,18 +54,24 @@ export const KeysRotated = defineEvent(
 
 const contractId = z.uuid();
 const claimId = z.uuid();
-const category = z.enum(["networks", "devices", "storage"]);
+// "finances" came later: every event that carries a category still parses as before, and the services that publish and
+// consume it ship together.
+const category = z.enum(["networks", "devices", "storage", "finances"]);
 
-/** Handover: someone asks for the release of a contract; the owner may cancel until `contestUntil`. */
+/**
+ * Handover: someone asks for the release of a contract; the owner may cancel until `contestUntil` (v2: the reason they
+ * give, a death or an incapacity).
+ */
 export const ClaimFiled = defineEvent(
   "claim.filed",
-  1,
+  2,
   z.object({
     contractId,
     claimId,
     category,
     ownerId: userId,
     claimantId: userId,
+    reason: z.enum(["death", "incapacity"]),
     /** The validators who have not left. */
     validatorIds: z.array(userId),
     contestUntil: z.iso.datetime(),
@@ -75,11 +81,12 @@ export const ClaimFiled = defineEvent(
 /**
  * Handover: the owner sealed a contract; those it names for the first time (validators, or the accessor) are told
  * who chose them, and the rules they are part of (v2: `ownerId`, for the e-mail; v3: the accessor, the quorum and the
- * days the owner has to cancel a claim).
+ * days the owner has to cancel a claim; v4: whether a claim may say the owner can no longer act, or only that they
+ * died).
  */
 export const ContractSealed = defineEvent(
   "contract.sealed",
-  3,
+  4,
   z
     .object({
       contractId,
@@ -93,6 +100,7 @@ export const ContractSealed = defineEvent(
       /** Approvals needed to release. */
       threshold: z.number().int().min(1).max(3),
       contestDays: z.number().int().min(1),
+      incapacityAllowed: z.boolean(),
     })
     .refine((p) => p.newAccessor || p.newValidatorIds.length > 0, {
       message: "Nobody is named for the first time",

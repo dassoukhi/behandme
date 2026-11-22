@@ -147,6 +147,7 @@ export class NotificationEvents {
       validatorCount: number;
       threshold: number;
       contestDays: number;
+      incapacityAllowed: boolean;
     },
     occurredAt?: string,
   ): Promise<void> {
@@ -156,6 +157,7 @@ export class NotificationEvents {
       validatorCount: event.validatorCount,
       threshold: event.threshold,
       contestDays: event.contestDays,
+      incapacityAllowed: event.incapacityAllowed,
     };
     await this.notifier.notify(
       store,
@@ -185,19 +187,21 @@ export class NotificationEvents {
       category: string;
       ownerId: string;
       claimantId: string;
+      reason: string;
       validatorIds: string[];
       contestUntil: string;
     },
     occurredAt?: string,
   ): Promise<void> {
+    const claim = { ...event, claimReason: event.reason };
     await this.notifier.notify(
       store,
       [
-        claimFiledForOwner(event),
+        claimFiledForOwner(claim),
         ...event.validatorIds
           .filter((id) => id !== event.claimantId)
           .map((validatorId) =>
-            claimFiledForValidator({ ...event, validatorId }),
+            claimFiledForValidator({ ...claim, validatorId }),
           ),
       ],
       occurredAt,

@@ -7,14 +7,16 @@ import { DATABASE } from "@lib/platform";
 import type { Claim, ClaimStatus, Decision } from "../domain/claims.js";
 import type { AuditEntry } from "../domain/audit-events.js";
 import type { ChainEvent } from "../domain/audit-chain.js";
-import type {
-  Category,
-  Contract,
-  ContractChanges,
-  Departure,
-  DraftInput,
-  LeftReason,
-  Status,
+import {
+  type Category,
+  type ClaimReason,
+  type Contract,
+  type ContractChanges,
+  DEFAULT_CONTEST_DAYS,
+  type Departure,
+  type DraftInput,
+  type LeftReason,
+  type Status,
 } from "../domain/contract.js";
 import type {
   AuditLog,
@@ -91,7 +93,8 @@ class KyselyContracts implements ContractRepository {
         owner_id: ownerId,
         category: input.category,
         description: input.description,
-        contest_days: input.contestDays,
+        contest_days: input.contestDays ?? DEFAULT_CONTEST_DAYS,
+        incapacity_allowed: input.incapacityAllowed ?? false,
       })
       .returningAll()
       .executeTakeFirstOrThrow();
@@ -120,12 +123,15 @@ class KyselyContracts implements ContractRepository {
     changes: ContractChanges,
     expectedVersion: number,
   ): Promise<Contract | null> {
-    const { contestDays, ...fields } = changes;
+    const { contestDays, incapacityAllowed, ...fields } = changes;
     const row = await this.db
       .updateTable("contracts")
       .set({
         ...fields,
         ...(contestDays !== undefined ? { contest_days: contestDays } : {}),
+        ...(incapacityAllowed !== undefined
+          ? { incapacity_allowed: incapacityAllowed }
+          : {}),
         version: sql<number>`version + 1`,
         updated_at: sql<Date>`now()`,
       })
@@ -459,13 +465,14 @@ class KyselyClaims implements ClaimRepository {
       | "filedAt"
       | "contestUntil"
       | "expiresAt"
-    >,
+    > & { reason: ClaimReason },
   ): Promise<Claim> {
     const row = await this.db
       .insertInto("claims")
       .values({
         contract_id: claim.contractId,
         claimant_id: claim.claimantId,
+        reason: claim.reason,
         sealed_version: claim.sealedVersion,
         filed_at: claim.filedAt,
         contest_until: claim.contestUntil,
@@ -557,6 +564,7 @@ function toClaim(row: Selectable<ClaimsTable>): Claim {
     id: row.id,
     contractId: row.contract_id,
     claimantId: row.claimant_id,
+    reason: row.reason,
     sealedVersion: row.sealed_version,
     status: row.status as ClaimStatus,
     filedAt: row.filed_at,
@@ -666,6 +674,7 @@ function toContract(
     version: row.version,
     sealedVersion: row.sealed_version,
     contestDays: row.contest_days,
+    incapacityAllowed: row.incapacity_allowed,
     accessorId,
     validatorIds,
     departures,

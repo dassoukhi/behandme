@@ -456,6 +456,7 @@ describe("contract.sealed", () => {
         validatorCount: 3,
         threshold: 2,
         contestDays: 7,
+        incapacityAllowed: false,
         ...changes,
       }),
       { correlationId: "c" },
@@ -520,6 +521,7 @@ describe("claims", () => {
           category: "devices",
           ownerId: ALICE,
           claimantId: BOB,
+          reason: "death",
           validatorIds: [BOB, CAROL],
           contestUntil: "2026-10-21T10:00:00.000Z",
         }),
@@ -1058,6 +1060,7 @@ describe("e-mail", () => {
           category: "networks",
           ownerId: ALICE,
           claimantId: BOB,
+          reason: "death",
           validatorIds: [BOB],
           contestUntil: "2026-10-21T10:00:00.000Z",
         }),
@@ -1073,11 +1076,12 @@ describe("e-mail", () => {
       greetingName: "Alice",
     });
     expect(row.content.paragraphs[0]).toBe(
-      "Bob Durand a demandé la transmission de votre enveloppe « Réseaux sociaux », le mercredi 14 octobre 2026 à 06:00 (UTC−4).",
+      "Bob Durand a demandé la transmission de votre enveloppe « Réseaux sociaux », le mercredi 14 octobre 2026 à 06:00 (UTC−4), en indiquant votre décès.",
     );
     expect(row.content.facts).toEqual([
       { label: "Enveloppe", value: "Réseaux sociaux" },
       { label: "Demandée par", value: "Bob Durand" },
+      { label: "Motif", value: "Décès" },
       {
         label: "Annulation possible jusqu'au",
         value: "mercredi 21 octobre 2026 à 06:00 (UTC−4)",
@@ -1191,6 +1195,7 @@ describe("e-mail", () => {
             category: "networks",
             ownerId: ALICE,
             claimantId: BOB,
+            reason: "death",
             validatorIds: [BOB, CAROL],
             contestUntil: "2026-10-21T10:00:00.000Z",
           }),

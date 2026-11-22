@@ -5,8 +5,10 @@ import fixture from "../testing/chain-v1.json" with { type: "json" };
 import { type ChainEvent, verifyChain } from "./audit-chain.js";
 import { contractCreated, contractUpdated } from "./audit-events.js";
 import {
+  assertCategoryRules,
   assertValidDraft,
   changedFields,
+  claimReasons,
   type Contract,
   type Departure,
   presentParticipants,
@@ -26,6 +28,7 @@ const draft: Contract = {
   version: 1,
   sealedVersion: 0,
   contestDays: 7,
+  incapacityAllowed: false,
   accessorId: "acc",
   validatorIds: ["v1", "v2"],
   departures: [],
@@ -70,6 +73,49 @@ describe("draft rules", () => {
     expect(() =>
       assertValidDraft("owner", { ...input, ...change } as never),
     ).toThrow(InvalidInputError);
+  });
+
+  it("keeps bank accounts and cryptocurrency to 3 validators, 15 days or more, and a handover after a death", () => {
+    const finances = {
+      ...input,
+      category: "finances" as const,
+      validatorIds: ["v1", "v2", "v3"],
+    };
+    // 15 days when none is chosen: enough for finances too.
+    expect(() => assertValidDraft("owner", finances)).not.toThrow();
+    expect(() =>
+      assertValidDraft("owner", { ...finances, contestDays: 30 }),
+    ).not.toThrow();
+    for (const change of [
+      { validatorIds: ["v1", "v2"] },
+      { contestDays: 14 },
+      { incapacityAllowed: true },
+    ]) {
+      expect(() =>
+        assertValidDraft("owner", { ...finances, ...change }),
+      ).toThrow(InvalidInputError);
+    }
+    // The other categories keep their freedom: 1 validator, 3 days, an incapacity.
+    expect(() =>
+      assertCategoryRules({
+        category: "networks",
+        contestDays: 3,
+        incapacityAllowed: true,
+        validatorCount: 1,
+      }),
+    ).not.toThrow();
+  });
+
+  it("allows a claim for an incapacity only where the owner consented to it, never for finances", () => {
+    expect(
+      claimReasons({ category: "networks", incapacityAllowed: false }),
+    ).toEqual(["death"]);
+    expect(
+      claimReasons({ category: "devices", incapacityAllowed: true }),
+    ).toEqual(["death", "incapacity"]);
+    expect(
+      claimReasons({ category: "finances", incapacityAllowed: true }),
+    ).toEqual(["death"]);
   });
 
   it("gives each user their role, or none", () => {

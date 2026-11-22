@@ -9,9 +9,11 @@ import {
   contractCreated,
   contractDeleted,
   contractUpdated,
+  incapacityConsent,
 } from "../domain/audit-events.js";
 import { verifyChain } from "../domain/audit-chain.js";
 import {
+  assertCategoryRules,
   assertValidDraft,
   assertValidFields,
   changedFields,
@@ -60,6 +62,9 @@ export class ContractsService {
     return this.stores.transaction(async (store) => {
       const contract = await store.contracts.insert(me, input);
       await store.audit.append(contract.id, me, contractCreated(contract));
+      if (contract.incapacityAllowed) {
+        await store.audit.append(contract.id, me, incapacityConsent(true));
+      }
       return this.record(store, me, contract);
     });
   }
@@ -75,15 +80,37 @@ export class ContractsService {
       assertAllowed("update", contract, role);
       const fields = changedFields(contract, changes);
       if (fields.length === 0) return this.record(store, me, contract);
+      const changed: ContractChanges = Object.fromEntries(
+        fields.map((f) => [f, changes[f]]),
+      );
+      // The contract as it would be: a category's rules hold for all of it (finances: 3 validators, 15 days…).
+      assertCategoryRules({
+        category: changed.category ?? contract.category,
+        contestDays: changed.contestDays ?? contract.contestDays,
+        incapacityAllowed:
+          changed.incapacityAllowed ?? contract.incapacityAllowed,
+        validatorCount: contract.validatorIds.length,
+      });
       const updated = await store.contracts.update(
         id,
-        Object.fromEntries(fields.map((f) => [f, changes[f]])),
+        changed,
         contract.version,
       );
       if (!updated) {
         throw new ConflictError("The contract changed meanwhile: try again");
       }
-      await store.audit.append(id, me, contractUpdated(fields));
+      // The consent has its own entry, with the wording accepted; other fields are named only.
+      const named = fields.filter((f) => f !== "incapacityAllowed");
+      if (named.length > 0) {
+        await store.audit.append(id, me, contractUpdated(named));
+      }
+      if (changed.incapacityAllowed !== undefined) {
+        await store.audit.append(
+          id,
+          me,
+          incapacityConsent(changed.incapacityAllowed),
+        );
+      }
       return this.record(store, me, updated);
     });
   }

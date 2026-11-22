@@ -101,6 +101,7 @@ export class SealingService {
             validatorCount: request.validatorIds.length,
             threshold: manifest.threshold,
             contestDays: contract.contestDays,
+            incapacityAllowed: contract.incapacityAllowed,
           }),
         );
       }

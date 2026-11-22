@@ -20,6 +20,7 @@ export const SAMPLE = {
   trusterId: "user_alex",
   claimantId: "user_lea",
   participantId: "user_lea",
+  claimReason: "incapacity",
   inviteeId: "user_lea",
   inviteeName: "Léa Petit",
   trustedBack: true,
@@ -35,4 +36,5 @@ export const SAMPLE = {
   validatorCount: 3,
   threshold: 2,
   contestDays: 7,
+  incapacityAllowed: true,
 };

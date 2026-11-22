@@ -1,6 +1,11 @@
 import { InvalidInputError } from "@lib/kernel";
 
-export const CATEGORIES = ["networks", "devices", "storage"] as const;
+export const CATEGORIES = [
+  "networks",
+  "devices",
+  "storage",
+  "finances",
+] as const;
 export type Category = (typeof CATEGORIES)[number];
 
 /** draft → (sealed, phase 4) active → (claim, phase 5) claimed → released; revoked from any but released. */
@@ -17,6 +22,19 @@ export type Role = "owner" | "accessor" | "validator";
 
 export const MAX_VALIDATORS = 3;
 export const MAX_DESCRIPTION = 280;
+/** Days the owner has to cancel a claim, when they did not choose: time for an owner who is alive to say so. */
+export const DEFAULT_CONTEST_DAYS = 15;
+
+/**
+ * Bank accounts and cryptocurrency, where a mistaken handover costs the most: at least 15 days to cancel, exactly 3
+ * validators (2 approvals, never all: one lost key would lock the envelope for ever), and a handover after a death
+ * only.
+ */
+export const FINANCES = { minContestDays: 15, validators: 3 } as const;
+
+/** Why a claim is filed. "incapacity" says the owner can no longer act: health data, which needs their consent. */
+export const CLAIM_REASONS = ["death", "incapacity"] as const;
+export type ClaimReason = (typeof CLAIM_REASONS)[number];
 
 /** Why a participant left: they refused their role, or their account is gone. */
 export type LeftReason = "declined" | "account_deleted";
@@ -43,6 +61,11 @@ export interface Contract {
   sealedVersion: number;
   /** Days the owner has to cancel a claim. */
   contestDays: number;
+  /**
+   * The owner's explicit consent to a claim saying they can no longer act (GDPR art. 9); without it, the contract is
+   * handed over only after a death. Never for finances.
+   */
+  incapacityAllowed: boolean;
   accessorId: string;
   validatorIds: string[];
   /**
@@ -59,14 +82,17 @@ export interface DraftInput {
   description: string | null;
   accessorId: string;
   validatorIds: string[];
-  /** 7 when left out. */
+  /** DEFAULT_CONTEST_DAYS when left out. */
   contestDays?: number;
+  /** False when left out. */
+  incapacityAllowed?: boolean;
 }
 
 export interface ContractChanges {
   category?: Category;
   description?: string | null;
   contestDays?: number;
+  incapacityAllowed?: boolean;
 }
 
 /**
@@ -96,6 +122,49 @@ export function assertValidDraft(ownerId: string, input: DraftInput): void {
   if (validatorIds.includes(accessorId)) {
     throw new InvalidInputError("The accessor cannot also be a validator");
   }
+  assertCategoryRules({
+    category: input.category,
+    contestDays: input.contestDays ?? DEFAULT_CONTEST_DAYS,
+    incapacityAllowed: input.incapacityAllowed ?? false,
+    validatorCount: validatorIds.length,
+  });
+}
+
+/**
+ * What a category asks of the whole contract, as it is or would be after a change (creation, edit, sealing):
+ * finances waits 15 days or more, has exactly 3 validators, and allows no claim for an incapacity.
+ */
+export function assertCategoryRules(contract: {
+  category: Category;
+  contestDays: number;
+  incapacityAllowed: boolean;
+  validatorCount: number;
+}): void {
+  if (contract.category !== "finances") return;
+  if (contract.contestDays < FINANCES.minContestDays) {
+    throw new InvalidInputError(
+      `A finances contract waits ${FINANCES.minContestDays} to 30 days`,
+    );
+  }
+  if (contract.validatorCount !== FINANCES.validators) {
+    throw new InvalidInputError(
+      `A finances contract needs exactly ${FINANCES.validators} validators`,
+    );
+  }
+  if (contract.incapacityAllowed) {
+    throw new InvalidInputError(
+      "A finances contract is handed over only after a death",
+    );
+  }
+}
+
+/** The reasons a claim may give: a death always, an incapacity only with the owner's consent (never for finances). */
+export function claimReasons(
+  contract: Pick<Contract, "category" | "incapacityAllowed">,
+): ClaimReason[] {
+  return contract.incapacityAllowed && contract.category !== "finances"
+    ? ["death", "incapacity"]
+    : ["death"];
 }
 
 export function assertValidFields(fields: ContractChanges): void {

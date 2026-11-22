@@ -3,8 +3,17 @@
 
 export const HANDOVER_AUDIENCE = "handover";
 
-export const CONTRACT_CATEGORIES = ["networks", "devices", "storage"] as const;
+export const CONTRACT_CATEGORIES = [
+  "networks",
+  "devices",
+  "storage",
+  "finances",
+] as const;
 export type ContractCategory = (typeof CONTRACT_CATEGORIES)[number];
+
+/** Why a claim is filed: the owner died, or (only if they consented to it) can no longer act. */
+export const CLAIM_REASONS = ["death", "incapacity"] as const;
+export type ClaimReason = (typeof CLAIM_REASONS)[number];
 
 export const CONTRACT_STATUSES = [
   "draft",
@@ -50,6 +59,8 @@ export type ClaimStatus = (typeof CLAIM_STATUSES)[number];
 export interface ClaimRecord {
   id: string;
   claimant_id: string;
+  /** Null for a claim filed before reasons were asked. */
+  reason: ClaimReason | null;
   status: ClaimStatus;
   filed_at: string;
   /** The owner may cancel until then; release needs both this date and enough approvals. */
@@ -114,6 +125,10 @@ export interface ContractRecord {
   handover_possible: boolean;
   /** After a claim closed by the owner, the caller may claim again only from then; else null. */
   claim_cooldown_until: string | null;
+  /** The owner's explicit consent to a claim saying they can no longer act (a health matter: GDPR art. 9). */
+  incapacity_allowed: boolean;
+  /** The reasons a claim may give on this contract: a death always, an incapacity only with that consent. */
+  claim_reasons: ClaimReason[];
 }
 
 export interface NewContract {
@@ -121,14 +136,21 @@ export interface NewContract {
   description?: string | null;
   accessor_id: string;
   validator_ids: string[];
-  /** 7 by default. */
+  /** 15 by default. */
   contest_days?: number;
+  /** False by default. */
+  incapacity_allowed?: boolean;
 }
 
 export interface ContractChanges {
   category?: ContractCategory;
   description?: string | null;
   contest_days?: number;
+  incapacity_allowed?: boolean;
+}
+
+export interface FileClaimBody {
+  reason: ClaimReason;
 }
 
 /**

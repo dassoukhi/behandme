@@ -4,6 +4,7 @@ import type { AuditEntry } from "../domain/audit-events.js";
 import type { SealCrypto } from "../domain/sealing.js";
 import type { ChainEvent } from "../domain/audit-chain.js";
 import type {
+  ClaimReason,
   Contract,
   ContractChanges,
   DraftInput,
@@ -84,7 +85,7 @@ export interface ClaimRepository {
       | "filedAt"
       | "contestUntil"
       | "expiresAt"
-    >,
+    > & { reason: ClaimReason },
   ): Promise<Claim>;
   /** False when the claim is no longer open. `at`: the service's clock, as for every deadline. */
   close(

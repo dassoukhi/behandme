@@ -64,7 +64,7 @@ beforeEach(async () => {
   await sql`reset role`.execute(db);
   await sql`delete from handover.contracts`.execute(db);
   await sql`delete from handover.outbox`.execute(db);
-  await sql`insert into handover.contracts (id, owner_id, category) values (${ID}::uuid, ${OWNER}, 'networks')`.execute(
+  await sql`insert into handover.contracts (id, owner_id, category, contest_days) values (${ID}::uuid, ${OWNER}, 'networks', 7)`.execute(
     db,
   );
   await sql`insert into handover.participants (contract_id, user_id, role, position) values
@@ -153,13 +153,13 @@ async function outbox() {
 }
 
 async function file(by = ACCESSOR) {
-  const record = await claims.file(by, ID);
+  const record = await claims.file(by, ID, "death");
   return record.open_claim!.id;
 }
 
 describe("filing a claim", () => {
   it("claims the contract, alerts through the outbox, and schedules the deadline", async () => {
-    const record = await claims.file(ACCESSOR, ID);
+    const record = await claims.file(ACCESSOR, ID, "death");
     expect(record).toMatchObject({
       status: "claimed",
       allowed_actions: ["withdraw_claim", "leave"],
@@ -206,9 +206,29 @@ describe("filing a claim", () => {
   });
 
   it("is refused to the owner, on a draft, and while another claim is open", async () => {
-    await expect(claims.file(OWNER, ID)).rejects.toThrow(NotFoundError);
+    await expect(claims.file(OWNER, ID, "death")).rejects.toThrow(
+      NotFoundError,
+    );
     await file();
-    await expect(claims.file(V1, ID)).rejects.toThrow(ConflictError);
+    await expect(claims.file(V1, ID, "death")).rejects.toThrow(ConflictError);
+  });
+});
+
+describe("the reason of a claim", () => {
+  it("is a death, unless the owner consented to a claim for an incapacity", async () => {
+    expect((await contracts.get(V1, ID)).claim_reasons).toEqual(["death"]);
+    await expect(claims.file(V1, ID, "incapacity")).rejects.toThrow(
+      ConflictError,
+    );
+    await contracts.update(OWNER, ID, { incapacityAllowed: true });
+    const record = await claims.file(V1, ID, "incapacity");
+    expect(record.open_claim).toMatchObject({ reason: "incapacity" });
+    expect(
+      (await outbox()).find((e) => e.type === "claim.filed")?.envelope.payload,
+    ).toMatchObject({ reason: "incapacity", claimantId: V1 });
+    expect(
+      JSON.parse((await contracts.events(OWNER, ID)).at(-1)!.body),
+    ).toMatchObject({ reason: "incapacity" });
   });
 });
 
@@ -341,9 +361,11 @@ describe("ending a claim without release", () => {
     const accessorView = await contracts.get(ACCESSOR, ID);
     expect(accessorView.allowed_actions).toEqual(["leave"]);
     expect(accessorView.claim_cooldown_until).toBe("2026-10-19T09:00:00.000Z");
-    await expect(claims.file(ACCESSOR, ID)).rejects.toThrow(ConflictError);
+    await expect(claims.file(ACCESSOR, ID, "death")).rejects.toThrow(
+      ConflictError,
+    );
     // Another participant may claim at once; the claimant after 72 hours.
-    expect((await claims.file(V2, ID)).status).toBe("claimed");
+    expect((await claims.file(V2, ID, "death")).status).toBe("claimed");
   });
 
   it("lets only the claimant withdraw", async () => {
@@ -353,7 +375,7 @@ describe("ending a claim without release", () => {
     );
     expect((await claims.withdraw(V1, ID, claimId)).status).toBe("active");
     // Withdrawing is not a refusal by the owner: no waiting.
-    expect((await claims.file(V1, ID)).status).toBe("claimed");
+    expect((await claims.file(V1, ID, "death")).status).toBe("claimed");
   });
 
   it("ends with the contract when the owner revokes it", async () => {
@@ -513,7 +535,7 @@ describe("a role refused", () => {
       // The claim closed because of a departure, not of the owner: no pause.
       claim_cooldown_until: null,
     });
-    await expect(claims.file(V1, ID)).rejects.toThrow(ConflictError);
+    await expect(claims.file(V1, ID, "death")).rejects.toThrow(ConflictError);
     await claimsRevoke();
     expect(await last("contract.revoked")).toMatchObject({
       accessorId: null,

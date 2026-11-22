@@ -187,12 +187,14 @@ export function checkSeal(
   crypto: SealCrypto,
   now: Date,
 ): { manifest: Manifest; manifestText: string } {
-  // Who takes part: the same rules as a draft.
+  // Who takes part: the same rules as a draft, those of its category included (finances: 3 validators).
   assertValidDraft(contract.ownerId, {
     category: contract.category,
     description: contract.description,
     accessorId: request.accessorId,
     validatorIds: request.validatorIds,
+    contestDays: contract.contestDays,
+    incapacityAllowed: contract.incapacityAllowed,
   });
   if (request.expectedVersion !== contract.version) {
     throw new ConflictError(

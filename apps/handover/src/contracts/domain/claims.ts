@@ -1,5 +1,9 @@
 import { ConflictError, InvalidInputError } from "@lib/kernel";
-import { type Contract, presentParticipants } from "./contract.js";
+import {
+  type ClaimReason,
+  type Contract,
+  presentParticipants,
+} from "./contract.js";
 import type { RegisteredKey } from "./sealing.js";
 import { isShareWrap, threshold } from "./sealing.js";
 
@@ -20,6 +24,8 @@ export interface Claim {
   id: string;
   contractId: string;
   claimantId: string;
+  /** Null for a claim filed before reasons were asked. */
+  reason: ClaimReason | null;
   sealedVersion: number;
   status: ClaimStatus;
   filedAt: Date;

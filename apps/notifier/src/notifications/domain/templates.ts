@@ -380,11 +380,13 @@ const CATEGORY: Record<Language, Record<string, string>> = {
     networks: "Réseaux sociaux",
     devices: "Appareils",
     storage: "Stockage en ligne",
+    finances: "Banque et cryptomonnaies",
   },
   en: {
     networks: "Social media",
     devices: "Devices",
     storage: "Online storage",
+    finances: "Bank and crypto",
   },
 };
 const categoryLabel = (category: string) => ({
@@ -406,7 +408,41 @@ interface SealedRules {
   validatorCount: number;
   threshold: number;
   contestDays: number;
+  /** A claim may also say the owner can no longer act; otherwise only that they died. */
+  incapacityAllowed: boolean;
 }
+
+/** When the envelope may be handed over: after the owner's death, or also if they can no longer act. */
+const whenFor = (
+  rules: Pick<SealedRules, "incapacityAllowed">,
+  first: string | null,
+  forAccessor: boolean,
+) => {
+  const who = first ?? "cette personne";
+  const theirs = first ? `${first}'s` : "their";
+  const they = first ?? "they";
+  return rules.incapacityAllowed
+    ? {
+        fr: forAccessor
+          ? `qu'après le décès de ${who}, ou si un jour ${who} ne peut plus agir`
+          : `qu'en cas de décès de ${who}, ou si ${who} ne peut plus agir`,
+        en: forAccessor
+          ? `after ${theirs} death, or if one day ${they} can no longer act`
+          : `after ${theirs} death, or if ${they} can no longer act`,
+      }
+    : {
+        fr: forAccessor
+          ? `qu'après le décès de ${who}`
+          : `qu'en cas de décès de ${who}`,
+        en: `after ${theirs} death`,
+      };
+};
+
+/** The reason a claimant gave, as an e-mail fact. */
+const REASON: Record<Language, Record<string, string>> = {
+  fr: { death: "Décès", incapacity: "Ne peut plus agir" },
+  en: { death: "Death", incapacity: "Can no longer act" },
+};
 
 const days = (count: number) => ({
   fr: `${count} jour${count > 1 ? "s" : ""}`,
@@ -456,8 +492,11 @@ export function claimFiledForOwner(params: {
   contractId: string;
   category: string;
   claimantId: string;
+  /** death or incapacity: what the claimant says. Never on the lock screen. */
+  claimReason: string;
   contestUntil: string;
 }): NotificationDraft {
+  const death = params.claimReason !== "incapacity";
   const name = contractName(params.category);
   const label = categoryLabel(params.category);
   return {
@@ -485,26 +524,34 @@ export function claimFiledForOwner(params: {
         fr: {
           subject: `Demande de transmission : ${name.fr}`,
           paragraphs: [
-            `${claimant ?? "Quelqu'un"} a demandé la transmission de votre enveloppe ${name.fr}, le ${ctx.occurred.fr}.`,
+            `${claimant ?? "Quelqu'un"} a demandé la transmission de votre enveloppe ${name.fr}, le ${ctx.occurred.fr}, en indiquant ${death ? "votre décès" : "que vous ne pouvez plus agir"}.`,
             "Si vous êtes là, annulez la demande dans l'app : rien ne sera transmis.",
             `Sinon, l'enveloppe sera transmise à partir du ${until.fr}, dès que vos validateurs auront approuvé la demande.`,
           ],
           facts: [
             { label: "Enveloppe", value: label.fr },
             ...requestedBy("Demandée par"),
+            {
+              label: "Motif",
+              value: REASON.fr[death ? "death" : "incapacity"],
+            },
             { label: "Annulation possible jusqu'au", value: until.fr },
           ],
         },
         en: {
           subject: `Handover request: ${name.en}`,
           paragraphs: [
-            `${claimant ?? "Someone"} requested the handover of your envelope ${name.en} on ${ctx.occurred.en}.`,
+            `${claimant ?? "Someone"} requested the handover of your envelope ${name.en} on ${ctx.occurred.en}, saying ${death ? "that you have died" : "that you can no longer act"}.`,
             "If you're still here, cancel the request in the app: nothing will be handed over.",
             `Otherwise, the envelope will be handed over from ${until.en}, as soon as your validators have approved the request.`,
           ],
           facts: [
             { label: "Envelope", value: label.en },
             ...requestedBy("Requested by"),
+            {
+              label: "Reason",
+              value: REASON.en[death ? "death" : "incapacity"],
+            },
             { label: "Can be cancelled until", value: until.en },
           ],
         },
@@ -549,7 +596,7 @@ export function chosenAsValidator(
           subject: owner ? `${owner} compte sur vous` : undefined,
           paragraphs: [
             `${owner ?? "Un proche"} vous a choisi comme validateur de son enveloppe ${name.fr}.`,
-            `Le jour où quelqu'un demandera sa transmission, votre avis sera demandé : vous ne l'approuverez que si vous êtes sûr que ${first ?? "cette personne"} ne peut plus agir. ${quorum.fr}, et ${first ?? "cette personne"} dispose de ${delay.fr} après la demande pour l'annuler.`,
+            `Le jour où quelqu'un demandera sa transmission, votre avis sera demandé : vous ne l'approuverez ${whenFor(params, first, false).fr}, et si vous en êtes sûr. ${quorum.fr}, et ${first ?? "cette personne"} dispose de ${delay.fr} après la demande pour l'annuler.`,
             `Vous ne verrez jamais ce que contient l'enveloppe. Ce rôle ne vous oblige à rien, ne vous donne aucun droit sur ses biens et ne remplace aucune démarche de succession. Si vous ne souhaitez pas le tenir, refusez-le dans l'app : ouvrez l'enveloppe et touchez « Refuser ce rôle ». Nous préviendrons ${first ?? "cette personne"}, qui pourra choisir quelqu'un d'autre.`,
             "D'ici là, gardez vos clés à l'abri : sans elles, vous ne pourrez pas approuver. L'app vous guide, une minute suffit.",
             RIGHTS.fr,
@@ -559,7 +606,7 @@ export function chosenAsValidator(
           subject: owner ? `${owner} is counting on you` : undefined,
           paragraphs: [
             `${owner ?? "Someone close to you"} chose you as a validator of their envelope ${name.en}.`,
-            `The day someone requests its handover, you will be asked for your decision: only approve it if you are sure ${first ?? "they"} can no longer act. ${quorum.en}, and ${first ? `${first} has` : "they have"} ${delay.en} after the request to cancel it.`,
+            `The day someone requests its handover, you will be asked for your decision: only approve it ${whenFor(params, first, false).en}, and if you are sure of it. ${quorum.en}, and ${first ? `${first} has` : "they have"} ${delay.en} after the request to cancel it.`,
             `You will never see what the envelope holds. This role obliges you to nothing, gives you no right to their property and replaces no step of an estate settlement. If you would rather not hold it, decline it in the app: open the envelope and tap “Decline this role”. We will tell ${first ?? "them"}, who can then choose someone else.`,
             "Until then, keep your keys safe: without them, you cannot approve. The app guides you; it takes a minute.",
             RIGHTS.en,
@@ -607,7 +654,7 @@ export function chosenAsAccessor(
             : undefined,
           paragraphs: [
             `${owner ?? "Un proche"} vous a choisi comme destinataire de son enveloppe ${name.fr}.`,
-            `Elle reste scellée : vous ne pourrez l'ouvrir que si un jour ${first ?? "cette personne"} ne peut plus agir, avec ${quorum.fr}. ${first ?? "Cette personne"} reçoit aussitôt une alerte et dispose de ${delay.fr} pour annuler la demande.`,
+            `Elle reste scellée : vous ne pourrez l'ouvrir ${whenFor(params, first, true).fr}, avec ${quorum.fr}. ${first ?? "Cette personne"} reçoit aussitôt une alerte et dispose de ${delay.fr} pour annuler la demande.`,
             `Ces accès ne vous donneront aucun droit sur ses biens : servez-vous-en seulement pour ce que ${first ?? "cette personne"} vous aura demandé.`,
             `Vous n'avez rien à faire pour l'instant. Si vous ne souhaitez pas ce rôle, refusez-le dans l'app : ouvrez l'enveloppe et touchez « Refuser ce rôle ». Nous préviendrons ${first ?? "cette personne"}, qui pourra choisir quelqu'un d'autre.`,
             RIGHTS.fr,
@@ -617,7 +664,7 @@ export function chosenAsAccessor(
           subject: owner ? `${owner} chose you as a recipient` : undefined,
           paragraphs: [
             `${owner ?? "Someone close to you"} chose you as the recipient of their envelope ${name.en}.`,
-            `It stays sealed: you can open it only if one day ${first ?? "they"} can no longer act, with ${quorum.en}. ${first ? `${first} is alerted at once and has` : "They are alerted at once and have"} ${delay.en} to cancel the request.`,
+            `It stays sealed: you can open it only ${whenFor(params, first, true).en}, with ${quorum.en}. ${first ? `${first} is alerted at once and has` : "They are alerted at once and have"} ${delay.en} to cancel the request.`,
             `This access will give you no right to their property: use it only for what ${first ?? "they"} will have asked of you.`,
             `There is nothing to do for now. If you would rather not hold this role, decline it in the app: open the envelope and tap “Decline this role”. We will tell ${first ?? "them"}, who can then choose someone else.`,
             RIGHTS.en,
@@ -634,8 +681,11 @@ export function claimFiledForValidator(params: {
   contractId: string;
   category: string;
   claimantId: string;
+  /** death or incapacity: what the claimant says. Never on the lock screen. */
+  claimReason: string;
   contestUntil: string;
 }): NotificationDraft {
+  const death = params.claimReason !== "incapacity";
   const name = contractName(params.category);
   const label = categoryLabel(params.category);
   return {
@@ -665,28 +715,36 @@ export function claimFiledForValidator(params: {
         fr: {
           subject: owner ? `Votre avis est demandé pour ${owner}` : undefined,
           paragraphs: [
-            `${claimant ?? "Quelqu'un"} demande la transmission de l'enveloppe ${name.fr} de ${owner ?? "l'un de vos proches"}.`,
-            `En tant que validateur, n'approuvez que si vous êtes sûr que ${first ?? "le propriétaire"} ne peut plus agir ; sinon, refusez. En cas de doute, essayez de ${first ? `joindre ${first}` : "le joindre"} par un autre moyen.`,
+            `${claimant ?? "Quelqu'un"} demande la transmission de l'enveloppe ${name.fr} de ${owner ?? "l'un de vos proches"}, en indiquant ${death ? `le décès de ${first ?? "cette personne"}` : `que ${first ?? "cette personne"} ne peut plus agir`}.`,
+            `En tant que validateur, n'approuvez que si vous en êtes sûr ; sinon, refusez. En cas de doute, essayez de ${first ? `joindre ${first}` : "le joindre"} par un autre moyen.`,
             `${first ?? "Le propriétaire"} peut encore annuler la demande jusqu'au ${until.fr}.`,
           ],
           facts: [
             { label: "Enveloppe", value: label.fr },
             ...known("Propriétaire", owner),
             ...known("Demandée par", claimant),
+            {
+              label: "Motif",
+              value: REASON.fr[death ? "death" : "incapacity"],
+            },
             { label: "Annulation possible jusqu'au", value: until.fr },
           ],
         },
         en: {
           subject: owner ? `Your decision is needed for ${owner}` : undefined,
           paragraphs: [
-            `${claimant ?? "Someone"} requests the handover of ${possessive(owner)} envelope ${name.en}.`,
-            `As a validator, only approve it if you are sure ${first ?? "the owner"} can no longer act; otherwise, refuse it. If in doubt, try to reach ${first ?? "them"} by some other means.`,
+            `${claimant ?? "Someone"} requests the handover of ${possessive(owner)} envelope ${name.en}, saying ${death ? `that ${first ?? "the owner"} has died` : `that ${first ?? "the owner"} can no longer act`}.`,
+            `As a validator, only approve it if you are sure of it; otherwise, refuse it. If in doubt, try to reach ${first ?? "them"} by some other means.`,
             `${first ?? "The owner"} can still cancel the request until ${until.en}.`,
           ],
           facts: [
             { label: "Envelope", value: label.en },
             ...known("Owner", owner),
             ...known("Requested by", claimant),
+            {
+              label: "Reason",
+              value: REASON.en[death ? "death" : "incapacity"],
+            },
             { label: "Can be cancelled until", value: until.en },
           ],
         },

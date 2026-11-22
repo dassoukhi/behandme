@@ -18,7 +18,12 @@ import {
   Min,
   ValidateNested,
 } from "class-validator";
-import { CONTRACT_CATEGORIES, type ContractCategory } from "@lib/contracts";
+import {
+  CLAIM_REASONS,
+  type ClaimReason,
+  CONTRACT_CATEGORIES,
+  type ContractCategory,
+} from "@lib/contracts";
 
 export class NewContractDto {
   @IsIn(CONTRACT_CATEGORIES)
@@ -46,6 +51,10 @@ export class NewContractDto {
   @Min(3)
   @Max(30)
   contest_days?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  incapacity_allowed?: boolean;
 }
 
 export class ContractChangesDto {
@@ -63,6 +72,15 @@ export class ContractChangesDto {
   @Min(3)
   @Max(30)
   contest_days?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  incapacity_allowed?: boolean;
+}
+
+export class FileClaimDto {
+  @IsIn(CLAIM_REASONS)
+  reason: ClaimReason;
 }
 
 class ShareDto {

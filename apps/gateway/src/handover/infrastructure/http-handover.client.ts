@@ -1,5 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common";
 import {
+  type ClaimReason,
   type ContractChanges,
   type ContractRecord,
   type AuditEvent,
@@ -93,12 +94,13 @@ export class HttpHandoverClient implements HandoverClient {
     );
   }
 
-  fileClaim(userId: string, id: string) {
+  fileClaim(userId: string, id: string, reason: ClaimReason) {
     return this.http.call<ContractRecord>(
       userId,
       "POST",
       `${path(id)}/claims`,
       {
+        body: { reason },
         idempotent: false,
       },
     );

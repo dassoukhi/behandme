@@ -1,10 +1,12 @@
 import { ApiProperty } from "@nestjs/swagger";
 import {
+  CLAIM_REASONS,
   CLAIM_STATUSES,
   CONTRACT_CATEGORIES,
   CONTRACT_STATUSES,
   type AuditEvent,
   type ChainVerification,
+  type ClaimReason,
   type ClaimRecord,
   type ClaimStatus,
   type ContractAction,
@@ -39,6 +41,15 @@ export class ClaimDTO implements ClaimRecord {
 
   @ApiProperty({ description: "Who asked for the release" })
   claimant_id: string;
+
+  @ApiProperty({
+    enum: CLAIM_REASONS,
+    nullable: true,
+    type: String,
+    description:
+      "The reason the claimant gave: death, or incapacity (the owner can no longer act); null before reasons were asked",
+  })
+  reason: ClaimReason | null;
 
   @ApiProperty({ enum: CLAIM_STATUSES })
   status: ClaimStatus;
@@ -230,6 +241,20 @@ export class ContractDTO {
       "Whether a claim could succeed: false while the recipient is gone or too few validators remain, until the owner seals again with someone else",
   })
   handover_possible: boolean;
+
+  @ApiProperty({
+    description:
+      "The owner's explicit consent to a claim saying they can no longer act (GDPR art. 9); without it, only after a death",
+  })
+  incapacity_allowed: boolean;
+
+  @ApiProperty({
+    description:
+      "The reasons a claim may give on this contract: death always, incapacity only with the owner's consent (never for finances)",
+    enum: CLAIM_REASONS,
+    isArray: true,
+  })
+  claim_reasons: ClaimReason[];
 
   @ApiProperty({
     description: "Owner profile; null if it no longer exists",

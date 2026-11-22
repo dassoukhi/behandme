@@ -52,7 +52,7 @@ afterAll(() => t?.close());
 beforeEach(async () => {
   await sql`reset role`.execute(db);
   await sql`delete from handover.contracts`.execute(db);
-  await sql`insert into handover.contracts (id, owner_id, category) values (${ID}::uuid, ${OWNER}, 'networks')`.execute(
+  await sql`insert into handover.contracts (id, owner_id, category, contest_days) values (${ID}::uuid, ${OWNER}, 'networks', 7)`.execute(
     db,
   );
   await sql`insert into handover.participants (contract_id, user_id, role, position) values
@@ -148,6 +148,7 @@ describe("sealing", () => {
           validatorCount: 3,
           threshold: 2,
           contestDays: 7,
+          incapacityAllowed: false,
         },
       ],
     ]);

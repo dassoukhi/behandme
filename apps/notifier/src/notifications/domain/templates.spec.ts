@@ -39,6 +39,9 @@ const VARIANTS = [
   { ...SAMPLE, userId: SAMPLE.ownerId },
   { ...SAMPLE, validatorCount: 1, threshold: 1 },
   { ...SAMPLE, validatorCount: 2, threshold: 2 },
+  { ...SAMPLE, incapacityAllowed: false },
+  { ...SAMPLE, claimReason: "death" },
+  { ...SAMPLE, category: "finances" },
   ...REASONS.map((reason) => ({ ...SAMPLE, reason })),
 ];
 // People whose names the e-mail knows, and people it does not (the sentences then say "the owner").
@@ -104,6 +107,18 @@ describe("those named in an envelope", () => {
     expect(fr).toContain(
       "Il faut 2 validations sur 3, et Camille dispose de 7 jours après la demande pour l'annuler.",
     );
+    // When they may approve: the rules the owner chose (a death only, unless they consented to more).
+    expect(fr).toContain(
+      "vous ne l'approuverez qu'en cas de décès de Camille, ou si Camille ne peut plus agir, et si vous en êtes sûr.",
+    );
+    expect(
+      read(
+        templates.chosenAsValidator({ ...SAMPLE, incapacityAllowed: false }),
+        "fr",
+      ),
+    ).toContain(
+      "vous ne l'approuverez qu'en cas de décès de Camille, et si vous en êtes sûr.",
+    );
     expect(fr).toContain("Réglages › Confidentialité");
     // The role is refused in the app (art. 21 of the GDPR): the owner is told and chooses someone else.
     expect(fr).toContain(
@@ -136,8 +151,22 @@ describe("those named in an envelope", () => {
     });
     const fr = read(draft, "fr");
     expect(fr).toContain(
-      "vous ne pourrez l'ouvrir que si un jour Camille ne peut plus agir, avec l'accord de 2 de ses 3 validateurs.",
+      "vous ne pourrez l'ouvrir qu'après le décès de Camille, ou si un jour Camille ne peut plus agir, avec l'accord de 2 de ses 3 validateurs.",
     );
+    expect(
+      read(
+        templates.chosenAsAccessor({ ...SAMPLE, incapacityAllowed: false }),
+        "fr",
+      ),
+    ).toContain(
+      "vous ne pourrez l'ouvrir qu'après le décès de Camille, avec l'accord de 2 de ses 3 validateurs.",
+    );
+    expect(
+      read(
+        templates.chosenAsAccessor({ ...SAMPLE, incapacityAllowed: false }),
+        "en",
+      ),
+    ).toContain("you can open it only after Camille's death, with");
     expect(fr).toContain(
       "Ces accès ne vous donneront aucun droit sur ses biens",
     );
@@ -215,5 +244,56 @@ describe("a participant who left", () => {
     );
     expect(push).toContain("a supprimé son compte");
     expect(email).not.toContain("Léa");
+  });
+});
+
+// A claim says why: a death, or that the owner can no longer act (only where they consented to it). The e-mails say it;
+// the lock screen does not.
+describe("a claim and its reason", () => {
+  const context = emailContext(PEOPLE, "Europe/Paris", OCCURRED_AT);
+  const read = (draft: ReturnType<typeof templates.claimFiledForOwner>) => {
+    const copy = render(draft, "fr");
+    const email = emailContent(
+      copy,
+      draft.email,
+      context,
+      context.firstName(draft.userId),
+      "fr",
+    );
+    return {
+      push: `${copy.title} ${copy.body}`,
+      email: email.paragraphs.join(" "),
+      facts: email.facts,
+    };
+  };
+
+  it("tells the owner the reason given, by e-mail only", () => {
+    const owner = read(templates.claimFiledForOwner(SAMPLE));
+    expect(owner.email).toContain("en indiquant que vous ne pouvez plus agir.");
+    expect(owner.facts).toContainEqual({
+      label: "Motif",
+      value: "Ne peut plus agir",
+    });
+    expect(owner.push).not.toMatch(/agir|décès/);
+    expect(
+      read(templates.claimFiledForOwner({ ...SAMPLE, claimReason: "death" }))
+        .email,
+    ).toContain("en indiquant votre décès.");
+  });
+
+  it("tells a validator the reason given, and to approve only if sure of it", () => {
+    const validator = read(templates.claimFiledForValidator(SAMPLE));
+    expect(validator.email).toContain(
+      "Léa Petit demande la transmission de l'enveloppe « Réseaux sociaux » de Camille Martin, en indiquant que Camille ne peut plus agir.",
+    );
+    expect(validator.email).toContain(
+      "n'approuvez que si vous en êtes sûr ; sinon, refusez.",
+    );
+    expect(validator.push).not.toMatch(/agir|décès/);
+    expect(
+      read(
+        templates.claimFiledForValidator({ ...SAMPLE, claimReason: "death" }),
+      ).email,
+    ).toContain("en indiquant le décès de Camille.");
   });
 });

@@ -37,12 +37,14 @@ export {
   type UnreadCount,
 } from "./notifier-api.js";
 export {
+  CLAIM_REASONS,
   CLAIM_STATUSES,
   CONTRACT_CATEGORIES,
   CONTRACT_STATUSES,
   HANDOVER_AUDIENCE,
   type AuditEvent,
   type ChainVerification,
+  type ClaimReason,
   type ClaimRecord,
   type ClaimStatus,
   type ContractAction,
@@ -52,6 +54,7 @@ export {
   type ContractRole,
   type ContractStatus,
   type DecisionBody,
+  type FileClaimBody,
   type DepartureRecord,
   type NewContract,
   type RegisteredKeyRecord,

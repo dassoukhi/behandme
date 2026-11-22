@@ -15,6 +15,8 @@ export interface ContractsTable {
   sealed_at: Date | null;
   revoked_at: Date | null;
   contest_days: ColumnType<number, number | undefined, number>;
+  /** 20261122120000_transmission_rules.sql. */
+  incapacity_allowed: ColumnType<boolean, boolean | undefined, boolean>;
   released_at: Date | null;
   created_at: Timestamp;
   updated_at: Timestamp;
@@ -24,6 +26,12 @@ export interface ClaimsTable {
   id: Generated<string>;
   contract_id: string;
   claimant_id: string;
+  /** Null for a claim filed before reasons were asked (20261122120000_transmission_rules.sql). */
+  reason: ColumnType<
+    "death" | "incapacity" | null,
+    "death" | "incapacity",
+    never
+  >;
   sealed_version: number;
   status: ColumnType<string, string | undefined, string>;
   filed_at: Timestamp;

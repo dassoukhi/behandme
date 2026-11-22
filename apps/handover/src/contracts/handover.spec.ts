@@ -218,6 +218,65 @@ describe("changes", () => {
   });
 });
 
+describe("transmission rules", () => {
+  it("gives a new envelope 15 days to cancel a claim", async () => {
+    expect((await newDraft()).contest_days).toBe(15);
+  });
+
+  it("refuses finances without 3 validators, 15 days and a death only, at creation and when changed", async () => {
+    await expect(
+      contracts.create(OWNER, {
+        category: "finances",
+        description: null,
+        accessorId: ACCESSOR,
+        validatorIds: [VALIDATOR],
+      }),
+    ).rejects.toThrow(InvalidInputError);
+    const draft = await newDraft();
+    await expect(
+      contracts.update(OWNER, draft.id, { category: "finances" }),
+    ).rejects.toThrow(InvalidInputError);
+    expect((await contracts.get(OWNER, draft.id)).category).toBe("networks");
+  });
+
+  it("writes the owner's consent to a claim for an incapacity in the log, given and withdrawn, apart from other changes", async () => {
+    const created = await contracts.create(OWNER, {
+      category: "networks",
+      description: null,
+      accessorId: ACCESSOR,
+      validatorIds: [VALIDATOR],
+      incapacityAllowed: true,
+    });
+    expect(created).toMatchObject({
+      incapacity_allowed: true,
+      claim_reasons: ["death", "incapacity"],
+    });
+    const changed = await contracts.update(OWNER, created.id, {
+      incapacityAllowed: false,
+      contestDays: 20,
+    });
+    expect(changed).toMatchObject({
+      incapacity_allowed: false,
+      claim_reasons: ["death"],
+    });
+    const log = await contracts.events(OWNER, created.id);
+    expect(log.map((e) => [e.type, e.actor_id, JSON.parse(e.body)])).toEqual([
+      [
+        "contract.created",
+        OWNER,
+        {
+          category: "networks",
+          accessor_id: ACCESSOR,
+          validator_ids: [VALIDATOR],
+        },
+      ],
+      ["consent.incapacity", OWNER, { granted: true, version: 1 }],
+      ["contract.updated", OWNER, { fields: ["contestDays"] }],
+      ["consent.incapacity", OWNER, { granted: false }],
+    ]);
+  });
+});
+
 describe("events from other services", () => {
   it("deletes the drafts of a deleted account, and only them", async () => {
     const mine = await newDraft();

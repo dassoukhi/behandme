@@ -740,6 +740,16 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FileClaimDTO"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "",
@@ -755,7 +765,7 @@
             "description": "Contract not found"
           },
           "409": {
-            "description": "Not possible now: not active, a claim already open, or within the pause after the owner cancelled your last claim"
+            "description": "Not possible now: not active, a claim already open, within the pause after the owner cancelled your last claim, or a reason the contract does not allow"
           },
           "503": {
             "description": "The handover service is unavailable"
@@ -2449,7 +2459,8 @@
             "enum": [
               "networks",
               "devices",
-              "storage"
+              "storage",
+              "finances"
             ],
             "type": "string",
             "example": "networks"
@@ -2470,7 +2481,7 @@
             "uniqueItems": true,
             "minItems": 1,
             "maxItems": 3,
-            "description": "Clerk IDs of 1 to 3 distinct validators (people the caller trusts), in order",
+            "description": "Clerk IDs of 1 to 3 distinct validators (people the caller trusts), in order; exactly 3 for finances",
             "example": [
               "user_2aaaaaaaaaaaaaaa",
               "user_2bbbbbbbbbbbbbbb"
@@ -2484,8 +2495,12 @@
             "type": "number",
             "minimum": 3,
             "maximum": 30,
-            "description": "Days the owner has to cancel a claim before a release (3 to 30, 7 by default)",
-            "example": 7
+            "description": "Days the owner has to cancel a claim before a release (3 to 30, 15 by default; 15 to 30 for finances)",
+            "example": 15
+          },
+          "incapacity_allowed": {
+            "type": "boolean",
+            "description": "The owner's explicit consent to a claim saying they can no longer act (their health: GDPR art. 9). False by default; without it, only a death can be given as the reason. Never for finances."
           }
         },
         "required": [
@@ -2504,6 +2519,15 @@
           "claimant_id": {
             "type": "string",
             "description": "Who asked for the release"
+          },
+          "reason": {
+            "nullable": true,
+            "enum": [
+              "death",
+              "incapacity"
+            ],
+            "type": "string",
+            "description": "The reason the claimant gave: death, or incapacity (the owner can no longer act); null before reasons were asked"
           },
           "status": {
             "enum": [
@@ -2556,6 +2580,7 @@
         "required": [
           "id",
           "claimant_id",
+          "reason",
           "status",
           "filed_at",
           "contest_until",
@@ -2719,7 +2744,8 @@
             "enum": [
               "networks",
               "devices",
-              "storage"
+              "storage",
+              "finances"
             ],
             "type": "string",
             "example": "networks"
@@ -2846,6 +2872,21 @@
             "type": "boolean",
             "description": "Whether a claim could succeed: false while the recipient is gone or too few validators remain, until the owner seals again with someone else"
           },
+          "incapacity_allowed": {
+            "type": "boolean",
+            "description": "The owner's explicit consent to a claim saying they can no longer act (GDPR art. 9); without it, only after a death"
+          },
+          "claim_reasons": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "death",
+                "incapacity"
+              ]
+            },
+            "description": "The reasons a claim may give on this contract: death always, incapacity only with the owner's consent (never for finances)"
+          },
           "owner": {
             "nullable": true,
             "description": "Owner profile; null if it no longer exists",
@@ -2894,6 +2935,8 @@
           "health",
           "departures",
           "handover_possible",
+          "incapacity_allowed",
+          "claim_reasons",
           "owner",
           "accessor",
           "validators_list"
@@ -2910,7 +2953,8 @@
             "enum": [
               "networks",
               "devices",
-              "storage"
+              "storage",
+              "finances"
             ],
             "type": "string",
             "example": "networks"
@@ -3037,6 +3081,21 @@
             "type": "boolean",
             "description": "Whether a claim could succeed: false while the recipient is gone or too few validators remain, until the owner seals again with someone else"
           },
+          "incapacity_allowed": {
+            "type": "boolean",
+            "description": "The owner's explicit consent to a claim saying they can no longer act (GDPR art. 9); without it, only after a death"
+          },
+          "claim_reasons": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "death",
+                "incapacity"
+              ]
+            },
+            "description": "The reasons a claim may give on this contract: death always, incapacity only with the owner's consent (never for finances)"
+          },
           "owner": {
             "nullable": true,
             "description": "Owner profile; null if it no longer exists",
@@ -3085,6 +3144,8 @@
           "health",
           "departures",
           "handover_possible",
+          "incapacity_allowed",
+          "claim_reasons",
           "owner",
           "accessor",
           "validators_list"
@@ -3097,7 +3158,8 @@
             "enum": [
               "networks",
               "devices",
-              "storage"
+              "storage",
+              "finances"
             ],
             "type": "string"
           },
@@ -3110,8 +3172,12 @@
             "type": "number",
             "minimum": 3,
             "maximum": 30,
-            "description": "Days the owner has to cancel a claim before a release (3 to 30, 7 by default)",
-            "example": 7
+            "description": "Days the owner has to cancel a claim before a release (3 to 30, 15 by default; 15 to 30 for finances)",
+            "example": 15
+          },
+          "incapacity_allowed": {
+            "type": "boolean",
+            "description": "The owner's explicit consent to a claim saying they can no longer act (their health: GDPR art. 9). False by default; without it, only a death can be given as the reason. Never for finances."
           }
         }
       },
@@ -3355,6 +3421,22 @@
         },
         "required": [
           "expected_version"
+        ]
+      },
+      "FileClaimDTO": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "enum": [
+              "death",
+              "incapacity"
+            ],
+            "type": "string",
+            "description": "death; incapacity (the owner can no longer act) only where they consented to it: the contract's claim_reasons"
+          }
+        },
+        "required": [
+          "reason"
         ]
       },
       "DecisionDTO": {

@@ -53,6 +53,8 @@ describe("mentions", () => {
     trustedBack: false,
     claimantId: "c",
     participantId: "c",
+    claimReason: "death",
+    incapacityAllowed: false,
     contractId: "k",
     ownerName: null,
     userName: null,

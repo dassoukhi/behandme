@@ -114,6 +114,20 @@ describe("internal API", () => {
     expect(res.status).toBe(409);
   });
 
+  it("asks a claim for a reason it knows", async () => {
+    const contract = await (
+      await call("/contracts", { method: "POST", body: JSON.stringify(draft) })
+    ).json();
+    for (const body of [{}, { reason: "absence" }]) {
+      const res = await call(`/contracts/${contract.id}/claims`, {
+        method: "POST",
+        as: "user_validator",
+        body: JSON.stringify(body),
+      });
+      expect(res.status).toBe(400);
+    }
+  });
+
   it("lets a participant refuse their role, after which the contract is none of theirs", async () => {
     const contract = await (
       await call("/contracts", { method: "POST", body: JSON.stringify(draft) })

@@ -1,6 +1,7 @@
 import type {
   AuditEvent,
   ChainVerification,
+  ClaimReason,
   ContractChanges,
   ContractRecord,
   DecisionBody,
@@ -41,7 +42,11 @@ export interface HandoverClient {
     expectedVersion: number,
   ): Promise<ContractRecord>;
   /** The accessor or a validator asks for the release. */
-  fileClaim(userId: string, id: string): Promise<ContractRecord>;
+  fileClaim(
+    userId: string,
+    id: string,
+    reason: ClaimReason,
+  ): Promise<ContractRecord>;
   cancelClaim(
     userId: string,
     id: string,
