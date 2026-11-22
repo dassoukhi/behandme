@@ -75,6 +75,10 @@ Aucun acte de décès n'est demandé.
   transmission après un décès seulement.
 - Celui qui demande la transmission dit pourquoi (décès, ou « ne peut plus agir » là où le propriétaire l'a permis), et
   le propriétaire comme les validateurs le lisent dans l'e-mail.
+- Une demande « ne peut plus agir » n'a ni médecin ni juge derrière elle, à la différence d'un mandat de protection
+  future (art. 477 et 481 C. civ.), et un propriétaire dans le coma ne peut pas l'annuler. D'après l'avis de la juriste :
+  au moins 2 validateurs, un délai doublé et d'au moins 30 jours, une déclaration motivée de celui qui la fait, et un
+  rappel en plus à mi-délai (notification et e-mail critique).
 
 **R3. Perte définitive (clés perdues par le propriétaire, un validateur ou le destinataire).**
 - Phrase de secours, sauvegarde par clé d'accès, transfert vers un nouveau téléphone.
@@ -91,7 +95,8 @@ Aucun acte de décès n'est demandé.
   tard, et retirable à tout moment ; le journal de l'enveloppe garde chaque consentement donné ou retiré, avec la
   version du texte accepté. Sans lui, l'enveloppe ne se transmet qu'après un décès : c'est le cas de toutes les
   enveloppes créées avant cette règle. Jamais pour « Banque et cryptomonnaies ».
-- Le motif n'apparaît ni sur l'écran verrouillé ni dans les notifications, seulement dans l'app et les e-mails.
+- Le motif n'apparaît ni sur l'écran verrouillé ni dans les notifications, seulement dans l'app et les e-mails. La
+  déclaration motivée n'apparaît que dans l'app, aux participants, et elle est effacée quand la demande se termine.
 
 **R5. Prise de contrôle d'un compte (mot de passe ou session volés).**
 - Un nouvel appareil doit confirmer un code par e-mail.

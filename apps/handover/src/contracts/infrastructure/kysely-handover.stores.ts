@@ -465,7 +465,7 @@ class KyselyClaims implements ClaimRepository {
       | "filedAt"
       | "contestUntil"
       | "expiresAt"
-    > & { reason: ClaimReason },
+    > & { reason: ClaimReason; statement: string | null },
   ): Promise<Claim> {
     const row = await this.db
       .insertInto("claims")
@@ -473,6 +473,7 @@ class KyselyClaims implements ClaimRepository {
         contract_id: claim.contractId,
         claimant_id: claim.claimantId,
         reason: claim.reason,
+        statement: claim.statement,
         sealed_version: claim.sealedVersion,
         filed_at: claim.filedAt,
         contest_until: claim.contestUntil,
@@ -491,7 +492,8 @@ class KyselyClaims implements ClaimRepository {
   ): Promise<boolean> {
     const row = await this.db
       .updateTable("claims")
-      .set({ status, closed_by: closedBy, closed_at: at })
+      // A claim that ends forgets the claimant's statement: it served the decision only.
+      .set({ status, closed_by: closedBy, closed_at: at, statement: null })
       .where("id", "=", claimId)
       .where("status", "=", "open")
       .returning("id")
@@ -565,6 +567,7 @@ function toClaim(row: Selectable<ClaimsTable>): Claim {
     contractId: row.contract_id,
     claimantId: row.claimant_id,
     reason: row.reason,
+    statement: row.statement,
     sealedVersion: row.sealed_version,
     status: row.status as ClaimStatus,
     filedAt: row.filed_at,

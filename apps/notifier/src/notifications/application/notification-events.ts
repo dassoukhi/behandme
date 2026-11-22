@@ -232,6 +232,7 @@ export class NotificationEvents {
       pendingValidatorIds: string[];
       quorum: boolean;
       contestUntil: string;
+      last: boolean;
     },
     occurredAt?: string,
   ): Promise<void> {

@@ -39,6 +39,19 @@ export const FINANCES = { minContestDays: 15, validators: 3 } as const;
 export const CLAIM_REASONS = ["death", "incapacity"] as const;
 export type ClaimReason = (typeof CLAIM_REASONS)[number];
 
+/**
+ * A claim saying the owner can no longer act has no doctor nor judge behind it, unlike a mandat de protection future
+ * (art. 477 and 481 of the Code civil), and an owner in a coma cannot cancel it. So, after a digital-law jurist's
+ * opinion: at least 2 validators, a longer window (twice the owner's, and at least 30 days), and a motivated
+ * statement from whoever files it.
+ */
+export const INCAPACITY = {
+  minValidators: 2,
+  delayFactor: 2,
+  minContestDays: 30,
+  statement: { min: 20, max: 1000 },
+} as const;
+
 /** Why a participant left: they refused their role, or their account is gone. */
 export type LeftReason = "declined" | "account_deleted";
 
@@ -135,8 +148,9 @@ export function assertValidDraft(ownerId: string, input: DraftInput): void {
 
 /**
  * What a category asks of the whole contract, as it is or would be after a change (creation, edit, sealing):
- * finances waits 15 days or more, has exactly 3 validators, and allows no claim for an incapacity. `validatorCount`
- * left out: a draft's validators, which its sealing replaces and checks.
+ * finances waits 15 days or more, has exactly 3 validators, and allows no claim for an incapacity; a claim for an
+ * incapacity needs at least 2 validators. `validatorCount` left out: a draft's validators, which its sealing replaces
+ * and checks.
  */
 export function assertCategoryRules(contract: {
   category: Category;
@@ -144,6 +158,15 @@ export function assertCategoryRules(contract: {
   incapacityAllowed: boolean;
   validatorCount?: number;
 }): void {
+  if (
+    contract.incapacityAllowed &&
+    contract.validatorCount !== undefined &&
+    contract.validatorCount < INCAPACITY.minValidators
+  ) {
+    throw new InvalidInputError(
+      `A claim for an incapacity needs at least ${INCAPACITY.minValidators} validators`,
+    );
+  }
   if (contract.category !== "finances") return;
   if (contract.contestDays < FINANCES.minContestDays) {
     throw new InvalidInputError(
@@ -165,13 +188,61 @@ export function assertCategoryRules(contract: {
   }
 }
 
-/** The reasons a claim may give: a death always, an incapacity only with the owner's consent (never for finances). */
+/**
+ * The reasons a claim may give: a death always; an incapacity only with the owner's consent, never for finances, and
+ * while at least 2 validators remain.
+ */
 export function claimReasons(
-  contract: Pick<Contract, "category" | "incapacityAllowed">,
+  contract: Pick<
+    Contract,
+    "category" | "incapacityAllowed" | "validatorIds" | "departures"
+  >,
 ): ClaimReason[] {
-  return contract.incapacityAllowed && contract.category !== "finances"
+  const present = contract.validatorIds.filter(
+    (id) => !hasLeft(contract, id),
+  ).length;
+  return contract.incapacityAllowed &&
+    contract.category !== "finances" &&
+    present >= INCAPACITY.minValidators
     ? ["death", "incapacity"]
     : ["death"];
+}
+
+/** Days the owner has to cancel a claim with this reason: twice theirs, and at least 30, for an incapacity. */
+export function claimContestDays(
+  contract: Pick<Contract, "contestDays">,
+  reason: ClaimReason,
+): number {
+  return reason === "incapacity"
+    ? Math.max(
+        contract.contestDays * INCAPACITY.delayFactor,
+        INCAPACITY.minContestDays,
+      )
+    : contract.contestDays;
+}
+
+/**
+ * A claim for an incapacity says why, in 20 to 1,000 characters (trimmed); a claim for a death says nothing more, as
+ * nothing more is needed. Returns what to keep.
+ */
+export function claimStatement(
+  reason: ClaimReason,
+  statement: string | undefined,
+): string | null {
+  const text = statement?.trim() ?? "";
+  if (reason === "death") {
+    if (text) {
+      throw new InvalidInputError("A claim for a death takes no statement");
+    }
+    return null;
+  }
+  const { min, max } = INCAPACITY.statement;
+  if (text.length < min || text.length > max) {
+    throw new InvalidInputError(
+      `A claim for an incapacity needs a statement of ${min} to ${max} characters`,
+    );
+  }
+  return text;
 }
 
 export function assertValidFields(fields: ContractChanges): void {

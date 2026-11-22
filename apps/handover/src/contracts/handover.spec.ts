@@ -85,7 +85,7 @@ describe("contracts: role × action", () => {
       accessor_id: ACCESSOR,
       validator_ids: [VALIDATOR],
       my_role: "owner",
-      allowed_actions: ["update", "delete", "seal"],
+      allowed_actions: ["update", "delete", "seal", "grant_consent"],
     });
     const [event] = await contracts.events(OWNER, created.id);
     expect(event).toMatchObject({
@@ -251,12 +251,31 @@ describe("transmission rules", () => {
     expect((await contracts.get(OWNER, sealed.id)).category).toBe("networks");
   });
 
+  it("refuses the consent to a claim for an incapacity on a sealed contract with a single validator", async () => {
+    const sealed = await newDraft();
+    await asOwner(
+      sql`update handover.contracts set status = 'active', sealed_version = 1 where id = ${sealed.id}::uuid`,
+    );
+    expect(
+      (await contracts.get(OWNER, sealed.id)).allowed_actions,
+    ).not.toContain("grant_consent");
+    await expect(
+      contracts.update(OWNER, sealed.id, { incapacityAllowed: true }),
+    ).rejects.toThrow(ConflictError);
+    // On a draft, its validators are provisional: the sealing will check them.
+    const draft = await newDraft();
+    await expect(
+      contracts.update(OWNER, draft.id, { incapacityAllowed: true }),
+    ).resolves.toMatchObject({ incapacity_allowed: true });
+  });
+
   it("writes the owner's consent to a claim for an incapacity in the log, given and withdrawn, apart from other changes", async () => {
+    // A claim for an incapacity needs 2 validators.
     const created = await contracts.create(OWNER, {
       category: "networks",
       description: null,
       accessorId: ACCESSOR,
-      validatorIds: [VALIDATOR],
+      validatorIds: [VALIDATOR, "user_validator_2"],
       incapacityAllowed: true,
     });
     expect(created).toMatchObject({
@@ -279,10 +298,10 @@ describe("transmission rules", () => {
         {
           category: "networks",
           accessor_id: ACCESSOR,
-          validator_ids: [VALIDATOR],
+          validator_ids: [VALIDATOR, "user_validator_2"],
         },
       ],
-      ["consent.incapacity", OWNER, { granted: true, version: 1 }],
+      ["consent.incapacity", OWNER, { granted: true, version: 2 }],
       ["contract.updated", OWNER, { fields: ["contestDays"] }],
       ["consent.incapacity", OWNER, { granted: false }],
     ]);

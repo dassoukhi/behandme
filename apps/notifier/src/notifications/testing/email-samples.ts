@@ -37,4 +37,5 @@ export const SAMPLE = {
   threshold: 2,
   contestDays: 7,
   incapacityAllowed: true,
+  last: true,
 };

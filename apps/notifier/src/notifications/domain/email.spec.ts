@@ -55,6 +55,7 @@ describe("mentions", () => {
     participantId: "c",
     claimReason: "death",
     incapacityAllowed: false,
+    last: true,
     contractId: "k",
     ownerName: null,
     userName: null,

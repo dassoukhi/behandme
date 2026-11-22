@@ -35,6 +35,8 @@ const ACCESSOR = P.accessor.user_id;
 const [V1, V2, V3] = [P.v1.user_id, P.v2.user_id, P.v3.user_id];
 const b = (base64: string) => new Uint8Array(Buffer.from(base64, "base64"));
 const FILED = new Date("2026-10-16T09:00:00Z");
+/** A claim for an incapacity says why. */
+const WHY = "Hospitalisée depuis le 3 mars, dans le coma.";
 const DAY = 86_400_000;
 
 let t: TestDatabase;
@@ -217,11 +219,11 @@ describe("filing a claim", () => {
 describe("the reason of a claim", () => {
   it("is a death, unless the owner consented to a claim for an incapacity", async () => {
     expect((await contracts.get(V1, ID)).claim_reasons).toEqual(["death"]);
-    await expect(claims.file(V1, ID, "incapacity")).rejects.toThrow(
+    await expect(claims.file(V1, ID, "incapacity", WHY)).rejects.toThrow(
       ConflictError,
     );
     await contracts.update(OWNER, ID, { incapacityAllowed: true });
-    const record = await claims.file(V1, ID, "incapacity");
+    const record = await claims.file(V1, ID, "incapacity", WHY);
     expect(record.open_claim).toMatchObject({ reason: "incapacity" });
     expect(
       (await outbox()).find((e) => e.type === "claim.filed")?.envelope.payload,
@@ -246,7 +248,7 @@ describe("the owner's consent to a claim for an incapacity", () => {
       validatorIds: [V1, V2, V3],
       incapacityAllowed: true,
     });
-    await claims.file(V1, ID, "incapacity");
+    await claims.file(V1, ID, "incapacity", WHY);
     const owner = await contracts.get(OWNER, ID);
     expect(owner.status).toBe("claimed");
     expect(owner.allowed_actions).toContain("withdraw_consent");
@@ -286,6 +288,68 @@ describe("the owner's consent to a claim for an incapacity", () => {
     await expect(
       contracts.update(V1, ID, { incapacityAllowed: false }),
     ).rejects.toThrow(NotFoundError);
+  });
+});
+
+describe("a claim for an incapacity", () => {
+  beforeEach(() => contracts.update(OWNER, ID, { incapacityAllowed: true }));
+
+  it("gives the owner twice their delay, at least 30 days, and reminds them halfway, then the day before", async () => {
+    const record = await claims.file(V1, ID, "incapacity", WHY);
+    // 7 days chosen: twice that is 14, below the 30-day floor.
+    expect(record.open_claim?.contest_until).toBe(
+      new Date(FILED.getTime() + 30 * DAY).toISOString(),
+    );
+    const due = (await outbox())
+      .filter((e) => e.type === "claim.reminder_due")
+      .map((e) => e.deliver_at?.toISOString())
+      .sort();
+    expect(due).toEqual([
+      new Date(FILED.getTime() + 15 * DAY).toISOString(),
+      new Date(FILED.getTime() + 29 * DAY).toISOString(),
+    ]);
+    const claimId = record.open_claim!.id;
+    const reminders = async () =>
+      (await outbox())
+        .filter((e) => e.type === "claim.reminder")
+        .map((e) => e.envelope.payload.last);
+    clock.advance(15 * DAY);
+    await stores.transaction((store) => claims.remind(store, claimId));
+    clock.advance(14 * DAY);
+    await stores.transaction((store) => claims.remind(store, claimId));
+    expect(await reminders()).toEqual([false, true]);
+  });
+
+  it("shows the claimant's statement to the participants, and forgets it once the claim ends", async () => {
+    const claimId = (await claims.file(V1, ID, "incapacity", WHY)).open_claim!
+      .id;
+    for (const who of [OWNER, ACCESSOR, V2]) {
+      expect((await contracts.get(who, ID)).open_claim?.statement).toBe(WHY);
+    }
+    // Neither the log nor the events hold it.
+    expect(JSON.stringify(await contracts.events(OWNER, ID))).not.toContain(
+      "coma",
+    );
+    expect(JSON.stringify(await outbox())).not.toContain("coma");
+    await claims.cancel(OWNER, ID, claimId);
+    await sql`reset role`.execute(db);
+    const { rows } = await sql<{
+      statement: string | null;
+    }>`select statement from handover.claims where id = ${claimId}::uuid`.execute(
+      db,
+    );
+    await sql`set role svc_handover`.execute(db);
+    expect(rows).toEqual([{ statement: null }]);
+  });
+
+  it("is refused without a statement, and a claim for a death takes none", async () => {
+    await expect(claims.file(V1, ID, "incapacity")).rejects.toThrow(
+      InvalidInputError,
+    );
+    await expect(claims.file(V1, ID, "death", WHY)).rejects.toThrow(
+      InvalidInputError,
+    );
+    expect((await contracts.get(OWNER, ID)).status).toBe("active");
   });
 });
 

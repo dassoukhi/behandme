@@ -8,7 +8,9 @@ import {
   assertCategoryRules,
   assertValidDraft,
   changedFields,
+  claimContestDays,
   claimReasons,
+  claimStatement,
   type Contract,
   type Departure,
   presentParticipants,
@@ -95,13 +97,13 @@ describe("draft rules", () => {
         assertValidDraft("owner", { ...finances, ...change }),
       ).toThrow(InvalidInputError);
     }
-    // The other categories keep their freedom: 1 validator, 3 days, an incapacity.
+    // The other categories keep their freedom: 3 days, an incapacity (with 2 validators).
     expect(() =>
       assertCategoryRules({
         category: "networks",
         contestDays: 3,
         incapacityAllowed: true,
-        validatorCount: 1,
+        validatorCount: 2,
       }),
     ).not.toThrow();
   });
@@ -127,16 +129,92 @@ describe("draft rules", () => {
     ).not.toThrow();
   });
 
-  it("allows a claim for an incapacity only where the owner consented to it, never for finances", () => {
+  it("allows a claim for an incapacity only where the owner consented to it, never for finances, with 2 validators", () => {
+    const two = { validatorIds: ["v1", "v2"], departures: [] };
     expect(
-      claimReasons({ category: "networks", incapacityAllowed: false }),
+      claimReasons({ ...two, category: "networks", incapacityAllowed: false }),
     ).toEqual(["death"]);
     expect(
-      claimReasons({ category: "devices", incapacityAllowed: true }),
+      claimReasons({ ...two, category: "devices", incapacityAllowed: true }),
     ).toEqual(["death", "incapacity"]);
     expect(
-      claimReasons({ category: "finances", incapacityAllowed: true }),
+      claimReasons({ ...two, category: "finances", incapacityAllowed: true }),
     ).toEqual(["death"]);
+    // One validator left: a single one is not enough to say the owner can no longer act.
+    expect(
+      claimReasons({
+        ...two,
+        departures: [left("v2")],
+        category: "devices",
+        incapacityAllowed: true,
+      }),
+    ).toEqual(["death"]);
+    expect(
+      claimReasons({
+        validatorIds: ["v1"],
+        departures: [],
+        category: "devices",
+        incapacityAllowed: true,
+      }),
+    ).toEqual(["death"]);
+  });
+
+  it("gives a claim for an incapacity twice the owner's delay, and at least 30 days", () => {
+    expect(claimContestDays({ contestDays: 15 }, "incapacity")).toBe(30);
+    expect(claimContestDays({ contestDays: 7 }, "incapacity")).toBe(30);
+    expect(claimContestDays({ contestDays: 30 }, "incapacity")).toBe(60);
+    expect(claimContestDays({ contestDays: 90 }, "incapacity")).toBe(180);
+    expect(claimContestDays({ contestDays: 7 }, "death")).toBe(7);
+  });
+
+  it("asks a claim for an incapacity why, in 20 to 1,000 characters, and a claim for a death nothing more", () => {
+    const why = "  Hospitalisée depuis le 3 mars, dans le coma.  ";
+    expect(claimStatement("incapacity", why)).toBe(why.trim());
+    for (const statement of [undefined, "", "Trop court.", "x".repeat(1001)]) {
+      expect(() => claimStatement("incapacity", statement)).toThrow(
+        InvalidInputError,
+      );
+    }
+    expect(claimStatement("death", undefined)).toBeNull();
+    expect(claimStatement("death", "  ")).toBeNull();
+    expect(() => claimStatement("death", why)).toThrow(InvalidInputError);
+  });
+
+  it("allows the consent to a claim for an incapacity with 2 validators only, once sealed", () => {
+    expect(() =>
+      assertCategoryRules({
+        category: "devices",
+        contestDays: 15,
+        incapacityAllowed: true,
+        validatorCount: 1,
+      }),
+    ).toThrow("at least 2 validators");
+    // A draft's validators are provisional: its sealing checks them.
+    expect(() =>
+      assertCategoryRules({
+        category: "devices",
+        contestDays: 15,
+        incapacityAllowed: true,
+      }),
+    ).not.toThrow();
+    const active = {
+      ...draft,
+      status: "active" as const,
+      validatorIds: ["v1"],
+    };
+    expect(allowedActions(active, "owner")).not.toContain("grant_consent");
+    expect(
+      allowedActions({ ...active, validatorIds: ["v1", "v2"] }, "owner"),
+    ).toContain("grant_consent");
+    expect(
+      allowedActions({ ...draft, validatorIds: ["v1"] }, "owner"),
+    ).toContain("grant_consent");
+    expect(
+      allowedActions(
+        { ...active, validatorIds: ["v1", "v2"], category: "finances" },
+        "owner",
+      ),
+    ).not.toContain("grant_consent");
   });
 
   it("gives each user their role, or none", () => {
@@ -179,16 +257,19 @@ describe("life cycle", () => {
       "update",
       "delete",
       "seal",
+      "grant_consent",
     ]);
     expect(allowedActions(draft, "accessor")).toEqual(["leave"]);
     expect(allowedActions(draft, "validator")).toEqual(["leave"]);
   });
 
   it("lets the owner edit, re-seal or revoke an active contract", () => {
+    // With its 2 validators, it may also allow a claim for an incapacity.
     expect(allowedActions({ ...draft, status: "active" }, "owner")).toEqual([
       "update",
       "seal",
       "revoke",
+      "grant_consent",
     ]);
     expect(allowedActions({ ...draft, status: "active" }, "validator")).toEqual(
       ["claim", "leave"],

@@ -225,10 +225,13 @@ export const ClaimReminderDue = defineEvent(
   z.object({ contractId, claimId }),
 );
 
-/** Handover: the contest window ends soon; the owner may still cancel, some validators have not decided. */
+/**
+ * Handover: the contest window ends soon (or, for a claim for an incapacity, is halfway through); the owner may still
+ * cancel, some validators have not decided. v2: `last`, false for the reminder halfway.
+ */
 export const ClaimReminder = defineEvent(
   "claim.reminder",
-  1,
+  2,
   z.object({
     contractId,
     claimId,
@@ -239,6 +242,7 @@ export const ClaimReminder = defineEvent(
     /** Enough approvals already: without a cancel, the release follows at the end of the window. */
     quorum: z.boolean(),
     contestUntil: z.iso.datetime(),
+    last: z.boolean(),
   }),
 );
 

@@ -158,7 +158,13 @@ longer act) only where the owner gave their explicit consent (`incapacity_allowe
 health), at creation or later, and may withdraw it at any time before the end, even during a claim (`withdraw_consent`),
 which closes a claim that gave this reason as their own cancellation would; each consent given or withdrawn is a
 `consent.incapacity` event in the log, with the version of the wording accepted, those named in a sealed contract are
-told of it (`contract.rules_changed`), and the record lists the reasons allowed (`claim_reasons`).
+told of it (`contract.rules_changed`), and the record lists the reasons allowed (`claim_reasons`). A claim for an
+incapacity has no doctor nor judge behind it and its owner may be unable to cancel it, so (after a digital-law jurist's
+opinion) it needs at least 2 validators still there (`grant_consent` too, once sealed), gives the owner twice their
+window and at least 30 days (`claimContestDays`, shown per reason in `claim_contest_days`), carries the claimant's
+statement (20 to 1,000 characters, shown in the app to the participants only, never in the log, the events or the
+e-mails, erased when the claim ends: `handover.claims.statement`), and is also reminded halfway (`claim.reminder` v2,
+`last` false).
 `finances` (bank accounts and cryptocurrency) waits at least 15 days, has exactly 3 validators, and allows a death only:
 `assertCategoryRules` checks the whole contract at creation, at each change and at sealing (a draft's validators are
 provisional: its sealing checks those it names). 15 days by default. `health` (gateway) counts the validators

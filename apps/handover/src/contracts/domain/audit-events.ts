@@ -94,7 +94,7 @@ export function claimFiled(claim: {
  * The wording the owner accepts when they allow a claim saying they can no longer act: the app's
  * seal.incapacity.consent. A new wording is a new version, so that the log says which one was accepted.
  */
-export const INCAPACITY_CONSENT_VERSION = 1;
+export const INCAPACITY_CONSENT_VERSION = 2;
 
 /**
  * The owner's explicit consent to a claim saying they can no longer act (GDPR art. 9: their health), given or

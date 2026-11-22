@@ -32,6 +32,7 @@ const ACTIONS: ContractAction[] = [
   "decide",
   "open",
   "leave",
+  "grant_consent",
   "withdraw_consent",
 ];
 
@@ -51,6 +52,14 @@ export class ClaimDTO implements ClaimRecord {
       "The reason the claimant gave: death, or incapacity (the owner can no longer act); null before reasons were asked",
   })
   reason: ClaimReason | null;
+
+  @ApiProperty({
+    nullable: true,
+    type: String,
+    description:
+      "A claim for an incapacity: why, in the claimant's words (health data, for the participants only); null otherwise",
+  })
+  statement: string | null;
 
   @ApiProperty({ enum: CLAIM_STATUSES })
   status: ClaimStatus;
@@ -99,6 +108,14 @@ export class ValidatorHealthDTO {
       "ok; lost: not the keys of the sealing, the share is gone until the owner seals again; silent: no sign from their phone for over a year; not_saved: they have not proved they kept their recovery phrase; left: they refused their role or deleted their account, their share will never be used",
   })
   state: ValidatorHealthState;
+}
+
+export class ClaimContestDaysDTO {
+  @ApiProperty({ example: 15 })
+  death: number;
+
+  @ApiProperty({ example: 30 })
+  incapacity: number;
 }
 
 /** A participant who left: they stay named until the owner seals again. */
@@ -256,6 +273,13 @@ export class ContractDTO {
     isArray: true,
   })
   claim_reasons: ClaimReason[];
+
+  @ApiProperty({
+    description:
+      "Days the owner would have to cancel a claim for each reason: twice theirs, and at least 30, for an incapacity",
+    type: () => ClaimContestDaysDTO,
+  })
+  claim_contest_days: ClaimContestDaysDTO;
 
   @ApiProperty({
     description: "Owner profile; null if it no longer exists",

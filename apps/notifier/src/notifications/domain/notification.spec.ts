@@ -91,6 +91,7 @@ describe("copy", () => {
     participantId: "a",
     claimReason: "death",
     incapacityAllowed: false,
+    last: true,
     contestUntil: "2026-11-19T13:30:00.000Z",
     usableFrom: "2026-11-15T13:30:00.000Z",
     validatorCount: 3,

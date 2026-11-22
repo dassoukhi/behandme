@@ -46,6 +46,7 @@ export interface HandoverClient {
     userId: string,
     id: string,
     reason: ClaimReason,
+    statement?: string,
   ): Promise<ContractRecord>;
   cancelClaim(
     userId: string,

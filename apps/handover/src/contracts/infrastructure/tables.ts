@@ -32,6 +32,8 @@ export interface ClaimsTable {
     "death" | "incapacity",
     never
   >;
+  /** A claim for an incapacity: why; null otherwise, and once the claim ends (20261122180000_claim_statement.sql). */
+  statement: ColumnType<string | null, string | null | undefined, null>;
   sealed_version: number;
   status: ColumnType<string, string | undefined, string>;
   filed_at: Timestamp;

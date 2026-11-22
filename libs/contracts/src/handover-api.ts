@@ -44,6 +44,8 @@ export type ContractAction =
   | "open"
   /** The accessor or a validator refuses their role: the contract is no longer theirs. */
   | "leave"
+  /** The owner consents to a claim for an incapacity (not for finances; 2 validators once sealed). */
+  | "grant_consent"
   /** The owner withdraws their consent to a claim for an incapacity, even during a claim (which then closes). */
   | "withdraw_consent";
 
@@ -63,6 +65,8 @@ export interface ClaimRecord {
   claimant_id: string;
   /** Null for a claim filed before reasons were asked. */
   reason: ClaimReason | null;
+  /** A claim for an incapacity: why, in the claimant's words (health data, for the participants only). */
+  statement: string | null;
   status: ClaimStatus;
   filed_at: string;
   /** The owner may cancel until then; release needs both this date and enough approvals. */
@@ -131,6 +135,8 @@ export interface ContractRecord {
   incapacity_allowed: boolean;
   /** The reasons a claim may give on this contract: a death always, an incapacity only with that consent. */
   claim_reasons: ClaimReason[];
+  /** Days the owner would have to cancel a claim for each reason: twice theirs, at least 30, for an incapacity. */
+  claim_contest_days: Record<ClaimReason, number>;
 }
 
 export interface NewContract {
@@ -153,6 +159,8 @@ export interface ContractChanges {
 
 export interface FileClaimBody {
   reason: ClaimReason;
+  /** Required for an incapacity (20 to 1,000 characters), refused for a death. */
+  statement?: string;
 }
 
 /**

@@ -158,8 +158,12 @@ export class ContractsFacade {
     me: string,
     id: string,
     reason: ClaimReason,
+    statement?: string,
   ): Promise<ContractDetail> {
-    return this.detail(me, await this.handover.fileClaim(me, id, reason));
+    return this.detail(
+      me,
+      await this.handover.fileClaim(me, id, reason, statement),
+    );
   }
 
   /** "I'm here": the owner stops the claim. */

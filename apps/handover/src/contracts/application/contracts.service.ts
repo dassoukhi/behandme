@@ -83,10 +83,10 @@ export class ContractsService {
   ): Promise<ContractRecord> {
     assertValidFields(changes);
     const given = Object.entries(changes).filter(([, v]) => v !== undefined);
-    const withdrawal =
-      given.length === 1 &&
-      given[0][0] === "incapacityAllowed" &&
-      given[0][1] === false;
+    const consentOnly =
+      given.length === 1 && given[0][0] === "incapacityAllowed";
+    const withdrawal = consentOnly && given[0][1] === false;
+    const grant = consentOnly && given[0][1] === true;
     return this.stores.transaction(async (store) => {
       // Locked first (ports.ts, lock): a withdrawal may close the open claim.
       const contract = await store.contracts.lock(id);
@@ -96,7 +96,11 @@ export class ContractsService {
         if (role !== "owner") throw new NotFoundError("Contract not found");
         return this.record(store, me, contract);
       }
-      assertAllowed(withdrawal ? "withdraw_consent" : "update", contract, role);
+      assertAllowed(
+        withdrawal ? "withdraw_consent" : grant ? "grant_consent" : "update",
+        contract,
+        role,
+      );
       const fields = changedFields(contract, changes);
       if (fields.length === 0) return this.record(store, me, contract);
       const changed: ContractChanges = Object.fromEntries(

@@ -1,6 +1,12 @@
 import { ConflictError, NotFoundError } from "@lib/kernel";
 import { canBeHandedOver } from "./claims.js";
-import type { Contract, Role, Status } from "./contract.js";
+import {
+  type Contract,
+  INCAPACITY,
+  presentParticipants,
+  type Role,
+  type Status,
+} from "./contract.js";
 
 // Who may do what, in which status. Handover is the only authority on a contract's life cycle; the
 // gateway and the app read `allowedActions` instead of repeating these rules.
@@ -16,6 +22,7 @@ export type Action =
   | "decide"
   | "open"
   | "leave"
+  | "grant_consent"
   | "withdraw_consent";
 
 /** What the rules need beyond the contract and the role: the caller and the open claim. */
@@ -71,6 +78,18 @@ const RULES: Record<
   leave: {
     roles: ["accessor", "validator"],
     statuses: ["draft", "active", "claimed"],
+  },
+  // The owner consents to a claim for an incapacity: never for finances, and with at least 2 validators once sealed (a
+  // draft's validators are provisional, its sealing checks them).
+  grant_consent: {
+    roles: ["owner"],
+    statuses: ["draft", "active"],
+    when: (_c, contract) =>
+      !contract.incapacityAllowed &&
+      contract.category !== "finances" &&
+      (contract.status === "draft" ||
+        presentParticipants(contract).validatorIds.length >=
+          INCAPACITY.minValidators),
   },
   // The owner withdraws their consent to a claim for an incapacity at any time before the end (GDPR art. 7.3), even
   // during a claim: one that gave this reason closes (ContractsService.update).

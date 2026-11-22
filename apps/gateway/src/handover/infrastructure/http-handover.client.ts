@@ -94,13 +94,18 @@ export class HttpHandoverClient implements HandoverClient {
     );
   }
 
-  fileClaim(userId: string, id: string, reason: ClaimReason) {
+  fileClaim(
+    userId: string,
+    id: string,
+    reason: ClaimReason,
+    statement?: string,
+  ) {
     return this.http.call<ContractRecord>(
       userId,
       "POST",
       `${path(id)}/claims`,
       {
-        body: { reason },
+        body: statement === undefined ? { reason } : { reason, statement },
         idempotent: false,
       },
     );

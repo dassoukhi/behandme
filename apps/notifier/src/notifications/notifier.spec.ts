@@ -580,6 +580,7 @@ describe("claims", () => {
           pendingValidatorIds: [CAROL],
           quorum: true,
           contestUntil: "2026-10-21T10:00:00.000Z",
+          last: true,
         }),
       ),
     );

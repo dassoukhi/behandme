@@ -180,9 +180,9 @@ export class ContractsController {
   fileClaim(
     @CurrentUserId() me: string,
     @Param("id", ParseUUIDPipe) id: string,
-    @Body() { reason }: FileClaimDTO,
+    @Body() { reason, statement }: FileClaimDTO,
   ): Promise<ContractDetailDTO> {
-    return this.contracts.fileClaim(me, id, reason);
+    return this.contracts.fileClaim(me, id, reason, statement);
   }
 
   @Post(":id/claims/:claimId/cancel")

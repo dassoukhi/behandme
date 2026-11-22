@@ -102,8 +102,9 @@ must:
   `allowedActions` (`apps/handover/src/contracts/domain/lifecycle.ts`: the owner edits a draft or an active
   contract, deletes a draft, seals a draft or re-seals an active one, revokes until release; the accessor or a
   validator claims, the owner cancels, the claimant withdraws, each validator decides once, the accessor opens
-  a released contract, a claim gives its reason (a death, or an incapacity only where the owner consented to it:
-  `claimReasons`, GDPR art. 9), the accessor or a validator refuses their role before release (`leave`), after which the
+  a released contract, a claim gives its reason (a death, or an incapacity only where the owner consented to it and 2
+  validators remain: `claimReasons`, GDPR art. 9; it then carries a statement only the participants read, erased when
+  the claim ends, and gives the owner twice their window), the accessor or a validator refuses their role before release (`leave`), after which the
   contract is none of theirs: 404, no more notifications; the owner is told who left, `departures` is theirs alone, and the
   log, which every participant reads, records the departure); sealed material by role (`GET /contracts/:id/sealed`, with the owner's keys that
   signed it, and the accessor's current keys for a validator): the owner gets the envelope and their wrapped

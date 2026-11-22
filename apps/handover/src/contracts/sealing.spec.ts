@@ -108,7 +108,7 @@ describe("sealing", () => {
       status: "active",
       sealed_version: 1,
       version: 2,
-      allowed_actions: ["update", "seal", "revoke"],
+      allowed_actions: ["update", "seal", "revoke", "grant_consent"],
     });
     const log = await contracts.events(OWNER, ID);
     expect(log.at(-1)).toMatchObject({

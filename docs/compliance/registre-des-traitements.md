@@ -79,6 +79,9 @@ d'un tiers : on ajoute un proche qui a déjà son compte, en scannant son code o
   consentement explicite du propriétaire (art. 9.2.a), qu'il donne ou retire dans l'app, à tout moment et même pendant
   une demande (qui se ferme alors si elle donnait ce motif). Le journal de l'enveloppe garde chaque consentement, avec
   la version du texte accepté, et les personnes désignées sont prévenues de chaque changement. Jamais pour « Banque et cryptomonnaies ». Voir `aipd.md`.
+  - Une telle demande porte une déclaration motivée de celui qui la fait (20 à 1 000 caractères) : montrée dans l'app
+    aux seuls participants de l'enveloppe, jamais dans le journal, les événements ni les e-mails, et effacée quand la
+    demande se termine.
 
 ## 4. Soin et récupération des clés
 

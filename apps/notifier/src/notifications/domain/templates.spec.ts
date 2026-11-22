@@ -42,6 +42,7 @@ const VARIANTS = [
   { ...SAMPLE, incapacityAllowed: false },
   { ...SAMPLE, claimReason: "death" },
   { ...SAMPLE, category: "finances" },
+  { ...SAMPLE, last: false },
   ...REASONS.map((reason) => ({ ...SAMPLE, reason })),
 ];
 // People whose names the e-mail knows, and people it does not (the sentences then say "the owner").
@@ -281,6 +282,20 @@ describe("a claim and its reason", () => {
     ).toContain("en indiquant votre décès.");
   });
 
+  it("points to the statement of a claim for an incapacity, never quoting it", () => {
+    expect(read(templates.claimFiledForOwner(SAMPLE)).email).toContain(
+      "Sa déclaration est dans l'app.",
+    );
+    expect(read(templates.claimFiledForValidator(SAMPLE)).email).toContain(
+      "Lisez sa déclaration dans l'app avant de décider.",
+    );
+    expect(
+      read(
+        templates.claimFiledForValidator({ ...SAMPLE, claimReason: "death" }),
+      ).email,
+    ).not.toContain("déclaration");
+  });
+
   it("tells a validator the reason given, and to approve only if sure of it", () => {
     const validator = read(templates.claimFiledForValidator(SAMPLE));
     expect(validator.email).toContain(
@@ -295,5 +310,21 @@ describe("a claim and its reason", () => {
         templates.claimFiledForValidator({ ...SAMPLE, claimReason: "death" }),
       ).email,
     ).toContain("en indiquant le décès de Camille.");
+  });
+});
+
+// A claim for an incapacity is reminded halfway too: that reminder is not the last.
+describe("the owner's reminders", () => {
+  it("call the one halfway a reminder, and the day before the last one", () => {
+    const halfway = render(
+      templates.claimReminderForOwner({ ...SAMPLE, last: false }),
+      "fr",
+    );
+    expect(halfway.title).toBe("Rappel");
+    expect(halfway.body).not.toContain("bientôt");
+    expect(
+      render(templates.claimReminderForOwner({ ...SAMPLE, last: true }), "fr")
+        .title,
+    ).toBe("Dernier rappel");
   });
 });

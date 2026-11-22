@@ -30,10 +30,12 @@ import {
   settlement,
   type Tally,
   tallyFor,
+  midReminderAt,
 } from "../domain/claims.js";
 import {
   type ClaimReason,
   claimReasons,
+  claimStatement,
   type Contract,
   presentParticipants,
   type Role,
@@ -76,7 +78,10 @@ export class ClaimsService {
     me: string,
     id: string,
     reason: ClaimReason,
+    statement?: string,
   ): Promise<ContractRecord> {
+    // A claim for an incapacity says why; a claim for a death says nothing more (domain/contract.ts).
+    const kept = claimStatement(reason, statement);
     return this.stores.transaction(async (store) => {
       const now = this.clock.now();
       const { contract, role } = await visible(store, me, id, { lock: true });
@@ -99,9 +104,10 @@ export class ClaimsService {
         contractId: id,
         claimantId: me,
         reason,
+        statement: kept,
         sealedVersion: contract.sealedVersion,
         filedAt: now,
-        ...claimDeadlines(contract, now, this.contestOverrideMs),
+        ...claimDeadlines(contract, now, this.contestOverrideMs, reason),
       });
       await store.audit.append(
         id,
@@ -128,6 +134,12 @@ export class ClaimsService {
         ClaimReminderDue.create({ contractId: id, claimId: claim.id }),
         { deliverAt: reminderAt(claim) },
       );
+      if (reason === "incapacity") {
+        await store.events.publish(
+          ClaimReminderDue.create({ contractId: id, claimId: claim.id }),
+          { deliverAt: midReminderAt(claim) },
+        );
+      }
       await store.events.publish(
         ClaimDeadlineDue.create({ contractId: id, claimId: claim.id }),
         { deliverAt: claim.contestUntil },
@@ -264,6 +276,8 @@ export class ClaimsService {
   async remind(store: HandoverStore, claimId: string): Promise<boolean> {
     const claim = await store.claims.find(claimId);
     if (!claim || claim.status !== "open") return false;
+    // Delayed messages never come early: before the last reminder's time, this is the one halfway.
+    const last = this.clock.now() >= reminderAt(claim);
     const contract = await store.contracts.find(claim.contractId);
     if (!contract) return false;
     const decisions =
@@ -280,6 +294,7 @@ export class ClaimsService {
         ),
         quorum: tallyFor(contract, decisions).quorum,
         contestUntil: claim.contestUntil.toISOString(),
+        last,
       }),
     );
     return true;

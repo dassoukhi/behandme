@@ -2529,6 +2529,11 @@
             "type": "string",
             "description": "The reason the claimant gave: death, or incapacity (the owner can no longer act); null before reasons were asked"
           },
+          "statement": {
+            "type": "string",
+            "nullable": true,
+            "description": "A claim for an incapacity: why, in the claimant's words (health data, for the participants only); null otherwise"
+          },
           "status": {
             "enum": [
               "open",
@@ -2581,6 +2586,7 @@
           "id",
           "claimant_id",
           "reason",
+          "statement",
           "status",
           "filed_at",
           "contest_until",
@@ -2677,6 +2683,23 @@
           "role",
           "reason",
           "left_at"
+        ]
+      },
+      "ClaimContestDaysDTO": {
+        "type": "object",
+        "properties": {
+          "death": {
+            "type": "number",
+            "example": 15
+          },
+          "incapacity": {
+            "type": "number",
+            "example": 30
+          }
+        },
+        "required": [
+          "death",
+          "incapacity"
         ]
       },
       "UserProfileDto": {
@@ -2827,6 +2850,7 @@
                 "decide",
                 "open",
                 "leave",
+                "grant_consent",
                 "withdraw_consent"
               ]
             },
@@ -2888,6 +2912,14 @@
             },
             "description": "The reasons a claim may give on this contract: death always, incapacity only with the owner's consent (never for finances)"
           },
+          "claim_contest_days": {
+            "description": "Days the owner would have to cancel a claim for each reason: twice theirs, and at least 30, for an incapacity",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ClaimContestDaysDTO"
+              }
+            ]
+          },
           "owner": {
             "nullable": true,
             "description": "Owner profile; null if it no longer exists",
@@ -2938,6 +2970,7 @@
           "handover_possible",
           "incapacity_allowed",
           "claim_reasons",
+          "claim_contest_days",
           "owner",
           "accessor",
           "validators_list"
@@ -3037,6 +3070,7 @@
                 "decide",
                 "open",
                 "leave",
+                "grant_consent",
                 "withdraw_consent"
               ]
             },
@@ -3098,6 +3132,14 @@
             },
             "description": "The reasons a claim may give on this contract: death always, incapacity only with the owner's consent (never for finances)"
           },
+          "claim_contest_days": {
+            "description": "Days the owner would have to cancel a claim for each reason: twice theirs, and at least 30, for an incapacity",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ClaimContestDaysDTO"
+              }
+            ]
+          },
           "owner": {
             "nullable": true,
             "description": "Owner profile; null if it no longer exists",
@@ -3148,6 +3190,7 @@
           "handover_possible",
           "incapacity_allowed",
           "claim_reasons",
+          "claim_contest_days",
           "owner",
           "accessor",
           "validators_list"
@@ -3435,6 +3478,12 @@
             ],
             "type": "string",
             "description": "death; incapacity (the owner can no longer act) only where they consented to it: the contract's claim_reasons"
+          },
+          "statement": {
+            "type": "string",
+            "maxLength": 1000,
+            "description": "Incapacity only, and required then: why the owner can no longer act, in 20 to 1,000 characters. Shown in the app to the contract's participants, never in e-mails or the log, and erased once the claim ends.",
+            "example": "Hospitalisée depuis le 3 mars, dans le coma."
           }
         },
         "required": [

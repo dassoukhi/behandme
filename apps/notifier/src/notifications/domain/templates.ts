@@ -524,7 +524,7 @@ export function claimFiledForOwner(params: {
         fr: {
           subject: `Demande de transmission : ${name.fr}`,
           paragraphs: [
-            `${claimant ?? "Quelqu'un"} a demandé la transmission de votre enveloppe ${name.fr}, le ${ctx.occurred.fr}, en indiquant ${death ? "votre décès" : "que vous ne pouvez plus agir"}.`,
+            `${claimant ?? "Quelqu'un"} a demandé la transmission de votre enveloppe ${name.fr}, le ${ctx.occurred.fr}, en indiquant ${death ? "votre décès" : "que vous ne pouvez plus agir. Sa déclaration est dans l'app"}.`,
             "Si vous êtes là, annulez la demande dans l'app : rien ne sera transmis.",
             `Sinon, l'enveloppe sera transmise à partir du ${until.fr}, dès que vos validateurs auront approuvé la demande.`,
           ],
@@ -541,7 +541,7 @@ export function claimFiledForOwner(params: {
         en: {
           subject: `Handover request: ${name.en}`,
           paragraphs: [
-            `${claimant ?? "Someone"} requested the handover of your envelope ${name.en} on ${ctx.occurred.en}, saying ${death ? "that you have died" : "that you can no longer act"}.`,
+            `${claimant ?? "Someone"} requested the handover of your envelope ${name.en} on ${ctx.occurred.en}, saying ${death ? "that you have died" : "that you can no longer act. Their statement is in the app"}.`,
             "If you're still here, cancel the request in the app: nothing will be handed over.",
             `Otherwise, the envelope will be handed over from ${until.en}, as soon as your validators have approved the request.`,
           ],
@@ -716,7 +716,7 @@ export function claimFiledForValidator(params: {
           subject: owner ? `Votre avis est demandé pour ${owner}` : undefined,
           paragraphs: [
             `${claimant ?? "Quelqu'un"} demande la transmission de l'enveloppe ${name.fr} de ${owner ?? "l'un de vos proches"}, en indiquant ${death ? `le décès de ${first ?? "cette personne"}` : `que ${first ?? "cette personne"} ne peut plus agir`}.`,
-            `En tant que validateur, n'approuvez que si vous en êtes sûr ; sinon, refusez. En cas de doute, essayez de ${first ? `joindre ${first}` : "le joindre"} par un autre moyen.`,
+            `${death ? "" : "Lisez sa déclaration dans l'app avant de décider. "}En tant que validateur, n'approuvez que si vous en êtes sûr ; sinon, refusez. En cas de doute, essayez de ${first ? `joindre ${first}` : "le joindre"} par un autre moyen.`,
             `${first ?? "Le propriétaire"} peut encore annuler la demande jusqu'au ${until.fr}.`,
           ],
           facts: [
@@ -734,7 +734,7 @@ export function claimFiledForValidator(params: {
           subject: owner ? `Your decision is needed for ${owner}` : undefined,
           paragraphs: [
             `${claimant ?? "Someone"} requests the handover of ${possessive(owner)} envelope ${name.en}, saying ${death ? `that ${first ?? "the owner"} has died` : `that ${first ?? "the owner"} can no longer act`}.`,
-            `As a validator, only approve it if you are sure of it; otherwise, refuse it. If in doubt, try to reach ${first ?? "them"} by some other means.`,
+            `${death ? "" : "Read their statement in the app before deciding. "}As a validator, only approve it if you are sure of it; otherwise, refuse it. If in doubt, try to reach ${first ?? "them"} by some other means.`,
             `${first ?? "The owner"} can still cancel the request until ${until.en}.`,
           ],
           facts: [
@@ -950,30 +950,39 @@ export function contractReleasedForAccessor(params: {
   };
 }
 
-/** A day before the end of the contest window: the owner's last chance to say they are there. */
+/**
+ * A day before the end of the contest window: the owner's last chance to say they are there. A claim for an incapacity
+ * is also reminded halfway (`last` false): the owner may be reachable again by then.
+ */
 export function claimReminderForOwner(params: {
   ownerId: string;
   contractId: string;
   category: string;
   quorum: boolean;
   contestUntil: string;
+  last: boolean;
 }): NotificationDraft {
   const name = contractName(params.category);
   const label = categoryLabel(params.category);
+  const last = params.last;
   return {
     userId: params.ownerId,
     type: "claim_reminder_owner",
     copy: {
       fr: {
-        title: "Dernier rappel",
+        title: last ? "Dernier rappel" : "Rappel",
         body: params.quorum
-          ? `La transmission de ${name.fr} a lieu à la fin du délai, bientôt. Si vous êtes là, annulez-la maintenant.`
+          ? last
+            ? `La transmission de ${name.fr} a lieu à la fin du délai, bientôt. Si vous êtes là, annulez-la maintenant.`
+            : `La transmission de ${name.fr} aura lieu à la fin du délai si personne ne l'annule. Si vous êtes là, annulez-la.`
           : `Une transmission de ${name.fr} est toujours demandée. Si vous êtes là, annulez-la maintenant.`,
       },
       en: {
-        title: "Last reminder",
+        title: last ? "Last reminder" : "Reminder",
         body: params.quorum
-          ? `The handover of ${name.en} will take place soon, at the end of the waiting period. If you're still here, cancel it now.`
+          ? last
+            ? `The handover of ${name.en} will take place soon, at the end of the waiting period. If you're still here, cancel it now.`
+            : `The handover of ${name.en} will take place at the end of the waiting period unless it is cancelled. If you're still here, cancel it.`
           : `A handover of ${name.en} is still requested. If you're still here, cancel it now.`,
       },
     },
@@ -983,7 +992,7 @@ export function claimReminderForOwner(params: {
       const until = ctx.at(params.contestUntil);
       return {
         fr: {
-          subject: `Dernier rappel : ${name.fr}`,
+          subject: `${last ? "Dernier rappel" : "Rappel"} : ${name.fr}`,
           paragraphs: params.quorum
             ? [
                 `La transmission de votre enveloppe ${name.fr} aura lieu le ${until.fr} : assez de validateurs l'ont approuvée.`,
@@ -999,7 +1008,7 @@ export function claimReminderForOwner(params: {
           ],
         },
         en: {
-          subject: `Last reminder: ${name.en}`,
+          subject: `${last ? "Last reminder" : "Reminder"}: ${name.en}`,
           paragraphs: params.quorum
             ? [
                 `The handover of your envelope ${name.en} will take place on ${until.en}: enough validators approved it.`,

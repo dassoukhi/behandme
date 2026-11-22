@@ -41,7 +41,8 @@ documents changent dans le même commit, comme la politique.
       héritiers ;
     - les pièces des héritiers acceptent l'attestation du notaire chargé de la succession ;
     - le demandeur prévient ses cohéritiers.
-  - Garde-fous pour l'incapacité, en cours : 2 validateurs, délai doublé, déclaration motivée, rappel en plus.
+  - Garde-fous pour l'incapacité : 2 validateurs, délai doublé (au moins 30 jours), déclaration motivée effacée à la
+    fin de la demande, rappel en plus à mi-délai.
 
 Ces documents ne sont pas un avis juridique : ils ont été écrits à partir du code et de consultations juridiques
 générées par un assistant d'IA (novembre 2026), dont certaines se contredisent.

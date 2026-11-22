@@ -85,9 +85,12 @@ export interface ClaimRepository {
       | "filedAt"
       | "contestUntil"
       | "expiresAt"
-    > & { reason: ClaimReason },
+    > & { reason: ClaimReason; statement: string | null },
   ): Promise<Claim>;
-  /** False when the claim is no longer open. `at`: the service's clock, as for every deadline. */
+  /**
+   * False when the claim is no longer open. `at`: the service's clock, as for every deadline. The claimant's
+   * statement is erased with it.
+   */
   close(
     claimId: string,
     status: Exclude<ClaimStatus, "open">,

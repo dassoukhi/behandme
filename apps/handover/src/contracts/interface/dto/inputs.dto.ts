@@ -81,6 +81,12 @@ export class ContractChangesDto {
 export class FileClaimDto {
   @IsIn(CLAIM_REASONS)
   reason: ClaimReason;
+
+  // The rules (required for an incapacity, 20 to 1,000 characters once trimmed) are the domain's.
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  statement?: string;
 }
 
 class ShareDto {

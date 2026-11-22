@@ -157,9 +157,9 @@ export class ContractsController {
   fileClaim(
     @ForUser() me: string,
     @Param("id", ParseUUIDPipe) id: string,
-    @Body() { reason }: FileClaimDto,
+    @Body() { reason, statement }: FileClaimDto,
   ): Promise<ContractRecord> {
-    return this.claims.file(me, id, reason);
+    return this.claims.file(me, id, reason, statement);
   }
 
   @Post(":id/claims/:claimId/cancel")

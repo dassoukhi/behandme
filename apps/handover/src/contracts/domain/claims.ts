@@ -1,5 +1,6 @@
 import { ConflictError, InvalidInputError } from "@lib/kernel";
 import {
+  claimContestDays,
   type ClaimReason,
   type Contract,
   presentParticipants,
@@ -26,6 +27,8 @@ export interface Claim {
   claimantId: string;
   /** Null for a claim filed before reasons were asked. */
   reason: ClaimReason | null;
+  /** A claim for an incapacity: why, in the claimant's words; erased once the claim ends. */
+  statement: string | null;
   sealedVersion: number;
   status: ClaimStatus;
   filedAt: Date;
@@ -51,8 +54,10 @@ export function claimDeadlines(
   contract: Pick<Contract, "contestDays">,
   now: Date,
   contestOverrideMs: number | null,
+  reason: ClaimReason = "death",
 ): { contestUntil: Date; expiresAt: Date } {
-  const contest = contestOverrideMs ?? contract.contestDays * DAY_MS;
+  const contest =
+    contestOverrideMs ?? claimContestDays(contract, reason) * DAY_MS;
   return {
     contestUntil: new Date(now.getTime() + contest),
     expiresAt: new Date(now.getTime() + Math.max(contest, CLAIM_EXPIRY_MS)),
@@ -61,7 +66,8 @@ export function claimDeadlines(
 
 /**
  * When to remind the owner and the validators who have not decided: a day before the end of the contest
- * window, or halfway through a window shorter than two days.
+ * window, or halfway through a window shorter than two days. A claim for an incapacity is also reminded halfway
+ * (`midReminderAt`): the owner may be reachable again by then.
  */
 export function reminderAt(
   claim: Pick<Claim, "filedAt" | "contestUntil">,
@@ -69,6 +75,13 @@ export function reminderAt(
   const window = claim.contestUntil.getTime() - claim.filedAt.getTime();
   const before = window >= 2 * DAY_MS ? DAY_MS : window / 2;
   return new Date(claim.contestUntil.getTime() - before);
+}
+
+/** Halfway through the contest window: the extra reminder of a claim for an incapacity. */
+export function midReminderAt(
+  claim: Pick<Claim, "filedAt" | "contestUntil">,
+): Date {
+  return new Date((claim.filedAt.getTime() + claim.contestUntil.getTime()) / 2);
 }
 
 /**

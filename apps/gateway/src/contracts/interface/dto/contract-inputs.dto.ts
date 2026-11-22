@@ -222,6 +222,17 @@ export class FileClaimDTO {
   })
   @IsIn(CLAIM_REASONS)
   reason: ClaimReason;
+
+  @ApiPropertyOptional({
+    description:
+      "Incapacity only, and required then: why the owner can no longer act, in 20 to 1,000 characters. Shown in the app to the contract's participants, never in e-mails or the log, and erased once the claim ends.",
+    maxLength: 1000,
+    example: "Hospitalisée depuis le 3 mars, dans le coma.",
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  statement?: string;
 }
 
 export class RevokeContractDTO {
