@@ -59,7 +59,8 @@ héritiers ? Les réponses d'IA du 21 novembre se contredisaient. La juriste en 
 estime que l'enveloppe « peut raisonnablement passer pour une directive adressée à BehyndMe sur la communication des
 données » : elle s'imposerait alors aux héritiers, dont les droits ne s'exercent qu'en l'absence de directive.
 
-Position retenue, à faire valider par un avocat (cabinets Cohen ou Romain Mirabile) avant tout changement :
+Position retenue, à faire valider par un avocat (cabinets Cohen ou Romain Mirabile) avant tout changement, avec les
+questions de `questions-avocat.md` :
 - une option par enveloppe, avec un consentement spécifique au scellement (une directive particulière ne peut résulter
   des seules conditions d'utilisation) ;
 - une conservation bornée, par exemple une révocation 2 ans après la fermeture si personne ne demande la transmission ;

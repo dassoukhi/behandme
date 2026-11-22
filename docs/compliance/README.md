@@ -13,6 +13,7 @@ documents changent dans le même commit, comme la politique.
 | [violation-de-donnees.md](violation-de-donnees.md) | Que faire en cas de violation de données (art. 33 et 34) | Prête |
 | [demandes-heritiers.md](demandes-heritiers.md) | Traiter une demande d'héritiers ou de fermeture d'un compte (art. 85 de la loi Informatique et Libertés) | Prête |
 | [declaration-cryptologie.md](declaration-cryptologie.md) | Dossier technique de la déclaration à l'ANSSI (art. 30 de la LCEN) | À déposer |
+| [questions-avocat.md](questions-avocat.md) | Questions aux avocats : l'enveloppe comme directive, l'incapacité, le support | À envoyer |
 
 ## Ce qui reste à l'éditeur
 
@@ -24,8 +25,9 @@ documents changent dans le même commit, comme la politique.
 4. **Un médiateur de la consommation**, si l'éditeur est un professionnel qui s'adresse à des particuliers.
 5. **La relecture par un avocat** de ces documents, des conditions d'utilisation et de la politique de confidentialité.
    Une juriste en droit numérique, consultée le 22 novembre 2026, recommande deux cabinets : Cabinet Cohen avocat et
-   Cabinet d'avocat Romain Mirabile. Questions à leur poser en priorité : l'enveloppe comme directive (voir
-   `demandes-heritiers.md`), et les garde-fous pour une demande quand le propriétaire ne peut plus agir.
+   Cabinet d'avocat Romain Mirabile. Les questions à leur envoyer sont dans `questions-avocat.md` : d'abord
+   l'enveloppe comme directive (voir `demandes-heritiers.md`), puis les garde-fous pour une demande quand le
+   propriétaire ne peut plus agir.
 
 ## Avis reçus
 
