@@ -106,6 +106,27 @@ describe("draft rules", () => {
     ).not.toThrow();
   });
 
+  it("lets the owner give themselves 3 days to 3 months to cancel a claim", () => {
+    for (const contestDays of [3, 30, 90]) {
+      expect(() =>
+        assertValidDraft("owner", { ...input, contestDays }),
+      ).not.toThrow();
+    }
+    for (const contestDays of [2, 91, 14.5]) {
+      expect(() =>
+        assertValidDraft("owner", { ...input, contestDays }),
+      ).toThrow("contest_days must be 3 to 90");
+    }
+    expect(() =>
+      assertValidDraft("owner", {
+        ...input,
+        category: "finances",
+        validatorIds: ["v1", "v2", "v3"],
+        contestDays: 90,
+      }),
+    ).not.toThrow();
+  });
+
   it("allows a claim for an incapacity only where the owner consented to it, never for finances", () => {
     expect(
       claimReasons({ category: "networks", incapacityAllowed: false }),

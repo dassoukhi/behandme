@@ -24,6 +24,9 @@ export const MAX_VALIDATORS = 3;
 export const MAX_DESCRIPTION = 280;
 /** Days the owner has to cancel a claim, when they did not choose: time for an owner who is alive to say so. */
 export const DEFAULT_CONTEST_DAYS = 15;
+/** The days an owner may give themselves to cancel a claim: 3 days to 3 months. */
+export const MIN_CONTEST_DAYS = 3;
+export const MAX_CONTEST_DAYS = 90;
 
 /**
  * Bank accounts and cryptocurrency, where a mistaken handover costs the most: at least 15 days to cancel, exactly 3
@@ -144,7 +147,7 @@ export function assertCategoryRules(contract: {
   if (contract.category !== "finances") return;
   if (contract.contestDays < FINANCES.minContestDays) {
     throw new InvalidInputError(
-      `A finances contract waits ${FINANCES.minContestDays} to 30 days`,
+      `A finances contract waits at least ${FINANCES.minContestDays} days`,
     );
   }
   if (
@@ -183,9 +186,13 @@ export function assertValidFields(fields: ContractChanges): void {
   const days = fields.contestDays;
   if (
     days !== undefined &&
-    (!Number.isInteger(days) || days < 3 || days > 30)
+    (!Number.isInteger(days) ||
+      days < MIN_CONTEST_DAYS ||
+      days > MAX_CONTEST_DAYS)
   ) {
-    throw new InvalidInputError("contest_days must be 3 to 30");
+    throw new InvalidInputError(
+      `contest_days must be ${MIN_CONTEST_DAYS} to ${MAX_CONTEST_DAYS}`,
+    );
   }
 }
 

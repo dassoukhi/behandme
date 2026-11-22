@@ -141,7 +141,7 @@ Claim: `open | cancelled | withdrawn | rejected | expired | released`.
 | active → claimed   | accessor or validator                                                  | one open claim at a time; 72 h cooldown; accessor and ≥ k validators still there; a reason the contract allows |
 | approve / reject   | validator, once                                                        | approving _is_ re-wrapping their key share for the accessor            |
 | claimed → active   | owner ("I'm here"), claimant, rejections > n − k, expiry after 60 days | release ciphertexts deleted                                            |
-| claimed → released | system                                                                 | approvals ≥ k **and** contest window elapsed (15 days by default, 3–30) |
+| claimed → released | system                                                                 | approvals ≥ k **and** contest window elapsed (15 days by default, 3–90) |
 | any → revoked      | owner                                                                  | before release; all ciphertexts deleted                                |
 | leave              | accessor or validator                                                  | before release; the claim closes if it can no longer succeed           |
 
@@ -159,7 +159,7 @@ health), at creation or later, and may withdraw it at any time before the end, e
 which closes a claim that gave this reason as their own cancellation would; each consent given or withdrawn is a
 `consent.incapacity` event in the log, with the version of the wording accepted, those named in a sealed contract are
 told of it (`contract.rules_changed`), and the record lists the reasons allowed (`claim_reasons`).
-`finances` (bank accounts and cryptocurrency) waits 15 to 30 days, has exactly 3 validators, and allows a death only:
+`finances` (bank accounts and cryptocurrency) waits at least 15 days, has exactly 3 validators, and allows a death only:
 `assertCategoryRules` checks the whole contract at creation, at each change and at sealing (a draft's validators are
 provisional: its sealing checks those it names). 15 days by default. `health` (gateway) counts the validators
 still there whose current keys are those of the sealing: a share wrapped to reset keys is lost until the owner

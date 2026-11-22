@@ -114,6 +114,18 @@ describe("internal API", () => {
     expect(res.status).toBe(409);
   });
 
+  it("lets the owner choose up to 90 days to cancel a claim", async () => {
+    const create = (contest_days: number) =>
+      call("/contracts", {
+        method: "POST",
+        body: JSON.stringify({ ...draft, contest_days }),
+      });
+    const created = await create(90);
+    expect(created.status).toBe(201);
+    expect(await created.json()).toMatchObject({ contest_days: 90 });
+    expect((await create(91)).status).toBe(400);
+  });
+
   it("asks a claim for a reason it knows", async () => {
     const contract = await (
       await call("/contracts", { method: "POST", body: JSON.stringify(draft) })

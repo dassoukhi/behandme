@@ -2494,8 +2494,8 @@
           "contest_days": {
             "type": "number",
             "minimum": 3,
-            "maximum": 30,
-            "description": "Days the owner has to cancel a claim before a release (3 to 30, 15 by default; 15 to 30 for finances)",
+            "maximum": 90,
+            "description": "Days the owner has to cancel a claim before a release (3 to 90, 15 by default; at least 15 for finances)",
             "example": 15
           },
           "incapacity_allowed": {
@@ -2834,7 +2834,7 @@
           },
           "contest_days": {
             "type": "number",
-            "description": "Days the owner has to cancel a claim (3 to 30)",
+            "description": "Days the owner has to cancel a claim (3 to 90)",
             "example": 7
           },
           "open_claim": {
@@ -3044,7 +3044,7 @@
           },
           "contest_days": {
             "type": "number",
-            "description": "Days the owner has to cancel a claim (3 to 30)",
+            "description": "Days the owner has to cancel a claim (3 to 90)",
             "example": 7
           },
           "open_claim": {
@@ -3173,8 +3173,8 @@
           "contest_days": {
             "type": "number",
             "minimum": 3,
-            "maximum": 30,
-            "description": "Days the owner has to cancel a claim before a release (3 to 30, 15 by default; 15 to 30 for finances)",
+            "maximum": 90,
+            "description": "Days the owner has to cancel a claim before a release (3 to 90, 15 by default; at least 15 for finances)",
             "example": 15
           },
           "incapacity_allowed": {

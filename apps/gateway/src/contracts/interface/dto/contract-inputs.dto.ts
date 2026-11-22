@@ -71,15 +71,15 @@ export class CreateContractDTO {
 
   @ApiPropertyOptional({
     description:
-      "Days the owner has to cancel a claim before a release (3 to 30, 15 by default; 15 to 30 for finances)",
+      "Days the owner has to cancel a claim before a release (3 to 90, 15 by default; at least 15 for finances)",
     minimum: 3,
-    maximum: 30,
+    maximum: 90,
     example: 15,
   })
   @IsOptional()
   @IsInt()
   @Min(3)
-  @Max(30)
+  @Max(90)
   contest_days?: number;
 
   @ApiPropertyOptional({
@@ -106,15 +106,15 @@ export class UpdateContractDTO {
 
   @ApiPropertyOptional({
     description:
-      "Days the owner has to cancel a claim before a release (3 to 30, 15 by default; 15 to 30 for finances)",
+      "Days the owner has to cancel a claim before a release (3 to 90, 15 by default; at least 15 for finances)",
     minimum: 3,
-    maximum: 30,
+    maximum: 90,
     example: 15,
   })
   @IsOptional()
   @IsInt()
   @Min(3)
-  @Max(30)
+  @Max(90)
   contest_days?: number;
 
   @ApiPropertyOptional({

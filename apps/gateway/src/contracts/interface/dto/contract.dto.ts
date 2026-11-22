@@ -202,7 +202,7 @@ export class ContractDTO {
   allowed_actions: ContractAction[];
 
   @ApiProperty({
-    description: "Days the owner has to cancel a claim (3 to 30)",
+    description: "Days the owner has to cancel a claim (3 to 90)",
     example: 7,
   })
   contest_days: number;

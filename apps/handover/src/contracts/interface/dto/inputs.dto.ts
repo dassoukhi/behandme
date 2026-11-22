@@ -49,7 +49,7 @@ export class NewContractDto {
   @IsOptional()
   @IsInt()
   @Min(3)
-  @Max(30)
+  @Max(90)
   contest_days?: number;
 
   @IsOptional()
@@ -70,7 +70,7 @@ export class ContractChangesDto {
   @IsOptional()
   @IsInt()
   @Min(3)
-  @Max(30)
+  @Max(90)
   contest_days?: number;
 
   @IsOptional()

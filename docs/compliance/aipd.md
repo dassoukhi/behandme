@@ -10,7 +10,7 @@ confiance, pour le jour où l'on ne peut plus agir soi-même, par décès ou inc
 
 Le propriétaire scelle une enveloppe sur son téléphone, pour un destinataire et 1 à 3 validateurs. Quand le destinataire
 ou un validateur demande la transmission :
-- le propriétaire est prévenu aussitôt et peut annuler pendant un délai qu'il a fixé (3 à 30 jours) ;
+- le propriétaire est prévenu aussitôt et peut annuler pendant un délai qu'il a fixé (3 à 90 jours) ;
 - l'enveloppe n'est transmise que si assez de validateurs approuvent (majorité) et que le délai est passé.
 
 Aucun acte de décès n'est demandé.
@@ -70,8 +70,8 @@ Aucun acte de décès n'est demandé.
 - Il annule d'un geste.
 - Il faut la majorité des validateurs, et le destinataire ne peut pas être validateur.
 - Une demande non aboutie expire en 60 jours. Après une annulation, son auteur attend 72 heures avant de redemander.
-- Un délai de 15 jours par défaut pour annuler une demande (de 3 à 30 jours).
-- Une catégorie « Banque et cryptomonnaies » plus stricte : 15 à 30 jours, exactement 3 validateurs (2 approbations),
+- Un délai de 15 jours par défaut pour annuler une demande (de 3 à 90 jours).
+- Une catégorie « Banque et cryptomonnaies » plus stricte : au moins 15 jours, exactement 3 validateurs (2 approbations),
   transmission après un décès seulement.
 - Celui qui demande la transmission dit pourquoi (décès, ou « ne peut plus agir » là où le propriétaire l'a permis), et
   le propriétaire comme les validateurs le lisent dans l'e-mail.

@@ -113,7 +113,7 @@ export interface ContractRecord {
   updated_at: string;
   my_role: ContractRole;
   allowed_actions: ContractAction[];
-  /** Days the owner has to cancel a claim (3 to 30). */
+  /** Days the owner has to cancel a claim (3 to 90). */
   contest_days: number;
   open_claim: ClaimRecord | null;
   /** The validators' keys at the current sealing; empty while never sealed. */
