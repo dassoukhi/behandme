@@ -1468,6 +1468,30 @@
         },
         {
           "table_schema": "handover",
+          "table_name": "participants",
+          "column_name": "left_at",
+          "ordinal_position": 5,
+          "data_type": "timestamp with time zone",
+          "udt_name": "timestamptz",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "participants",
+          "column_name": "left_reason",
+          "ordinal_position": 6,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
           "table_name": "processed_messages",
           "column_name": "consumer",
           "ordinal_position": 1,
@@ -3045,6 +3069,20 @@
           "conname": "participants_contract_id_fkey",
           "contype": "f",
           "definition": "FOREIGN KEY (contract_id) REFERENCES handover.contracts(id) ON DELETE CASCADE"
+        },
+        {
+          "schema": "handover",
+          "table_name": "handover.participants",
+          "conname": "participants_left_check",
+          "contype": "c",
+          "definition": "CHECK (((left_at IS NULL) = (left_reason IS NULL)))"
+        },
+        {
+          "schema": "handover",
+          "table_name": "handover.participants",
+          "conname": "participants_left_reason_check",
+          "contype": "c",
+          "definition": "CHECK ((left_reason = ANY (ARRAY['declined'::text, 'account_deleted'::text])))"
         },
         {
           "schema": "handover",
