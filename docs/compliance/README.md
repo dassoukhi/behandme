@@ -23,6 +23,25 @@ documents changent dans le même commit, comme la politique.
 3. **Les DPA** de chaque sous-traitant, à accepter ou signer dans leur console (liste dans `sous-traitants.md`).
 4. **Un médiateur de la consommation**, si l'éditeur est un professionnel qui s'adresse à des particuliers.
 5. **La relecture par un avocat** de ces documents, des conditions d'utilisation et de la politique de confidentialité.
+   Une juriste en droit numérique, consultée le 22 novembre 2026, recommande deux cabinets : Cabinet Cohen avocat et
+   Cabinet d'avocat Romain Mirabile. Questions à leur poser en priorité : l'enveloppe comme directive (voir
+   `demandes-heritiers.md`), et les garde-fous pour une demande quand le propriétaire ne peut plus agir.
+
+## Avis reçus
+
+- **21 novembre 2026 :** douze réponses d'un assistant juridique d'IA (notaire, consentement, RGPD, marketing, preuve,
+  article 323-1). Elles ont guidé les lots 1 à 5 ; leurs sources ne sont pas toutes vérifiables.
+- **22 novembre 2026 :** l'avis d'une juriste en droit numérique, premier avis humain.
+  - Il confirme : pas de pacte sur succession future (art. 722 C. civ.) tant que l'enveloppe ne règle pas le partage des
+    biens ; pas d'équivalent d'un mandat à effet posthume (art. 812) ; le recel successoral (art. 778) ; ni
+    « légataire » ni « testament numérique ».
+  - Ce qu'il a changé :
+    - la note du scellement interdit les consignes de partage ;
+    - l'avertissement d'ouverture demande de ne rien déplacer ni fermer avant le notaire, et de prévenir les autres
+      héritiers ;
+    - les pièces des héritiers acceptent l'attestation du notaire chargé de la succession ;
+    - le demandeur prévient ses cohéritiers.
+  - Garde-fous pour l'incapacité, en cours : 2 validateurs, délai doublé, déclaration motivée, rappel en plus.
 
 Ces documents ne sont pas un avis juridique : ils ont été écrits à partir du code et de consultations juridiques
 générées par un assistant d'IA (novembre 2026), dont certaines se contredisent.

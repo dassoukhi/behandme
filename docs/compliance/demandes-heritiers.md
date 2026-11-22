@@ -17,11 +17,12 @@ d'accord : changer l'un, c'est changer l'autre.
 1. **Recevoir la demande** à support@behyndme.com. Accuser réception, et répondre sous un mois.
 2. **Vérifier les pièces.**
    - Une copie de l'acte de décès.
-   - Un document qui établit la qualité d'héritier : un acte de notoriété (dressé par un notaire) ou, à défaut, une
-     attestation signée par tous les héritiers, avec le livret de famille.
+   - Un document qui établit la qualité d'héritier : un acte de notoriété ou une attestation du notaire chargé de la
+     succession ; s'il n'y a pas de notaire, une attestation signée par tous les héritiers, avec le livret de famille.
    - Le nom et l'adresse e-mail du compte, qui doivent correspondre à la personne décédée.
-   - Un seul héritier suffit pour demander la fermeture. Si les héritiers ne sont pas d'accord entre eux, ne pas
-     trancher : attendre leur accord ou une décision du tribunal judiciaire.
+   - Demander à l'héritier qui écrit de prévenir ses cohéritiers : l'article 85 parle « des héritiers », et la juriste
+     consultée émet une réserve sur une demande faite par un seul d'entre eux. Si les héritiers ne sont pas d'accord
+     entre eux, ne pas trancher : attendre leur accord ou une décision du tribunal judiciaire.
 3. **Chercher des directives** de la personne dans les échanges du support. Si elle en a laissé, elles s'appliquent.
 4. **Voir ce que la fermeture entraînerait**, sans rien changer :
    ```
@@ -54,5 +55,15 @@ d'accord : changer l'un, c'est changer l'autre.
 ## Question ouverte (lot 6 du plan)
 
 Une enveloppe vaut-elle directive particulière du défunt (art. 85, I), qui passerait avant la demande de fermeture des
-héritiers ? Les consultations reçues se contredisent. Tant qu'un avocat n'a pas tranché, la procédure ci-dessus
-s'applique : la fermeture révoque les enveloppes pas encore transmises, et on le dit avant de fermer.
+héritiers ? Les réponses d'IA du 21 novembre se contredisaient. La juriste en droit numérique consultée le 22 novembre
+estime que l'enveloppe « peut raisonnablement passer pour une directive adressée à BehyndMe sur la communication des
+données » : elle s'imposerait alors aux héritiers, dont les droits ne s'exercent qu'en l'absence de directive.
+
+Position retenue, à faire valider par un avocat (cabinets Cohen ou Romain Mirabile) avant tout changement :
+- une option par enveloppe, avec un consentement spécifique au scellement (une directive particulière ne peut résulter
+  des seules conditions d'utilisation) ;
+- une conservation bornée, par exemple une révocation 2 ans après la fermeture si personne ne demande la transmission ;
+- la suppression du compte par son propriétaire révoque toujours ses enveloppes.
+
+En attendant, la procédure ci-dessus s'applique : la fermeture révoque les enveloppes pas encore transmises, et on le
+dit avant de fermer.
