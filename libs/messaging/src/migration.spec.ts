@@ -141,6 +141,8 @@ describe("prerequisites", () => {
     "utf8",
   );
 
+  // PGlite starts inside the test: it gets the time the suite gives every other start (60 s), which parallel test
+  // files on a busy machine may need.
   it("stops with a clear message when pgmq is not installed", async () => {
     const bare = await PGlite.create();
     try {
@@ -148,7 +150,7 @@ describe("prerequisites", () => {
     } finally {
       await bare.close();
     }
-  });
+  }, 60_000);
 
   // On Supabase a GRANT the migration role may not give only warns: the migration must notice.
   it("applies nothing when a right was not actually granted", async () => {

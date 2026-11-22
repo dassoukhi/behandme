@@ -8,6 +8,8 @@ import { describe, expect, it } from "vitest";
 import { createDatabase } from "./database.js";
 
 describe("a connection the server closes", () => {
+  // PGlite starts inside the test: it gets the time the suite gives every other start (60 s), which parallel test files
+  // on a busy machine may need.
   it("is reported and replaced, instead of ending the process", async () => {
     const pglite = await PGlite.create();
     const dir = mkdtempSync(join(tmpdir(), "pglite-"));
@@ -45,5 +47,5 @@ describe("a connection the server closes", () => {
       await server.stop();
       await pglite.close();
     }
-  });
+  }, 60_000);
 });
