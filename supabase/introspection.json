@@ -820,6 +820,18 @@
         },
         {
           "table_schema": "handover",
+          "table_name": "claims",
+          "column_name": "reason",
+          "ordinal_position": 11,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
           "table_name": "contract_events",
           "column_name": "id",
           "ordinal_position": 1,
@@ -1066,7 +1078,7 @@
           "data_type": "integer",
           "udt_name": "int4",
           "is_nullable": "NO",
-          "column_default": "7",
+          "column_default": "15",
           "character_maximum_length": null,
           "is_identity": "NO"
         },
@@ -1079,6 +1091,18 @@
           "udt_name": "timestamptz",
           "is_nullable": "YES",
           "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
+          "table_name": "contracts",
+          "column_name": "incapacity_allowed",
+          "ordinal_position": 14,
+          "data_type": "boolean",
+          "udt_name": "bool",
+          "is_nullable": "NO",
+          "column_default": "false",
           "character_maximum_length": null,
           "is_identity": "NO"
         },
@@ -2814,6 +2838,13 @@
         {
           "schema": "handover",
           "table_name": "handover.claims",
+          "conname": "claims_reason_check",
+          "contype": "c",
+          "definition": "CHECK ((reason = ANY (ARRAY['death'::text, 'incapacity'::text])))"
+        },
+        {
+          "schema": "handover",
+          "table_name": "handover.claims",
           "conname": "claims_sealed_version_check",
           "contype": "c",
           "definition": "CHECK ((sealed_version >= 1))"
@@ -2900,7 +2931,7 @@
           "table_name": "handover.contracts",
           "conname": "contracts_category_check",
           "contype": "c",
-          "definition": "CHECK ((category = ANY (ARRAY['networks'::text, 'devices'::text, 'storage'::text])))"
+          "definition": "CHECK ((category = ANY (ARRAY['networks'::text, 'devices'::text, 'storage'::text, 'finances'::text])))"
         },
         {
           "schema": "handover",
@@ -2915,6 +2946,13 @@
           "conname": "contracts_description_check",
           "contype": "c",
           "definition": "CHECK ((char_length(description) <= 280))"
+        },
+        {
+          "schema": "handover",
+          "table_name": "handover.contracts",
+          "conname": "contracts_finances_check",
+          "contype": "c",
+          "definition": "CHECK (((category <> 'finances'::text) OR ((contest_days >= 15) AND (NOT incapacity_allowed))))"
         },
         {
           "schema": "handover",
