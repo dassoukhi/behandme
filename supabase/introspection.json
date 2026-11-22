@@ -2938,7 +2938,7 @@
           "table_name": "handover.contracts",
           "conname": "contracts_contest_days_check",
           "contype": "c",
-          "definition": "CHECK (((contest_days >= 3) AND (contest_days <= 30)))"
+          "definition": "CHECK (((contest_days >= 3) AND (contest_days <= 90)))"
         },
         {
           "schema": "handover",
