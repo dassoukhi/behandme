@@ -243,7 +243,7 @@ describe("a participant who left", () => {
         reason: "account_deleted",
       }),
     );
-    expect(push).toContain("a supprimé son compte");
+    expect(push).toContain("n'a plus de compte");
     expect(email).not.toContain("Léa");
   });
 });

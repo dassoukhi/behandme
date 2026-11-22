@@ -607,7 +607,7 @@ describe("claims", () => {
       ),
     );
     expect((await inbox.list(BOB))[0].body).toBe(
-      "Le propriétaire a supprimé son compte : l'enveloppe « Réseaux sociaux » est révoquée.",
+      "Le propriétaire n'a plus de compte : l'enveloppe « Réseaux sociaux » est révoquée.",
     );
     expect(await types(CAROL)).toEqual([
       ["contract_revoked", `/contract/${CONTRACT}`],

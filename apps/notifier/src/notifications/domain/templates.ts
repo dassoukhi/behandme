@@ -1083,6 +1083,8 @@ export function contractRevoked(params: {
   reason: string;
 }): NotificationDraft {
   const name = contractName(params.category);
+  // The account is gone, deleted by its owner or closed by support (at the heirs' request, for one): the copy says
+  // which happened to nobody, so as to say nothing false.
   const ownerLeft = params.reason === "account_deleted";
   return {
     userId: params.userId,
@@ -1092,13 +1094,13 @@ export function contractRevoked(params: {
       fr: {
         title: "Enveloppe révoquée",
         body: ownerLeft
-          ? `Le propriétaire a supprimé son compte : l'enveloppe ${name.fr} est révoquée.`
+          ? `Le propriétaire n'a plus de compte : l'enveloppe ${name.fr} est révoquée.`
           : `Le propriétaire a révoqué l'enveloppe ${name.fr}.`,
       },
       en: {
         title: "Envelope revoked",
         body: ownerLeft
-          ? `The owner deleted their account: the envelope ${name.en} is revoked.`
+          ? `The owner no longer has an account: the envelope ${name.en} is revoked.`
           : `The owner revoked the envelope ${name.en}.`,
       },
     },
@@ -1111,7 +1113,7 @@ export function contractRevoked(params: {
         fr: {
           paragraphs: [
             ownerLeft
-              ? `${owner ?? "Le propriétaire"} a supprimé son compte BehyndMe : l'enveloppe ${name.fr} est révoquée, plus personne ne peut l'ouvrir.`
+              ? `${owner ?? "Le propriétaire"} n'a plus de compte BehyndMe : l'enveloppe ${name.fr} est révoquée, plus personne ne peut l'ouvrir.`
               : `${owner ?? "Le propriétaire"} a révoqué l'enveloppe ${name.fr} : plus personne ne peut l'ouvrir.`,
             "Vous n'avez rien à faire.",
           ],
@@ -1119,7 +1121,7 @@ export function contractRevoked(params: {
         en: {
           paragraphs: [
             ownerLeft
-              ? `${owner ?? "The owner"} deleted their BehyndMe account: the envelope ${name.en} is revoked, and nobody can open it any more.`
+              ? `${owner ?? "The owner"} no longer has a BehyndMe account: the envelope ${name.en} is revoked, and nobody can open it any more.`
               : `${owner ?? "The owner"} revoked the envelope ${name.en}: nobody can open it any more.`,
             "There is nothing for you to do.",
           ],
@@ -1196,18 +1198,18 @@ const LEFT: Record<
       fr: {
         title: "Départ du destinataire",
         push: (e) =>
-          `Le destinataire de votre enveloppe ${e} a supprimé son compte : choisissez-en un autre et scellez-la à nouveau.`,
+          `Le destinataire de votre enveloppe ${e} n'a plus de compte : choisissez-en un autre et scellez-la à nouveau.`,
         email: (e) => [
-          `Le destinataire de votre enveloppe ${e} a supprimé son compte BehyndMe.`,
+          `Le destinataire de votre enveloppe ${e} n'a plus de compte BehyndMe.`,
           SEAL_AGAIN.accessor.fr,
         ],
       },
       en: {
         title: "Recipient left",
         push: (e) =>
-          `The recipient of your envelope ${e} deleted their account: choose another one and seal again.`,
+          `The recipient of your envelope ${e} no longer has an account: choose another one and seal again.`,
         email: (e) => [
-          `The recipient of your envelope ${e} deleted their BehyndMe account.`,
+          `The recipient of your envelope ${e} no longer has a BehyndMe account.`,
           SEAL_AGAIN.accessor.en,
         ],
       },
@@ -1216,18 +1218,18 @@ const LEFT: Record<
       fr: {
         title: "Départ d'un validateur",
         push: (e) =>
-          `Un validateur de votre enveloppe ${e} a supprimé son compte : sa part est perdue. Scellez-la à nouveau pour en choisir un autre.`,
+          `Un validateur de votre enveloppe ${e} n'a plus de compte : sa part est perdue. Scellez-la à nouveau pour en choisir un autre.`,
         email: (e) => [
-          `Un validateur de votre enveloppe ${e} a supprimé son compte BehyndMe : sa part de la clé est perdue.`,
+          `Un validateur de votre enveloppe ${e} n'a plus de compte BehyndMe : sa part de la clé est perdue.`,
           SEAL_AGAIN.validator.fr,
         ],
       },
       en: {
         title: "Validator left",
         push: (e) =>
-          `A validator of your envelope ${e} deleted their account: their share is lost. Seal again to choose another one.`,
+          `A validator of your envelope ${e} no longer has an account: their share is lost. Seal again to choose another one.`,
         email: (e) => [
-          `A validator of your envelope ${e} deleted their BehyndMe account: their part of the key is lost.`,
+          `A validator of your envelope ${e} no longer has a BehyndMe account: their part of the key is lost.`,
           SEAL_AGAIN.validator.en,
         ],
       },
@@ -1236,7 +1238,7 @@ const LEFT: Record<
 };
 
 /**
- * A participant left: they refused their role (the owner is told who), or deleted their account. The owner
+ * A participant left: they refused their role (the owner is told who), or their account is gone. The owner
  * should choose someone else and seal again.
  */
 export function participantLeft(params: {
