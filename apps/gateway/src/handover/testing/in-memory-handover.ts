@@ -13,7 +13,10 @@ import type {
 import { ConflictError, InvalidInputError, NotFoundError } from "@lib/kernel";
 import type { HandoverClient } from "../application/handover-client.js";
 
-type Stored = Omit<ContractRecord, "my_role" | "allowed_actions">;
+type Stored = Omit<
+  ContractRecord,
+  "my_role" | "allowed_actions" | "handover_possible"
+>;
 
 /**
  * Stand-in for the handover service in gateway specs: the same answers for the same calls (role,
@@ -273,7 +276,8 @@ function record(c: Stored, userId: string): ContractRecord {
     ...c,
     my_role: role,
     allowed_actions: actions[`${role}:${c.status}`] ?? [],
-    // As handover: only the owner learns who left.
+    // As handover: only the owner is given who left.
     departures: role === "owner" ? c.departures : [],
+    handover_possible: !c.departures.some((d) => d.user_id === c.accessor_id),
   };
 }

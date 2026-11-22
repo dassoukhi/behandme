@@ -126,7 +126,7 @@ export function roleOf(contract: Contract, userId: string): Role | null {
 }
 
 export function hasLeft(
-  contract: Pick<Contract, "departures">,
+  contract: { departures: { userId: string }[] },
   userId: string,
 ): boolean {
   return contract.departures.some((d) => d.userId === userId);

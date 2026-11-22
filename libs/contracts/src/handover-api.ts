@@ -107,6 +107,11 @@ export interface ContractRecord {
   sealed_validators: SealedKey[];
   /** Owner only (empty for the others): who left, and why. */
   departures: DepartureRecord[];
+  /**
+   * Whether a claim could succeed: false while the accessor is gone or too few validators remain, until the owner
+   * seals again with someone else.
+   */
+  handover_possible: boolean;
   /** After a claim closed by the owner, the caller may claim again only from then; else null. */
   claim_cooldown_until: string | null;
 }

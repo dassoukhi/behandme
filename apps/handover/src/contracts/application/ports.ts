@@ -13,6 +13,12 @@ import type {
 
 export interface ContractRepository {
   find(id: string): Promise<Contract | null>;
+  /**
+   * The contract, its row locked until the transaction ends. Whatever changes its claim or its participants takes
+   * this lock first, then the claim's: such changes run one after the other, each seeing what the other committed,
+   * and never wait on each other in a circle.
+   */
+  lock(id: string): Promise<Contract | null>;
   /** Contracts the user owns or takes part in (not those they left), newest first. */
   listFor(userId: string): Promise<Contract[]>;
   insert(ownerId: string, input: DraftInput): Promise<Contract>;

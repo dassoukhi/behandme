@@ -56,7 +56,7 @@ export class HandoverEvents {
       if (contract.status === "released" || contract.status === "revoked") {
         continue;
       }
-      await leaveContract(store, contract, {
+      await leaveContract(store, contract.id, {
         userId,
         reason: "account_deleted",
         at: now,

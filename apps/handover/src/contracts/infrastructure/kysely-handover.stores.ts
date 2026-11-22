@@ -50,6 +50,16 @@ class KyselyContracts implements ContractRepository {
     return row ? (await this.withParticipants([row]))[0] : null;
   }
 
+  async lock(id: string): Promise<Contract | null> {
+    const row = await this.db
+      .selectFrom("contracts")
+      .selectAll()
+      .where("id", "=", id)
+      .forUpdate()
+      .executeTakeFirst();
+    return row ? (await this.withParticipants([row]))[0] : null;
+  }
+
   async listFor(userId: string): Promise<Contract[]> {
     const rows = await this.db
       .selectFrom("contracts")

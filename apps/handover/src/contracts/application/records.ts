@@ -1,5 +1,6 @@
 import type { ClaimRecord, ContractRecord, SealedKey } from "@lib/contracts";
 import {
+  canBeHandedOver,
   type Claim,
   cooldownUntil,
   type Decision,
@@ -85,7 +86,7 @@ export function toRecord(
     open_claim: claim ? claimRecord(claim, decisions, contract, me) : null,
     sealed_validators: sealedValidators(contract, extras.manifest),
     claim_cooldown_until: extras.cooldownUntil?.toISOString() ?? null,
-    // The owner chooses someone else; the others need not know who left, nor why.
+    // For the owner, who chooses someone else (the log, which every participant reads, records departures too).
     departures:
       role === "owner"
         ? contract.departures.map((d) => ({
@@ -95,6 +96,7 @@ export function toRecord(
             left_at: d.at,
           }))
         : [],
+    handover_possible: canBeHandedOver(contract),
   };
 }
 

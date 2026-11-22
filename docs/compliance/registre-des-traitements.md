@@ -55,7 +55,8 @@ d'un tiers : on ajoute un proche qui a déjà son compte, en scannant son code o
   - pour les validateurs et le destinataire désignés, intérêt légitime du propriétaire et de la personne désignée à ce
     que le rôle fonctionne et soit connu (art. 6.1.f). La personne désignée est prévenue (notification et e-mail) et
     peut refuser son rôle dans l'app, à tout moment avant la transmission (droit d'opposition, art. 21) : elle ne voit
-    plus l'enveloppe et n'est plus prévenue de rien à son sujet ; seul le propriétaire apprend qu'elle a refusé.
+    plus l'enveloppe et n'est plus prévenue de rien à son sujet. Le propriétaire en est prévenu ; le journal de
+    l'enveloppe, que ses participants consultent, garde la trace de ce départ.
 - **Données :**
   - en clair :
     - qui participe ;

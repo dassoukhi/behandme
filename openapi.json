@@ -2842,6 +2842,10 @@
               "$ref": "#/components/schemas/DepartureDTO"
             }
           },
+          "handover_possible": {
+            "type": "boolean",
+            "description": "Whether a claim could succeed: false while the recipient is gone or too few validators remain, until the owner seals again with someone else"
+          },
           "owner": {
             "nullable": true,
             "description": "Owner profile; null if it no longer exists",
@@ -2889,6 +2893,7 @@
           "claim_cooldown_until",
           "health",
           "departures",
+          "handover_possible",
           "owner",
           "accessor",
           "validators_list"
@@ -3028,6 +3033,10 @@
               "$ref": "#/components/schemas/DepartureDTO"
             }
           },
+          "handover_possible": {
+            "type": "boolean",
+            "description": "Whether a claim could succeed: false while the recipient is gone or too few validators remain, until the owner seals again with someone else"
+          },
           "owner": {
             "nullable": true,
             "description": "Owner profile; null if it no longer exists",
@@ -3075,6 +3084,7 @@
           "claim_cooldown_until",
           "health",
           "departures",
+          "handover_possible",
           "owner",
           "accessor",
           "validators_list"

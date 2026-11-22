@@ -1062,6 +1062,112 @@ export function contractRevoked(params: {
   };
 }
 
+/** What the owner reads when someone left: by why, then by their role; `who` names whoever declined. */
+interface LeftCopy {
+  title: string;
+  push: (envelope: string) => string;
+  email: (envelope: string, who: string | null) => string[];
+}
+const SEAL_AGAIN = {
+  accessor: {
+    fr: "Pour que cette enveloppe puisse encore être transmise, choisissez un autre destinataire et scellez-la à nouveau dans l'app.",
+    en: "So that this envelope can still be handed over, choose another recipient and seal it again in the app.",
+  },
+  validator: {
+    fr: "Scellez l'enveloppe à nouveau dans l'app pour choisir un autre validateur.",
+    en: "Seal the envelope again in the app to choose another validator.",
+  },
+};
+const LEFT: Record<
+  "declined" | "account_deleted",
+  Record<"accessor" | "validator", Record<Language, LeftCopy>>
+> = {
+  declined: {
+    accessor: {
+      fr: {
+        title: "Rôle refusé",
+        push: (e) =>
+          `Le destinataire de votre enveloppe ${e} a refusé son rôle : choisissez-en un autre et scellez-la à nouveau.`,
+        email: (e, who) => [
+          `${who ?? "Le destinataire"} a refusé d'être le destinataire de votre enveloppe ${e} : cette personne ne la voit plus et ne pourra pas l'ouvrir.`,
+          SEAL_AGAIN.accessor.fr,
+        ],
+      },
+      en: {
+        title: "Role declined",
+        push: (e) =>
+          `The recipient of your envelope ${e} declined their role: choose another one and seal again.`,
+        email: (e, who) => [
+          `${who ?? "The recipient"} declined to be the recipient of your envelope ${e}: they no longer see it and will not be able to open it.`,
+          SEAL_AGAIN.accessor.en,
+        ],
+      },
+    },
+    validator: {
+      fr: {
+        title: "Rôle refusé",
+        push: (e) =>
+          `Un validateur de votre enveloppe ${e} a refusé son rôle : sa part ne servira pas. Scellez-la à nouveau pour en choisir un autre.`,
+        email: (e, who) => [
+          `${who ?? "Un validateur"} a refusé d'être validateur de votre enveloppe ${e} : sa part de la clé ne servira pas.`,
+          SEAL_AGAIN.validator.fr,
+        ],
+      },
+      en: {
+        title: "Role declined",
+        push: (e) =>
+          `A validator of your envelope ${e} declined their role: their share will not be used. Seal again to choose another one.`,
+        email: (e, who) => [
+          `${who ?? "A validator"} declined to be a validator of your envelope ${e}: their part of the key will not be used.`,
+          SEAL_AGAIN.validator.en,
+        ],
+      },
+    },
+  },
+  account_deleted: {
+    accessor: {
+      fr: {
+        title: "Départ du destinataire",
+        push: (e) =>
+          `Le destinataire de votre enveloppe ${e} a supprimé son compte : choisissez-en un autre et scellez-la à nouveau.`,
+        email: (e) => [
+          `Le destinataire de votre enveloppe ${e} a supprimé son compte BehyndMe.`,
+          SEAL_AGAIN.accessor.fr,
+        ],
+      },
+      en: {
+        title: "Recipient left",
+        push: (e) =>
+          `The recipient of your envelope ${e} deleted their account: choose another one and seal again.`,
+        email: (e) => [
+          `The recipient of your envelope ${e} deleted their BehyndMe account.`,
+          SEAL_AGAIN.accessor.en,
+        ],
+      },
+    },
+    validator: {
+      fr: {
+        title: "Départ d'un validateur",
+        push: (e) =>
+          `Un validateur de votre enveloppe ${e} a supprimé son compte : sa part est perdue. Scellez-la à nouveau pour en choisir un autre.`,
+        email: (e) => [
+          `Un validateur de votre enveloppe ${e} a supprimé son compte BehyndMe : sa part de la clé est perdue.`,
+          SEAL_AGAIN.validator.fr,
+        ],
+      },
+      en: {
+        title: "Validator left",
+        push: (e) =>
+          `A validator of your envelope ${e} deleted their account: their share is lost. Seal again to choose another one.`,
+        email: (e) => [
+          `A validator of your envelope ${e} deleted their BehyndMe account: their part of the key is lost.`,
+          SEAL_AGAIN.validator.en,
+        ],
+      },
+    },
+  },
+};
+
 /**
  * A participant left: they refused their role (the owner is told who), or deleted their account. The owner
  * should choose someone else and seal again.
@@ -1075,45 +1181,18 @@ export function participantLeft(params: {
   reason: string;
 }): NotificationDraft {
   const name = contractName(params.category);
-  const accessor = params.role === "accessor";
   const declined = params.reason === "declined";
-  const push = {
-    fr: declined
-      ? accessor
-        ? `Le destinataire de votre enveloppe ${name.fr} a refusé son rôle : choisissez-en un autre et scellez-la à nouveau.`
-        : `Un validateur de votre enveloppe ${name.fr} a refusé son rôle : sa part ne servira pas. Scellez-la à nouveau pour en choisir un autre.`
-      : accessor
-        ? `Le destinataire de votre enveloppe ${name.fr} a supprimé son compte : choisissez-en un autre et scellez-la à nouveau.`
-        : `Un validateur de votre enveloppe ${name.fr} a supprimé son compte : sa part est perdue. Scellez-la à nouveau pour en choisir un autre.`,
-    en: declined
-      ? accessor
-        ? `The recipient of your envelope ${name.en} declined their role: choose another one and seal again.`
-        : `A validator of your envelope ${name.en} declined their role: their share will not be used. Seal again to choose another one.`
-      : accessor
-        ? `The recipient of your envelope ${name.en} deleted their account: choose another one and seal again.`
-        : `A validator of your envelope ${name.en} deleted their account: their share is lost. Seal again to choose another one.`,
-  };
+  const copy =
+    LEFT[declined ? "declined" : "account_deleted"][
+      params.role === "accessor" ? "accessor" : "validator"
+    ];
   return {
     userId: params.ownerId,
     type: "participant_left",
     mentions: declined ? [params.participantId] : [],
     copy: {
-      fr: {
-        title: declined
-          ? "Rôle refusé"
-          : accessor
-            ? "Départ du destinataire"
-            : "Départ d'un validateur",
-        body: push.fr,
-      },
-      en: {
-        title: declined
-          ? "Role declined"
-          : accessor
-            ? "Recipient left"
-            : "Validator left",
-        body: push.en,
-      },
+      fr: { title: copy.fr.title, body: copy.fr.push(name.fr) },
+      en: { title: copy.en.title, body: copy.en.push(name.en) },
     },
     data: { url: `/contract/${params.contractId}` },
     critical: false,
@@ -1121,48 +1200,8 @@ export function participantLeft(params: {
       // A deleted account is forgotten here; whoever declined is named.
       const who = declined ? ctx.name(params.participantId) : null;
       return {
-        fr: {
-          paragraphs: declined
-            ? accessor
-              ? [
-                  `${who ?? "Le destinataire"} a refusé d'être le destinataire de votre enveloppe ${name.fr} : cette personne ne la voit plus et ne pourra pas l'ouvrir.`,
-                  "Pour que cette enveloppe puisse encore être transmise, choisissez un autre destinataire et scellez-la à nouveau dans l'app.",
-                ]
-              : [
-                  `${who ?? "Un validateur"} a refusé d'être validateur de votre enveloppe ${name.fr} : sa part de la clé ne servira pas.`,
-                  "Scellez l'enveloppe à nouveau dans l'app pour choisir un autre validateur.",
-                ]
-            : accessor
-              ? [
-                  `Le destinataire de votre enveloppe ${name.fr} a supprimé son compte BehyndMe.`,
-                  "Pour que cette enveloppe puisse encore être transmise, choisissez un autre destinataire et scellez-la à nouveau dans l'app.",
-                ]
-              : [
-                  `Un validateur de votre enveloppe ${name.fr} a supprimé son compte BehyndMe : sa part de la clé est perdue.`,
-                  "Scellez l'enveloppe à nouveau dans l'app pour choisir un autre validateur.",
-                ],
-        },
-        en: {
-          paragraphs: declined
-            ? accessor
-              ? [
-                  `${who ?? "The recipient"} declined to be the recipient of your envelope ${name.en}: they no longer see it and will not be able to open it.`,
-                  "So that this envelope can still be handed over, choose another recipient and seal it again in the app.",
-                ]
-              : [
-                  `${who ?? "A validator"} declined to be a validator of your envelope ${name.en}: their part of the key will not be used.`,
-                  "Seal the envelope again in the app to choose another validator.",
-                ]
-            : accessor
-              ? [
-                  `The recipient of your envelope ${name.en} deleted their BehyndMe account.`,
-                  "So that this envelope can still be handed over, choose another recipient and seal it again in the app.",
-                ]
-              : [
-                  `A validator of your envelope ${name.en} deleted their BehyndMe account: their part of the key is lost.`,
-                  "Seal the envelope again in the app to choose another validator.",
-                ],
-        },
+        fr: { paragraphs: copy.fr.email(name.fr, who) },
+        en: { paragraphs: copy.en.email(name.en, who) },
       };
     },
   };

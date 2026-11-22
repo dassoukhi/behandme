@@ -103,15 +103,13 @@ export class ContractsService {
    * none of theirs, and the owner is told to choose someone else.
    */
   async leave(me: string, id: string): Promise<void> {
-    await this.stores.transaction(async (store) => {
-      const { contract, role } = await this.visible(store, me, id);
-      assertAllowed("leave", contract, role);
-      await leaveContract(store, contract, {
+    await this.stores.transaction((store) =>
+      leaveContract(store, id, {
         userId: me,
         reason: "declined",
         at: this.clock.now(),
-      });
-    });
+      }),
+    );
   }
 
   async events(me: string, id: string): Promise<AuditEvent[]> {

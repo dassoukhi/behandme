@@ -103,7 +103,8 @@ must:
   contract, deletes a draft, seals a draft or re-seals an active one, revokes until release; the accessor or a
   validator claims, the owner cancels, the claimant withdraws, each validator decides once, the accessor opens
   a released contract, the accessor or a validator refuses their role before release (`leave`), after which the
-  contract is none of theirs: 404, no more notifications, the owner alone learns who left); sealed material by role (`GET /contracts/:id/sealed`, with the owner's keys that
+  contract is none of theirs: 404, no more notifications; the owner is told who left, `departures` is theirs alone, and the
+  log, which every participant reads, records the departure); sealed material by role (`GET /contracts/:id/sealed`, with the owner's keys that
   signed it, and the accessor's current keys for a validator): the owner gets the envelope and their wrapped
   key, a validator their own share, the accessor only the signed manifest until release, then the release
   package (`GET /contracts/:id/release`) and nobody else; handover checks every

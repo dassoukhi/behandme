@@ -803,11 +803,15 @@ describe("claims and release: who may, with whose keys", () => {
     await expect(contracts.leave(VALIDATOR, contractId)).rejects.toThrow(
       NotFoundError,
     );
-    // Only the owner learns who left.
+    // Only the owner is given who left (the log records it for every participant).
     expect((await contracts.get(OWNER, contractId)).departures).toMatchObject([
       { user_id: VALIDATOR, role: "validator", reason: "declined" },
     ]);
     expect((await contracts.get(ACCESSOR, contractId)).departures).toEqual([]);
+    expect(await contracts.get(ACCESSOR, contractId)).toHaveProperty(
+      "handover_possible",
+      true,
+    );
   });
 
   it("counts a validator who left as one who can no longer approve", async () => {

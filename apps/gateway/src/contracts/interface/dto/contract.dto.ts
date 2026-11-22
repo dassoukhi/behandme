@@ -226,6 +226,12 @@ export class ContractDTO {
   departures: DepartureDTO[];
 
   @ApiProperty({
+    description:
+      "Whether a claim could succeed: false while the recipient is gone or too few validators remain, until the owner seals again with someone else",
+  })
+  handover_possible: boolean;
+
+  @ApiProperty({
     description: "Owner profile; null if it no longer exists",
     type: () => UserProfileDto,
     nullable: true,

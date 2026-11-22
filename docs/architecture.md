@@ -161,8 +161,11 @@ re-seals, and so is the share of a validator who left.
 which leaves the same way: `endings.ts`, `leaveContract`), but the contract is none of theirs any more: it answers 404,
 the list leaves it out, and no event names them. An open claim closes (`participant_left`) when they filed it, when it
 would release to them, or when too few validators are left to reach k (a validator who left counts only by the
-decision they gave before); no claim can be filed while the accessor is gone or fewer than k validators remain. The
-owner alone learns who left and why (`departures`), and `participant.left` asks them to seal again with someone else;
+decision they gave before); no claim can be filed while the accessor is gone or fewer than k validators remain (`handover_possible` says so). Every
+change to a claim or to the participants locks the contract's row first, then the claim's (`ContractRepository.lock`): a
+decision and a departure run one after the other, each seeing the other's result. The
+owner is told who left and why (`departures`, theirs alone; the log, which every participant reads, records the
+departure with its actor), and `participant.left` asks them to seal again with someone else;
 a new sealing replaces the participants, and whoever is named again after leaving is told as the first time. Sealing stores the
 envelope, the owner's wrapped key, one wrapped share per validator and the signed manifest
 (`handover.envelopes`, `handover.key_wraps`); handover checks them against the registered keys the gateway

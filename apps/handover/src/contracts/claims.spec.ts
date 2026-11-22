@@ -427,6 +427,8 @@ describe("a role refused", () => {
     expect(await contracts.list(V2)).toEqual([]);
     const owner = await contracts.get(OWNER, ID);
     expect(owner.version).toBe(before + 1);
+    // 2 of the 3 validators remain: the threshold is still within reach.
+    expect(owner.handover_possible).toBe(true);
     expect(owner.departures).toEqual([
       {
         user_id: V2,
@@ -507,6 +509,7 @@ describe("a role refused", () => {
     expect(forV1).toMatchObject({
       status: "active",
       allowed_actions: ["leave"],
+      handover_possible: false,
       // The claim closed because of a departure, not of the owner: no pause.
       claim_cooldown_until: null,
     });

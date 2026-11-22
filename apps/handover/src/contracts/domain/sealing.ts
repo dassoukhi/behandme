@@ -1,5 +1,5 @@
 import { ConflictError, InvalidInputError } from "@lib/kernel";
-import { assertValidDraft, type Contract } from "./contract.js";
+import { assertValidDraft, type Contract, hasLeft } from "./contract.js";
 
 // What the server checks when an owner seals a contract (the app's docs/crypto-protocol.md, "Sealing").
 // It cannot open anything; it makes sure the sealed material is complete, well formed and signed by the
@@ -41,7 +41,7 @@ export function namedForTheFirstTime(
 ): { newAccessor: boolean; newValidatorIds: string[] } {
   const stayed = (ids: string[]) =>
     previous.sealedVersion > 0
-      ? ids.filter((id) => !previous.departures.some((d) => d.userId === id))
+      ? ids.filter((id) => !hasLeft(previous, id))
       : [];
   return {
     newAccessor: !stayed([previous.accessorId]).includes(current.accessorId),

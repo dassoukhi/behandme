@@ -70,7 +70,7 @@ export class ClaimsService {
   async file(me: string, id: string): Promise<ContractRecord> {
     return this.stores.transaction(async (store) => {
       const now = this.clock.now();
-      const { contract, role } = await visible(store, me, id);
+      const { contract, role } = await visible(store, me, id, { lock: true });
       const [last] = await store.claims.lastClosedBy(me, [id]);
       assertAllowed("claim", contract, role, {
         me,
@@ -221,10 +221,13 @@ export class ClaimsService {
 
   /** The end of a claim's contest window (delayed message): release, expire, or keep waiting. */
   async settle(store: HandoverStore, claimId: string): Promise<string> {
+    const found = await store.claims.find(claimId);
+    if (!found || found.status !== "open") return "closed";
+    // The contract first, then the claim, as every change to them (ports.ts, lock).
+    const contract = await store.contracts.lock(found.contractId);
+    if (!contract) return "closed";
     const claim = await store.claims.lockOpen(claimId);
     if (!claim) return "closed";
-    const contract = await store.contracts.find(claim.contractId);
-    if (!contract) return "closed";
     const decisions =
       (await store.claims.decisions([claim.id])).get(claim.id) ?? [];
     const result = tallyFor(contract, decisions);
@@ -394,8 +397,9 @@ export class ClaimsService {
     claim: Claim;
     decisions: Decision[];
   }> {
-    const { contract, role } = await visible(store, me, id);
-    // Locked: concurrent decisions on this claim wait for each other.
+    // Locked, the contract then the claim: concurrent decisions, and a participant leaving, wait for each other,
+    // and each sees what the other committed (a validator who just left gets "not found").
+    const { contract, role } = await visible(store, me, id, { lock: true });
     const claim = await store.claims.lockOpen(claimId);
     if (!claim || claim.contractId !== id) {
       throw new ConflictError("This claim is no longer open");
@@ -436,8 +440,11 @@ async function visible(
   store: HandoverStore,
   me: string,
   id: string,
+  options: { lock?: boolean } = {},
 ): Promise<{ contract: Contract; role: Role }> {
-  const contract = await store.contracts.find(id);
+  const contract = options.lock
+    ? await store.contracts.lock(id)
+    : await store.contracts.find(id);
   const role = contract ? roleOf(contract, me) : null;
   if (!contract || !role) throw new NotFoundError("Contract not found");
   return { contract, role };

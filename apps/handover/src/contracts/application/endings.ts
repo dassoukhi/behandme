@@ -1,5 +1,5 @@
 import { ClaimClosed, ContractRevoked, ParticipantLeft } from "@lib/contracts";
-import { ConflictError } from "@lib/kernel";
+import { ConflictError, NotFoundError } from "@lib/kernel";
 import {
   claimClosed,
   type ClosedReason,
@@ -11,7 +11,9 @@ import {
   type Contract,
   type LeftReason,
   presentParticipants,
+  roleOf,
 } from "../domain/contract.js";
+import { assertAllowed } from "../domain/lifecycle.js";
 import type { HandoverStore } from "./ports.js";
 
 // How claims and contracts end, and how a participant leaves, shared by the users' actions (cancel, revoke,
@@ -122,11 +124,17 @@ export async function revokeContract(
  */
 export async function leaveContract(
   store: HandoverStore,
-  contract: Contract,
+  contractId: string,
   departure: { userId: string; reason: LeftReason; at: Date },
 ): Promise<Contract> {
   const { userId, reason, at } = departure;
-  const role = contract.accessorId === userId ? "accessor" : "validator";
+  // Locked, the contract then its claim, as for a decision (ports.ts, lock): the rule is checked on what is
+  // committed, and a decision arriving meanwhile waits and then sees the departure.
+  const contract = await store.contracts.lock(contractId);
+  const myRole = contract ? roleOf(contract, userId) : null;
+  if (!contract || !myRole) throw new NotFoundError("Contract not found");
+  assertAllowed("leave", contract, myRole);
+  const role = myRole === "accessor" ? "accessor" : "validator";
   const actor = reason === "declined" ? userId : null;
   let current = await store.contracts.markLeft(contract.id, userId, {
     reason,
@@ -135,7 +143,6 @@ export async function leaveContract(
   if (!current) {
     throw new ConflictError("You are no longer a participant of this contract");
   }
-  // Locked, as for a decision: one arriving meanwhile waits, and sees the departure once it is committed.
   const [open] = await store.claims.openFor([contract.id]);
   const claim = open ? await store.claims.lockOpen(open.id) : null;
   if (claim) {
