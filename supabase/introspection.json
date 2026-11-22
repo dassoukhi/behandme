@@ -832,6 +832,18 @@
         },
         {
           "table_schema": "handover",
+          "table_name": "claims",
+          "column_name": "statement",
+          "ordinal_position": 12,
+          "data_type": "text",
+          "udt_name": "text",
+          "is_nullable": "YES",
+          "column_default": null,
+          "character_maximum_length": null,
+          "is_identity": "NO"
+        },
+        {
+          "table_schema": "handover",
           "table_name": "contract_events",
           "column_name": "id",
           "ordinal_position": 1,
@@ -2848,6 +2860,20 @@
           "conname": "claims_sealed_version_check",
           "contype": "c",
           "definition": "CHECK ((sealed_version >= 1))"
+        },
+        {
+          "schema": "handover",
+          "table_name": "handover.claims",
+          "conname": "claims_statement_check",
+          "contype": "c",
+          "definition": "CHECK (((char_length(statement) >= 20) AND (char_length(statement) <= 1000)))"
+        },
+        {
+          "schema": "handover",
+          "table_name": "handover.claims",
+          "conname": "claims_statement_reason_check",
+          "contype": "c",
+          "definition": "CHECK (((statement IS NULL) OR (reason = 'incapacity'::text)))"
         },
         {
           "schema": "handover",
