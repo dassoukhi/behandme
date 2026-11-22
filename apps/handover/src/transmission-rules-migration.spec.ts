@@ -90,6 +90,13 @@ describe("transmission rules", () => {
     ).rejects.toThrow(/check constraint/);
   });
 
+  it("routes the change of these rules to the notifier", async () => {
+    const { rows } = await sql`
+      select queue from messaging.subscriptions where event_type = 'contract.rules_changed'
+    `.execute(db);
+    expect(rows).toEqual([{ queue: "notifier" }]);
+  });
+
   it("can be applied twice", async () => {
     await expect(sql.raw(read(MIGRATION)).execute(db)).resolves.toBeDefined();
   });

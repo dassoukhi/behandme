@@ -43,7 +43,9 @@ export type ContractAction =
   /** The accessor, once released: fetch the release package. */
   | "open"
   /** The accessor or a validator refuses their role: the contract is no longer theirs. */
-  | "leave";
+  | "leave"
+  /** The owner withdraws their consent to a claim for an incapacity, even during a claim (which then closes). */
+  | "withdraw_consent";
 
 export const CLAIM_STATUSES = [
   "open",

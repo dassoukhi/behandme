@@ -232,6 +232,63 @@ describe("the reason of a claim", () => {
   });
 });
 
+describe("the owner's consent to a claim for an incapacity", () => {
+  const last = async (type: string) =>
+    (await outbox()).filter((e) => e.type === type).at(-1)?.envelope.payload;
+
+  it("tells those named when it is given, and lets the owner withdraw it during a claim, which then closes", async () => {
+    await contracts.update(OWNER, ID, { incapacityAllowed: true });
+    expect(await last("contract.rules_changed")).toEqual({
+      contractId: ID,
+      category: "networks",
+      ownerId: OWNER,
+      accessorId: ACCESSOR,
+      validatorIds: [V1, V2, V3],
+      incapacityAllowed: true,
+    });
+    await claims.file(V1, ID, "incapacity");
+    const owner = await contracts.get(OWNER, ID);
+    expect(owner.status).toBe("claimed");
+    expect(owner.allowed_actions).toContain("withdraw_consent");
+    expect(owner.allowed_actions).not.toContain("update");
+
+    const after = await contracts.update(OWNER, ID, {
+      incapacityAllowed: false,
+    });
+    expect(after).toMatchObject({
+      status: "active",
+      incapacity_allowed: false,
+      claim_reasons: ["death"],
+    });
+    expect(await last("claim.closed")).toMatchObject({
+      reason: "cancelled",
+      closedBy: OWNER,
+    });
+    expect(await last("contract.rules_changed")).toMatchObject({
+      incapacityAllowed: false,
+    });
+    expect((await contracts.events(OWNER, ID)).at(-1)).toMatchObject({
+      type: "consent.incapacity",
+      actor_id: OWNER,
+    });
+  });
+
+  it("keeps a claim for a death when withdrawn, and gives no other edit during a claim", async () => {
+    await contracts.update(OWNER, ID, { incapacityAllowed: true });
+    await claims.file(V1, ID, "death");
+    await expect(
+      contracts.update(OWNER, ID, { contestDays: 10 }),
+    ).rejects.toThrow(ConflictError);
+    await contracts.update(OWNER, ID, { incapacityAllowed: false });
+    expect((await contracts.get(OWNER, ID)).status).toBe("claimed");
+    // Withdrawing a consent never given changes nothing; nobody else may.
+    await contracts.update(OWNER, ID, { incapacityAllowed: false });
+    await expect(
+      contracts.update(V1, ID, { incapacityAllowed: false }),
+    ).rejects.toThrow(NotFoundError);
+  });
+});
+
 describe("release", () => {
   it("waits for the contest window with two approvals, then gives the accessor the re-wrapped shares", async () => {
     const claimId = await file();

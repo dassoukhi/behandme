@@ -6,7 +6,9 @@
 --     which reveals their health (GDPR article 9). False for every existing envelope: nobody was asked, so they are
 --     handed over after a death only until their owner allows more. Each consent given or withdrawn is written in the
 --     envelope's log (consent.incapacity);
---   * handover.claims.reason: death or incapacity, as the claimant says; null for the claims filed before.
+--   * handover.claims.reason: death or incapacity, as the claimant says; null for the claims filed before;
+--   * contract.rules_changed routed to the notifier: once an envelope is sealed, those it names are told when its owner
+--     allows, or no longer allows, a claim for an incapacity.
 --
 -- Prerequisites: migrations 20261014220000 and 20261016150000 (handover.contracts and handover.claims). Columns and
 -- constraints that every existing row meets; svc_handover's rights on both tables cover the new columns. Tested on
@@ -31,5 +33,9 @@ alter table handover.contracts
 
 alter table handover.claims
   add column if not exists reason text check (reason in ('death', 'incapacity'));
+
+insert into messaging.subscriptions (event_type, queue)
+values ('contract.rules_changed', 'notifier')
+on conflict do nothing;
 
 commit;

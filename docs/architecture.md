@@ -155,10 +155,13 @@ of the owner cancelling their last claim), cancel_claim (owner), withdraw_claim 
 
 **Transmission rules** (`domain/contract.ts`). A claim gives its reason: `death`, or `incapacity` (the owner can no
 longer act) only where the owner gave their explicit consent (`incapacity_allowed`, GDPR article 9: it reveals their
-health), at creation or later, and may withdraw it; each consent given or withdrawn is a `consent.incapacity` event in
-the log, with the version of the wording accepted, and the record lists the reasons allowed (`claim_reasons`).
+health), at creation or later, and may withdraw it at any time before the end, even during a claim (`withdraw_consent`),
+which closes a claim that gave this reason as their own cancellation would; each consent given or withdrawn is a
+`consent.incapacity` event in the log, with the version of the wording accepted, those named in a sealed contract are
+told of it (`contract.rules_changed`), and the record lists the reasons allowed (`claim_reasons`).
 `finances` (bank accounts and cryptocurrency) waits 15 to 30 days, has exactly 3 validators, and allows a death only:
-`assertCategoryRules` checks the whole contract at creation, at each change and at sealing. 15 days by default. `health` (gateway) counts the validators
+`assertCategoryRules` checks the whole contract at creation, at each change and at sealing (a draft's validators are
+provisional: its sealing checks those it names). 15 days by default. `health` (gateway) counts the validators
 still there whose current keys are those of the sealing: a share wrapped to reset keys is lost until the owner
 re-seals, and so is the share of a validator who left.
 

@@ -2826,7 +2826,8 @@
                 "withdraw_claim",
                 "decide",
                 "open",
-                "leave"
+                "leave",
+                "withdraw_consent"
               ]
             },
             "description": "What the caller may do now; the app shows only these actions (rules live in the backend)"
@@ -3035,7 +3036,8 @@
                 "withdraw_claim",
                 "decide",
                 "open",
-                "leave"
+                "leave",
+                "withdraw_consent"
               ]
             },
             "description": "What the caller may do now; the app shows only these actions (rules live in the backend)"

@@ -10,6 +10,7 @@ export {
   ClaimsDue,
   ContractReleased,
   ContractRevoked,
+  ContractRulesChanged,
   ContractSealed,
   InvitationAccepted,
   KeyCareDue,

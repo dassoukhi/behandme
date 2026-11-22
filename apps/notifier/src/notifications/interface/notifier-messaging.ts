@@ -14,6 +14,7 @@ import {
   ClaimReminder,
   ContractReleased,
   ContractRevoked,
+  ContractRulesChanged,
   ContractSealed,
   KeyCareReminder,
   KeysBackupOpened,
@@ -112,6 +113,13 @@ export class NotifierMessaging
         ),
         on(ContractRevoked, (payload, event, tx) =>
           events.contractRevoked(stores.bind(tx), payload, event.occurredAt),
+        ),
+        on(ContractRulesChanged, (payload, event, tx) =>
+          events.contractRulesChanged(
+            stores.bind(tx),
+            payload,
+            event.occurredAt,
+          ),
         ),
         on(ParticipantLeft, (payload, event, tx) =>
           events.participantLeft(stores.bind(tx), payload, event.occurredAt),

@@ -1,8 +1,9 @@
 import { Inject, Injectable } from "@nestjs/common";
-import type {
-  AuditEvent,
-  ChainVerification,
-  ContractRecord,
+import {
+  type AuditEvent,
+  type ChainVerification,
+  type ContractRecord,
+  ContractRulesChanged,
 } from "@lib/contracts";
 import { type Clock, ConflictError, NotFoundError } from "@lib/kernel";
 import {
@@ -20,11 +21,12 @@ import {
   type Contract,
   type ContractChanges,
   type DraftInput,
+  presentParticipants,
   type Role,
   roleOf,
 } from "../domain/contract.js";
 import { assertAllowed } from "../domain/lifecycle.js";
-import { leaveContract } from "./endings.js";
+import { closeClaim, leaveContract } from "./endings.js";
 import { recordsFor } from "./records.js";
 import {
   CLOCK,
@@ -69,32 +71,57 @@ export class ContractsService {
     });
   }
 
+  /**
+   * The owner's edit (draft or active). A consent to a claim for an incapacity may be withdrawn at any time before the
+   * end, even during a claim, which then closes if it gave this reason. Once sealed, those named are told of a change to
+   * that consent: it changes when they may be asked to approve.
+   */
   async update(
     me: string,
     id: string,
     changes: ContractChanges,
   ): Promise<ContractRecord> {
     assertValidFields(changes);
+    const given = Object.entries(changes).filter(([, v]) => v !== undefined);
+    const withdrawal =
+      given.length === 1 &&
+      given[0][0] === "incapacityAllowed" &&
+      given[0][1] === false;
     return this.stores.transaction(async (store) => {
-      const { contract, role } = await this.visible(store, me, id);
-      assertAllowed("update", contract, role);
+      // Locked first (ports.ts, lock): a withdrawal may close the open claim.
+      const contract = await store.contracts.lock(id);
+      const role = contract ? roleOf(contract, me) : null;
+      if (!contract || !role) throw new NotFoundError("Contract not found");
+      if (withdrawal && !contract.incapacityAllowed) {
+        if (role !== "owner") throw new NotFoundError("Contract not found");
+        return this.record(store, me, contract);
+      }
+      assertAllowed(withdrawal ? "withdraw_consent" : "update", contract, role);
       const fields = changedFields(contract, changes);
       if (fields.length === 0) return this.record(store, me, contract);
       const changed: ContractChanges = Object.fromEntries(
         fields.map((f) => [f, changes[f]]),
       );
-      // The contract as it would be: a category's rules hold for all of it (finances: 3 validators, 15 days…).
+      // The contract as it would be: a category's rules hold for all of it (finances: 3 validators, 15 days…). A
+      // draft's validators are only provisional: its sealing checks those it names.
       assertCategoryRules({
         category: changed.category ?? contract.category,
         contestDays: changed.contestDays ?? contract.contestDays,
         incapacityAllowed:
           changed.incapacityAllowed ?? contract.incapacityAllowed,
-        validatorCount: contract.validatorIds.length,
+        validatorCount:
+          contract.status === "draft"
+            ? undefined
+            : contract.validatorIds.length,
       });
+      const current =
+        withdrawal && contract.status === "claimed"
+          ? await this.closeIncapacityClaim(store, me, contract)
+          : contract;
       const updated = await store.contracts.update(
         id,
         changed,
-        contract.version,
+        current.version,
       );
       if (!updated) {
         throw new ConflictError("The contract changed meanwhile: try again");
@@ -110,9 +137,44 @@ export class ContractsService {
           me,
           incapacityConsent(changed.incapacityAllowed),
         );
+        if (updated.sealedVersion > 0) {
+          await store.events.publish(
+            ContractRulesChanged.create({
+              contractId: id,
+              category: updated.category,
+              ownerId: updated.ownerId,
+              ...presentParticipants(updated),
+              incapacityAllowed: updated.incapacityAllowed,
+            }),
+          );
+        }
       }
       return this.record(store, me, updated);
     });
+  }
+
+  /** The owner withdrew their consent: a claim saying they can no longer act ends, as if they cancelled it. */
+  private async closeIncapacityClaim(
+    store: HandoverStore,
+    me: string,
+    contract: Contract,
+  ): Promise<Contract> {
+    const [open] = await store.claims.openFor([contract.id]);
+    const claim = open ? await store.claims.lockOpen(open.id) : null;
+    if (!claim || claim.reason !== "incapacity") return contract;
+    await closeClaim(store, contract, claim, {
+      status: "cancelled",
+      reason: "cancelled",
+      closedBy: me,
+      at: this.clock.now(),
+    });
+    const active = await store.contracts.transition(
+      contract.id,
+      "claimed",
+      "active",
+    );
+    if (!active) throw new ConflictError("The contract changed meanwhile");
+    return active;
   }
 
   /** Deletes a draft; its audit log stays, ending with contract.deleted. */

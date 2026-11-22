@@ -32,6 +32,7 @@ const ACTIONS: ContractAction[] = [
   "decide",
   "open",
   "leave",
+  "withdraw_consent",
 ];
 
 /** The claim in progress on a contract. */

@@ -132,13 +132,14 @@ export function assertValidDraft(ownerId: string, input: DraftInput): void {
 
 /**
  * What a category asks of the whole contract, as it is or would be after a change (creation, edit, sealing):
- * finances waits 15 days or more, has exactly 3 validators, and allows no claim for an incapacity.
+ * finances waits 15 days or more, has exactly 3 validators, and allows no claim for an incapacity. `validatorCount`
+ * left out: a draft's validators, which its sealing replaces and checks.
  */
 export function assertCategoryRules(contract: {
   category: Category;
   contestDays: number;
   incapacityAllowed: boolean;
-  validatorCount: number;
+  validatorCount?: number;
 }): void {
   if (contract.category !== "finances") return;
   if (contract.contestDays < FINANCES.minContestDays) {
@@ -146,7 +147,10 @@ export function assertCategoryRules(contract: {
       `A finances contract waits ${FINANCES.minContestDays} to 30 days`,
     );
   }
-  if (contract.validatorCount !== FINANCES.validators) {
+  if (
+    contract.validatorCount !== undefined &&
+    contract.validatorCount !== FINANCES.validators
+  ) {
     throw new InvalidInputError(
       `A finances contract needs exactly ${FINANCES.validators} validators`,
     );

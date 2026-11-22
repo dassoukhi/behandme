@@ -1264,3 +1264,62 @@ export function participantLeft(params: {
     },
   };
 }
+
+/**
+ * The owner of a sealed envelope allowed, or no longer allows, a claim saying they can no longer act: those it names
+ * learn when they may be asked to approve, or when it may open for them.
+ */
+export function rulesChanged(params: {
+  userId: string;
+  ownerId: string;
+  contractId: string;
+  category: string;
+  incapacityAllowed: boolean;
+}): NotificationDraft {
+  const name = contractName(params.category);
+  const allowed = params.incapacityAllowed;
+  return {
+    userId: params.userId,
+    type: "contract_rules_changed",
+    mentions: [params.ownerId],
+    copy: {
+      fr: {
+        title: "Règles de l'enveloppe modifiées",
+        body: allowed
+          ? `Une demande de transmission de l'enveloppe ${name.fr} peut maintenant dire que son propriétaire ne peut plus agir.`
+          : `L'enveloppe ${name.fr} ne se transmet plus qu'après le décès de son propriétaire.`,
+      },
+      en: {
+        title: "Envelope rules changed",
+        body: allowed
+          ? `A handover request for the envelope ${name.en} may now say that its owner can no longer act.`
+          : `The envelope ${name.en} is now handed over only after its owner's death.`,
+      },
+    },
+    data: { url: `/contract/${params.contractId}` },
+    critical: false,
+    email: (ctx) => {
+      const owner = ctx.name(params.ownerId);
+      const first = ctx.firstName(params.ownerId);
+      const theirs = first ? `${first}'s` : "their";
+      return {
+        fr: {
+          paragraphs: [
+            allowed
+              ? `${owner ?? "Le propriétaire"} permet maintenant qu'une transmission de son enveloppe ${name.fr} soit demandée si ${first ?? "cette personne"} ne peut plus agir, et plus seulement après son décès.`
+              : `${owner ?? "Le propriétaire"} a retiré cette possibilité : son enveloppe ${name.fr} ne se transmet plus qu'après le décès de ${first ?? "cette personne"}.`,
+            "Vous n'avez rien à faire.",
+          ],
+        },
+        en: {
+          paragraphs: [
+            allowed
+              ? `${owner ?? "The owner"} now allows a handover of their envelope ${name.en} to be requested if ${first ?? "they"} can no longer act, not only after ${theirs} death.`
+              : `${owner ?? "The owner"} withdrew this: their envelope ${name.en} is now handed over only after ${theirs} death.`,
+            "There is nothing for you to do.",
+          ],
+        },
+      };
+    },
+  };
+}

@@ -107,6 +107,23 @@ export const ContractSealed = defineEvent(
     }),
 );
 
+/**
+ * Handover: the owner of a sealed contract allowed, or no longer allows, a claim saying they can no longer act. Those
+ * still named are told (accessorId null when the accessor left).
+ */
+export const ContractRulesChanged = defineEvent(
+  "contract.rules_changed",
+  1,
+  z.object({
+    contractId,
+    category,
+    ownerId: userId,
+    accessorId: userId.nullable(),
+    validatorIds: z.array(userId),
+    incapacityAllowed: z.boolean(),
+  }),
+);
+
 /** Handover: enough validators approved; the release follows at `contestUntil` unless cancelled. */
 export const ClaimQuorumReached = defineEvent(
   "claim.quorum_reached",

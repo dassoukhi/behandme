@@ -232,11 +232,23 @@ describe("transmission rules", () => {
         validatorIds: [VALIDATOR],
       }),
     ).rejects.toThrow(InvalidInputError);
+    // A draft's validators are provisional: its sealing names and checks the real ones.
     const draft = await newDraft();
     await expect(
       contracts.update(OWNER, draft.id, { category: "finances" }),
+    ).resolves.toMatchObject({ category: "finances" });
+    await expect(
+      contracts.update(OWNER, draft.id, { contestDays: 7 }),
     ).rejects.toThrow(InvalidInputError);
-    expect((await contracts.get(OWNER, draft.id)).category).toBe("networks");
+    // A sealed contract keeps its validators: one of them is not enough.
+    const sealed = await newDraft();
+    await asOwner(
+      sql`update handover.contracts set status = 'active', sealed_version = 1 where id = ${sealed.id}::uuid`,
+    );
+    await expect(
+      contracts.update(OWNER, sealed.id, { category: "finances" }),
+    ).rejects.toThrow(InvalidInputError);
+    expect((await contracts.get(OWNER, sealed.id)).category).toBe("networks");
   });
 
   it("writes the owner's consent to a claim for an incapacity in the log, given and withdrawn, apart from other changes", async () => {

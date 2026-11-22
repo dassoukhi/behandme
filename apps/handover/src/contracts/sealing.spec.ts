@@ -214,6 +214,18 @@ describe("sealing", () => {
     ).rejects.toThrow(NotFoundError);
   });
 
+  it("names exactly 3 validators for finances", async () => {
+    await sql`reset role`.execute(db);
+    await sql`update handover.contracts set category = 'finances', contest_days = 15 where id = ${ID}::uuid`.execute(
+      db,
+    );
+    await sql`set role svc_handover`.execute(db);
+    const fewer = { ...request(), validatorIds: [P.v1.user_id, P.v2.user_id] };
+    await expect(sealing.seal(OWNER, ID, fewer, keys())).rejects.toThrow(
+      "exactly 3 validators",
+    );
+  });
+
   const mutations: [
     string,
     (r: SealRequest, k: Map<string, RegisteredKey>) => void,

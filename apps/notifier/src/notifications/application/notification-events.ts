@@ -19,6 +19,7 @@ import {
   keysTransferred,
   participantLeft,
   phraseCheck,
+  rulesChanged,
   trustAdded,
 } from "../domain/templates.js";
 import { NotifyService } from "./notify.service.js";
@@ -309,6 +310,29 @@ export class NotificationEvents {
     await this.notifier.notify(
       store,
       people.map((userId) => contractRevoked({ ...event, userId })),
+      occurredAt,
+    );
+  }
+
+  /** Those still named in a sealed envelope: when they may be asked to approve, or it may open for them, changed. */
+  async contractRulesChanged(
+    store: NotifierStore,
+    event: {
+      contractId: string;
+      category: string;
+      ownerId: string;
+      accessorId: string | null;
+      validatorIds: string[];
+      incapacityAllowed: boolean;
+    },
+    occurredAt?: string,
+  ): Promise<void> {
+    const people = event.accessorId
+      ? [event.accessorId, ...event.validatorIds]
+      : event.validatorIds;
+    await this.notifier.notify(
+      store,
+      people.map((userId) => rulesChanged({ ...event, userId })),
       occurredAt,
     );
   }

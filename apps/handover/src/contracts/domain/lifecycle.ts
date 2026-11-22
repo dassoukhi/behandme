@@ -15,7 +15,8 @@ export type Action =
   | "withdraw_claim"
   | "decide"
   | "open"
-  | "leave";
+  | "leave"
+  | "withdraw_consent";
 
 /** What the rules need beyond the contract and the role: the caller and the open claim. */
 export interface ActionContext {
@@ -70,6 +71,13 @@ const RULES: Record<
   leave: {
     roles: ["accessor", "validator"],
     statuses: ["draft", "active", "claimed"],
+  },
+  // The owner withdraws their consent to a claim for an incapacity at any time before the end (GDPR art. 7.3), even
+  // during a claim: one that gave this reason closes (ContractsService.update).
+  withdraw_consent: {
+    roles: ["owner"],
+    statuses: ["draft", "active", "claimed"],
+    when: (_c, contract) => contract.incapacityAllowed,
   },
 };
 

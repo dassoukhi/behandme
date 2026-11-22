@@ -15,6 +15,7 @@ import {
   ClaimReminder,
   ContractReleased,
   ContractRevoked,
+  ContractRulesChanged,
   ContractSealed,
   KeyCareReminder,
   KeysBackupOpened,
@@ -129,6 +130,9 @@ async function receive(...envelopes: ReturnType<typeof createEnvelope>[]) {
       ),
       on(ContractRevoked, (payload, e, tx) =>
         events.contractRevoked(stores.bind(tx), payload, e.occurredAt),
+      ),
+      on(ContractRulesChanged, (payload, e, tx) =>
+        events.contractRulesChanged(stores.bind(tx), payload, e.occurredAt),
       ),
       on(ParticipantLeft, (payload, e, tx) =>
         events.participantLeft(stores.bind(tx), payload, e.occurredAt),
@@ -607,6 +611,28 @@ describe("claims", () => {
     expect(await types(CAROL)).toEqual([
       ["contract_revoked", `/contract/${CONTRACT}`],
     ]);
+  });
+
+  it("tells those named, not the owner, when the owner allows a request for an incapacity", async () => {
+    await receive(
+      envelope(
+        ContractRulesChanged.create({
+          contractId: CONTRACT,
+          category: "networks",
+          ownerId: ALICE,
+          accessorId: BOB,
+          validatorIds: [CAROL],
+          incapacityAllowed: true,
+        }),
+      ),
+    );
+    expect(await types(BOB)).toEqual([
+      ["contract_rules_changed", `/contract/${CONTRACT}`],
+    ]);
+    expect((await inbox.list(CAROL))[0].body).toBe(
+      "Une demande de transmission de l'enveloppe « Réseaux sociaux » peut maintenant dire que son propriétaire ne peut plus agir.",
+    );
+    expect(await inbox.list(ALICE)).toEqual([]);
   });
 
   it("tells no recipient who left: they hear nothing more of the envelope", async () => {
