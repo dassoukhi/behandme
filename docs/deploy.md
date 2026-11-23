@@ -49,7 +49,11 @@ keeps no data (the database is Supabase's): another one is rebuilt with these st
 
 1. **Order**: ovhcloud.com → VPS → **VPS-1** (2 vCores, 4 GB; about €4.49 excl. VAT a month without
    commitment in November 2026), a datacenter **in France** (the privacy policy says the server is there), the
-   **Ubuntu 24.04** image and your SSH public key. Note the VPS's IPv4 address.
+   **Ubuntu 24.04** image and your SSH public key. Note the VPS's IPv4 address. Out of stock?
+   `node scripts/ovh-vps-stock.mjs` shows where each model can be ordered now (OVHcloud's public order API;
+   `--all` for every datacenter), and `--watch` asks every minute and notifies when one comes back in France;
+   `node --env-file=.env.notifier scripts/ovh-vps-stock.mjs --watch --email <address>` e-mails too, through the
+   notifier's Resend key (`--test-email` sends one at once).
 2. **DNS**: OVHcloud → Domain names → `behyndme.com` → DNS zone: the `A` record `api` → the VPS's IPv4.
    Delete any `AAAA` record `api`: Let's Encrypt would try it first. `dig +short api.behyndme.com` shows
    the change.
