@@ -40,24 +40,24 @@ npm run dev                 # the four services in watch mode
 
 `MESSAGING_ENABLED=false` stops a service's background loops (outbox relay, queue consumer, push sending).
 
-## One server (Oracle Cloud): the current target
+## One server (OVHcloud VPS): the current target
 
 Everything on one Ubuntu machine, from `deploy/vm/`: the four services and Caddy, which serves the gateway
-on `https://api.behyndme.com` with a Let's Encrypt certificate it renews by itself. Only Caddy listens on the
-internet (80, 443); the services reach each other on Docker's internal network, by name.
+on `https://api.behyndme.com` with a Let's Encrypt certificate it renews by itself. Only Caddy (80, 443) and
+SSH listen on the internet; the services reach each other on Docker's internal network, by name. The server
+keeps no data (the database is Supabase's): another one is rebuilt with these steps and the variables.
 
-1. **Account**: cloud.oracle.com/free, home region **France Central (Paris)**: Always Free resources exist
-   only in the home region, and it cannot be changed later.
-2. **Instance**: Ubuntu 24.04 (the aarch64 image), shape **`VM.Standard.A1.Flex`** (Ampere, Arm) with
-   **1 OCPU and 3 GB** (Always Free: 2 OCPUs and 12 GB in all), a public IPv4 address, your SSH public key.
-   Only A1.Flex (and the tiny E2.1.Micro) is free: an AMD `E3/E4/E5.Flex` of the same size costs about
-   $21 a month once the trial credits are spent. Keep it small: Oracle reclaims an Always Free
-   instance as idle when CPU, network **and** memory all stay under 20 % for 7 days, and the services use
-   about 1 GB. On "Out of capacity", try again later or in another availability domain.
-3. **Network**: in the subnet's security list, add ingress rules for TCP 80 and 443 from `0.0.0.0/0`.
-4. **DNS**: at the registrar of `behyndme.com`, an `A` record `api` → the instance's public IP.
-5. **On the server** (`ssh ubuntu@<ip>`), a read-only deploy key for the private repo, then the clone and the
-   one-time setup (Docker, firewall, security updates, swap):
+1. **Order**: ovhcloud.com → VPS → **VPS-1** (2 vCores, 4 GB; about €4.49 excl. VAT a month without
+   commitment in November 2026), a datacenter **in France** (the privacy policy says the server is there), the
+   **Ubuntu 24.04** image and your SSH public key. Note the VPS's IPv4 address.
+2. **DNS**: OVHcloud → Domain names → `behyndme.com` → DNS zone: the `A` record `api` → the VPS's IPv4.
+   Delete any `AAAA` record `api`: Let's Encrypt would try it first. `dig +short api.behyndme.com` shows
+   the change.
+3. **On the server** (`ssh ubuntu@<ip>`): SSH must take keys only.
+   `sudo sshd -T | grep -i '^passwordauthentication'` prints `no`; otherwise,
+   `echo 'PasswordAuthentication no' | sudo tee /etc/ssh/sshd_config.d/00-keys-only.conf` and
+   `sudo systemctl reload ssh` (the first value read wins, hence `00-`). Then a read-only deploy key for the
+   private repo, the clone and the one-time setup (Docker, firewall, security updates, swap):
 
    ```bash
    ssh-keygen -t ed25519 -f ~/.ssh/behandme -N "" && cat ~/.ssh/behandme.pub
@@ -68,12 +68,13 @@ internet (80, 443); the services reach each other on Docker's internal network, 
    ```
 
    The server follows `develop` until launch, then `main`.
-6. **Variables**: copy `deploy/vm/env-example/compose.env` to `deploy/vm/.env`, the other files of
+4. **Variables**: copy `deploy/vm/env-example/compose.env` to `deploy/vm/.env`, the other files of
    `env-example/` to `deploy/vm/env/`, fill them in (the `svc_*` URLs of "Database, once" above), then
    `chmod 600 deploy/vm/.env deploy/vm/env/*`. They are ignored by git.
-7. **Start**: `~/behandme/deploy/vm/update.sh` builds the images and starts everything; Caddy gets the
-   certificate once the DNS record points to the server. Check `curl https://api.behyndme.com/health`.
-8. **The app**: `EXPO_PUBLIC_API_URL=https://api.behyndme.com/api/v1`.
+5. **Start**: `~/behandme/deploy/vm/update.sh` builds the images (several minutes the first time) and starts
+   everything; Caddy gets the certificate once the DNS record points to the server. Check
+   `curl https://api.behyndme.com/health`.
+6. **The app**: `EXPO_PUBLIC_API_URL=https://api.behyndme.com/api/v1`.
 
 Day to day, from `~/behandme/deploy/vm`: `./update.sh` deploys what was pushed (pull, build, restart what
 changed); `docker compose logs -f gateway` shows a service's logs (5 × 10 MB kept per service);
@@ -83,6 +84,22 @@ install every day, and a kernel update needs a reboot now and then (`sudo reboot
 Closing an account at someone's request (heirs, lost access; see `docs/architecture.md`, "Closing an account on
 request"): `docker compose exec gateway node dist/apps/gateway/apps/gateway/src/close-account.js <user id or e-mail>`
 says what it would do; add `--confirm` to close it.
+
+## Oracle Cloud Always Free (alternative)
+
+Free, but its Ampere instances are often out of capacity in Paris, and the privacy policy would have to name
+Oracle instead of OVHcloud. The steps above, except the order:
+
+- **Account**: cloud.oracle.com/free, home region **France Central (Paris)**: Always Free resources exist only
+  in the home region, and it cannot be changed later.
+- **Instance**: Ubuntu 24.04 (the aarch64 image), shape **`VM.Standard.A1.Flex`** (Ampere, Arm) with
+  **1 OCPU and 3 GB** (Always Free: 2 OCPUs and 12 GB in all), a public IPv4 address, your SSH public key.
+  Only A1.Flex (and the tiny E2.1.Micro) is free: an AMD `E3/E4/E5.Flex` of the same size costs about $21 a
+  month once the trial credits are spent. Keep it small: Oracle reclaims an Always Free instance as idle when
+  CPU, network **and** memory all stay under 20 % for 7 days, and the services use about 1 GB. On "Out of
+  capacity", try again later.
+- **Network**: in the subnet's security list, add ingress rules for TCP 80 and 443 from `0.0.0.0/0`. Oracle's
+  Ubuntu images also reject those ports in iptables; `setup-server.sh` opens them.
 
 ## Railway (alternative)
 

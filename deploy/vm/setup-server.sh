@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# One-time setup of the server (Ubuntu 24.04 on Oracle Cloud): Docker, the firewall for HTTP and HTTPS,
-# automatic security updates and some swap for the builds. Safe to run again.
+# One-time setup of the server (Ubuntu 24.04, an OVHcloud VPS or Oracle Cloud): Docker, the firewall for
+# HTTP and HTTPS, automatic security updates and some swap for the builds. Safe to run again.
 # Run as the default user (ubuntu): bash setup-server.sh, then log out and in (docker group).
 set -euo pipefail
 
@@ -26,6 +26,7 @@ sudo usermod -aG docker "$USER"
 
 # Oracle's Ubuntu images reject every incoming port but SSH in iptables (on top of the VCN's security
 # list): accept HTTP and HTTPS before that REJECT rule, and keep the rules across reboots.
+# Elsewhere (OVHcloud) nothing rejects them, and these two rules change nothing.
 for port in 80 443; do
   if ! sudo iptables -C INPUT -p tcp --dport "$port" -m state --state NEW -j ACCEPT 2>/dev/null; then
     reject=$(sudo iptables -L INPUT --line-numbers -n | awk '$2 == "REJECT" { print $1; exit }')

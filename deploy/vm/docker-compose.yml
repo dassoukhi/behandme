@@ -1,4 +1,4 @@
-# The four services and Caddy (HTTPS) on one server (Oracle Cloud, see docs/deploy.md, "One server").
+# The four services and Caddy (HTTPS) on one server (an OVHcloud VPS, see docs/deploy.md, "One server").
 # Only Caddy listens on the internet; the services reach each other on the internal network, by name.
 # Run from this directory: docker compose up -d (update.sh does it after a git pull).
 name: behindme

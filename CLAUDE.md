@@ -164,7 +164,7 @@ If the contract changed, push this repo before the front.
   shared `.env` (`INTERNAL_JWT_SECRET`, Supabase and Clerk keys, `NOTIFIER_URL`). Template: `.env.example`.
   Validated at boot (gateway: `apps/gateway/src/common/validators/env.validator.ts`; others: zod, `config.ts`).
 - `MESSAGING_ENABLED=false` stops a service's background loops; `npm run openapi` sets it.
-- Deployment (Docker image per service, Railway): `docs/deploy.md`.
+- Deployment (Docker image per service, on one OVHcloud VPS; Oracle Cloud and Railway as alternatives): `docs/deploy.md`.
 
 ## Data changes (Supabase)
 
