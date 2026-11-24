@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# One-time setup of the server (Ubuntu 24.04, an OVHcloud VPS or Oracle Cloud): Docker, the firewall for
+# One-time setup of the server (Ubuntu 24.04 or 26.04, an OVHcloud VPS or Oracle Cloud): Docker, the firewall for
 # HTTP and HTTPS, automatic security updates and some swap for the builds. Safe to run again.
 # Run as the default user (ubuntu): bash setup-server.sh, then log out and in (docker group).
 set -euo pipefail

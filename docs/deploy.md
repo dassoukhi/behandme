@@ -48,8 +48,9 @@ SSH listen on the internet; the services reach each other on Docker's internal n
 keeps no data (the database is Supabase's): another one is rebuilt with these steps and the variables.
 
 1. **Order**: ovhcloud.com → VPS → **VPS-1** (2 vCores, 4 GB; about €4.49 excl. VAT a month without
-   commitment in November 2026), a datacenter **in France** (the privacy policy says the server is there), the
-   **Ubuntu 24.04** image and your SSH public key. Note the VPS's IPv4 address. Out of stock?
+   commitment in November 2026), a datacenter **in France** (the privacy policy says the server is there), an
+   **Ubuntu** LTS image (24.04 or 26.04: the first server, in November 2026, runs 26.04) and your SSH public key.
+   Note the VPS's IPv4 address. Out of stock?
    `node scripts/ovh-vps-stock.mjs` shows where each model can be ordered now (OVHcloud's public order API;
    `--all` for every datacenter), and `--watch` asks every minute and notifies when one comes back in France;
    `node --env-file=.env.notifier scripts/ovh-vps-stock.mjs --watch --email <address>` e-mails too, through the
@@ -57,7 +58,9 @@ keeps no data (the database is Supabase's): another one is rebuilt with these st
 2. **DNS**: OVHcloud → Domain names → `behyndme.com` → DNS zone: the `A` record `api` → the VPS's IPv4.
    Delete any `AAAA` record `api`: Let's Encrypt would try it first. `dig +short api.behyndme.com` shows
    the change.
-3. **On the server** (`ssh ubuntu@<ip>`): SSH must take keys only.
+3. **On the server** (`ssh ubuntu@<ip>`): ordered without an SSH key, the VPS has a password (a link in
+   OVHcloud's delivery e-mail) that expires at the first login: log in once in a terminal to change it, then
+   `ssh-copy-id -i ~/.ssh/<key>.pub ubuntu@<ip>`. SSH must take keys only.
    `sudo sshd -T | grep -i '^passwordauthentication'` prints `no`; otherwise,
    `echo 'PasswordAuthentication no' | sudo tee /etc/ssh/sshd_config.d/00-keys-only.conf` and
    `sudo systemctl reload ssh` (the first value read wins, hence `00-`). Then a read-only deploy key for the
